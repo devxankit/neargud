@@ -1,68 +1,320 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+html {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #F8FAFC;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  /* Hide scrollbar */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+#root {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Custom scrollbar hide */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Custom scrollbar responsive - hide on mobile, show on desktop */
+.scrollbar-responsive {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-responsive::-webkit-scrollbar {
+  display: none;
+}
+
+/* Show scrollbar on desktop (md breakpoint and above) */
+@media (min-width: 768px) {
+  .scrollbar-responsive {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+}
+
+  .scrollbar-responsive::-webkit-scrollbar {
+    display: block;
+    width: 8px;
   }
-  a:hover {
-    color: #747bff;
+
+  .scrollbar-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
   }
-  button {
-    background-color: #f9f9f9;
+
+  .scrollbar-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  .scrollbar-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+}
+
+/* Nano stylish scrollbar for admin panel */
+.scrollbar-nano {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.scrollbar-nano::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-nano::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.scrollbar-nano::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(156, 163, 175, 0.6) 0%, rgba(107, 114, 128, 0.6) 100%);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.scrollbar-nano::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(107, 114, 128, 0.8) 0%, rgba(75, 85, 99, 0.8) 100%);
+  width: 6px;
+}
+
+.scrollbar-nano::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, rgba(75, 85, 99, 0.9) 0%, rgba(55, 65, 81, 0.9) 100%);
+}
+
+/* Horizontal nano scrollbar */
+.scrollbar-nano::-webkit-scrollbar:horizontal {
+  height: 4px;
+}
+
+.scrollbar-nano::-webkit-scrollbar-thumb:horizontal:hover {
+  height: 6px;
+}
+
+/* Admin panel specific scrollbar - slightly thicker for better visibility */
+.scrollbar-admin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 38, 38, 0.4) transparent;
+}
+
+.scrollbar-admin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.scrollbar-admin::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.5);
+  border-radius: 10px;
+  margin: 2px;
+}
+
+.scrollbar-admin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.5) 0%, rgba(239, 68, 68, 0.5) 100%);
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scrollbar-admin::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.7) 0%, rgba(239, 68, 68, 0.7) 100%);
+  width: 7px;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
+}
+
+.scrollbar-admin::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.9) 0%, rgba(239, 68, 68, 0.9) 100%);
+}
+
+/* Horizontal admin scrollbar */
+.scrollbar-admin::-webkit-scrollbar:horizontal {
+  height: 5px;
+}
+
+.scrollbar-admin::-webkit-scrollbar-thumb:horizontal:hover {
+  height: 7px;
+}
+
+/* Writing vertical */
+.writing-vertical-rl {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Glassmorphism utilities */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateZ(0);
+    will-change: backdrop-filter;
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: translateZ(0);
+    will-change: backdrop-filter;
+  }
+
+  .glass-card {
+    background: #ffffff;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    transform: translateZ(0);
+    will-change: backdrop-filter;
+}
+
+  .gradient-primary {
+    background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+  }
+
+  .gradient-secondary {
+    background: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  }
+
+  .gradient-green {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+  .text-gradient {
+    background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+  }
+
+  .shadow-glow-green {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: 0 0 20px rgba(255, 225, 27, 0.3);
+  }
+
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+    transform: translateZ(0);
+  }
+
+  /* GPU acceleration utilities */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+  .gpu-accelerate-opacity {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+  }
+
+  .gpu-accelerate-all {
+    transform: translateZ(0);
+    will-change: transform, opacity, filter;
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .shimmer {
+    animation: none !important;
+  }
+
+  .hover-lift {
+    transition: none !important;
+  }
+}
+
+/* Performance optimizations */
+@layer utilities {
+  .optimize-animation {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  .optimize-scroll {
+    will-change: scroll-position;
+    transform: translateZ(0);
   }
 }
