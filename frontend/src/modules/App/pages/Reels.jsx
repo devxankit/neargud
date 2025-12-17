@@ -5,11 +5,12 @@ import { FiHeart, FiMessageCircle, FiShare2, FiMoreVertical, FiX, FiFlag, FiAler
 import { useWishlistStore } from '../../../store/wishlistStore';
 import { useReviewsStore } from '../../../store/reviewsStore';
 import { getProductById } from '../../../data/products';
+import { getActiveReels } from '../../../utils/reelHelpers';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import PageTransition from '../../../components/PageTransition';
 import toast from 'react-hot-toast';
 
-// Mock reel data - replace with actual data from your API
+// Mock reel data - fallback when no vendor reels exist
 // Using product-related sample videos that showcase fashion, accessories, and lifestyle products
 const mockReels = [
   {
@@ -194,10 +195,27 @@ const mockReels = [
   },
 ];
 
+// Get reels from vendor management or use mock data as fallback
+const getReelsData = () => {
+  const vendorReels = getActiveReels();
+  if (vendorReels && vendorReels.length > 0) {
+    return vendorReels;
+  }
+  // Fallback to mock data if no vendor reels exist
+  return mockReels;
+};
+
 const Reels = () => {
   const navigate = useNavigate();
+  const [reelsData, setReelsData] = useState(() => getReelsData());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  
+  // Refresh reels data when component mounts
+  useEffect(() => {
+    const updatedReels = getReelsData();
+    setReelsData(updatedReels);
+  }, []);
   const [likedReels, setLikedReels] = useState(new Set());
   const [showProductInfo, setShowProductInfo] = useState(true);
   const [showComments, setShowComments] = useState(false);
@@ -224,7 +242,7 @@ const Reels = () => {
     };
   }, []);
 
-  const currentReel = mockReels[currentIndex];
+  const currentReel = reelsData[currentIndex];
   
   // Get vendor ID from product
   const getVendorIdFromProduct = (productId) => {
@@ -292,7 +310,7 @@ const Reels = () => {
 
   // Auto-play next reel when current ends
   const handleVideoEnd = () => {
-    if (currentIndex < mockReels.length - 1) {
+    if (currentIndex < reelsData.length - 1) {
       // Pause all videos before switching
       Object.values(videoRefs.current).forEach((video) => {
         if (video) {
@@ -319,7 +337,7 @@ const Reels = () => {
         }
       });
       
-      if (e.deltaY > 0 && currentIndex < mockReels.length - 1) {
+      if (e.deltaY > 0 && currentIndex < reelsData.length - 1) {
         setCurrentIndex(prev => prev + 1);
       } else if (e.deltaY < 0 && currentIndex > 0) {
         setCurrentIndex(prev => prev - 1);
@@ -379,7 +397,7 @@ const Reels = () => {
     const isUpSwipe = distance > minSwipeDistance;
     const isDownSwipe = distance < -minSwipeDistance;
 
-    if (isUpSwipe && currentIndex < mockReels.length - 1) {
+            if (isUpSwipe && currentIndex < reelsData.length - 1) {
       isSwipingRef.current = true;
       
       // Pause all videos before switching

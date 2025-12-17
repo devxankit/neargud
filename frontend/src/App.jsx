@@ -187,6 +187,10 @@ import VendorProductAttributes from "./modules/vendor/pages/ProductAttributes";
 import VendorInventoryReports from "./modules/vendor/pages/InventoryReports";
 import VendorPerformanceMetrics from "./modules/vendor/pages/PerformanceMetrics";
 import VendorDocuments from "./modules/vendor/pages/Documents";
+import VendorReels from "./modules/vendor/pages/Reels";
+import VendorAllReels from "./modules/vendor/pages/reels/AllReels";
+import VendorAddReel from "./modules/vendor/pages/reels/AddReel";
+import VendorEditReel from "./modules/vendor/pages/reels/EditReel";
 
 // Inner component that has access to useLocation
 const AppRoutes = () => {
@@ -393,6 +397,10 @@ const AppRoutes = () => {
         <Route path="return-requests/:id" element={<VendorReturnRequestDetail />} />
         <Route path="product-reviews" element={<VendorProductReviews />} />
         <Route path="promotions" element={<VendorPromotions />} />
+        <Route path="reels" element={<VendorReels />} />
+        <Route path="reels/all-reels" element={<VendorAllReels />} />
+        <Route path="reels/add-reel" element={<VendorAddReel />} />
+        <Route path="reels/edit-reel/:id" element={<VendorEditReel />} />
         <Route path="notifications" element={<VendorNotifications />} />
         <Route path="shipping-management" element={<VendorShippingManagement />} />
         <Route path="customers" element={<VendorCustomers />} />

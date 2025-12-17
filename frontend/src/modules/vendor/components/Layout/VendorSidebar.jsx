@@ -27,6 +27,7 @@ import {
   FiLayers,
   FiTrendingUp,
   FiFile,
+  FiVideo,
 } from "react-icons/fi";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
 import vendorMenu from "../../config/vendorMenu.json";
@@ -43,6 +44,7 @@ const iconMap = {
   "Pickup Locations": FiMapPin,
   Chat: FiMessageCircle,
   Promotions: FiTag,
+  Reels: FiVideo,
   Notifications: FiBell,
   "Shipping Management": FiTruck,
   Customers: FiUsers,
@@ -80,6 +82,10 @@ const getChildRoute = (parentRoute, childName) => {
       "Store Settings": "/vendor/settings/store",
       "Payment Settings": "/vendor/settings/payment",
       "Shipping Settings": "/vendor/settings/shipping",
+    },
+    "/vendor/reels": {
+      "All Reels": "/vendor/reels/all-reels",
+      "Add Reel": "/vendor/reels/add-reel",
     },
   };
 
