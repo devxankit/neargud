@@ -50,6 +50,11 @@
     "children": []
   },
   {
+    "title": "Reels",
+    "route": "/vendor/reels",
+    "children": ["All Reels", "Add Reel"]
+  },
+  {
     "title": "Notifications",
     "route": "/vendor/notifications",
     "children": []
