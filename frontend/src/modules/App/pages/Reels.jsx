@@ -354,15 +354,18 @@ const Reels = () => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartElementRef = useRef(null); // Track which element touch started on
 
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
     // Prevent new swipe if already processing one
     if (isSwipingRef.current) {
-      e.preventDefault();
       return;
     }
+    
+    // Store the element where touch started
+    touchStartElementRef.current = e.target;
     
     const touch = e.targetTouches[0];
     setTouchEnd(null);
@@ -378,16 +381,38 @@ const Reels = () => {
     }
   };
 
-  const onTouchEnd = () => {
+  const onTouchEnd = (e) => {
     // Prevent multiple triggers during one swipe
     if (isSwipingRef.current) {
       setTouchStart(null);
       setTouchEnd(null);
       setIsSwiping(false);
+      touchStartElementRef.current = null;
       return;
     }
     
     if (touchStart === null) {
+      return;
+    }
+    
+    // Check if touch ended on a button or interactive element
+    const touchEndElement = e.target || e.changedTouches[0]?.target;
+    const isButtonClick = touchStartElementRef.current && (
+      touchStartElementRef.current.closest('button') ||
+      touchStartElementRef.current.closest('a') ||
+      touchStartElementRef.current.closest('[role="button"]')
+    ) && (
+      touchEndElement?.closest('button') ||
+      touchEndElement?.closest('a') ||
+      touchEndElement?.closest('[role="button"]')
+    );
+    
+    // If it's a button click, don't trigger swipe
+    if (isButtonClick) {
+      setTouchStart(null);
+      setTouchEnd(null);
+      setIsSwiping(false);
+      touchStartElementRef.current = null;
       return;
     }
     
@@ -397,7 +422,7 @@ const Reels = () => {
     const isUpSwipe = distance > minSwipeDistance;
     const isDownSwipe = distance < -minSwipeDistance;
 
-            if (isUpSwipe && currentIndex < reelsData.length - 1) {
+    if (isUpSwipe && currentIndex < reelsData.length - 1) {
       isSwipingRef.current = true;
       
       // Pause all videos before switching
@@ -436,6 +461,7 @@ const Reels = () => {
     setTouchStart(null);
     setTouchEnd(null);
     setIsSwiping(false);
+    touchStartElementRef.current = null;
   };
 
   const toggleLike = () => {
@@ -602,7 +628,7 @@ const Reels = () => {
       <MobileLayout>
         <div
           ref={containerRef}
-          className="relative w-full bg-black overflow-hidden touch-none"
+          className="relative w-full bg-black overflow-hidden"
           onWheel={handleWheel}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
@@ -616,6 +642,9 @@ const Reels = () => {
             right: 0,
             bottom: '64px', // Bottom nav height (h-16 = 64px)
             zIndex: 1,
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
           }}>
           {/* Video Container */}
           <div className="relative w-full h-full">
@@ -658,9 +687,6 @@ const Reels = () => {
                   onLoadedData={() => handleVideoLoaded(currentIndex)}
                   onEnded={handleVideoEnd}
                   onClick={() => setIsPlaying(!isPlaying)}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onTouchMove={(e) => e.stopPropagation()}
-                  onTouchEnd={(e) => e.stopPropagation()}
                 />
               </motion.div>
             </AnimatePresence>
@@ -698,6 +724,8 @@ const Reels = () => {
               {/* Profile Avatar - Link to Vendor Store */}
               <Link
                 to={`/app/vendor/${getVendorIdFromProduct(currentReel.productId)}?productId=${currentReel.productId}`}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
                 className="w-12 h-12 rounded-full border-2 border-white overflow-hidden hover:border-red-500 transition-colors cursor-pointer">
                 <img
                   src={currentReel.thumbnail}
@@ -709,6 +737,8 @@ const Reels = () => {
               {/* Like Button */}
               <button
                 onClick={toggleLike}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
                 className="flex flex-col items-center gap-1">
                 <motion.div
                   animate={{ scale: likedReels.has(currentReel.id) ? [1, 1.2, 1] : 1 }}
@@ -729,6 +759,8 @@ const Reels = () => {
               {/* Comment Button */}
               <button 
                 onClick={handleComment}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
                 className="flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
                 <FiMessageCircle className="text-3xl text-white" />
                 <span className="text-white text-xs font-medium">
@@ -739,6 +771,8 @@ const Reels = () => {
               {/* Share Button */}
               <button 
                 onClick={handleShare}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
                 className="flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
                 <FiShare2 className="text-3xl text-white" />
                 <span className="text-white text-xs font-medium">
@@ -750,6 +784,8 @@ const Reels = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowMoreOptions(!showMoreOptions)}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
                   className="hover:opacity-80 transition-opacity">
                   <FiMoreVertical className="text-2xl text-white" />
                 </button>
