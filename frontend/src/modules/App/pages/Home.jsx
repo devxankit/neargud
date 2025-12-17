@@ -134,7 +134,7 @@ const MobileHome = () => {
       <MobileLayout>
         <div
           ref={elementRef}
-          className="w-full overflow-x-hidden"
+          className="w-full overflow-x-hidden scrollbar-hide"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

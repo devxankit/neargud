@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiBarChart2, FiTrendingUp, FiDollarSign, FiShoppingBag, FiPackage } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { formatPrice } from "../../../utils/helpers";
-import { useVendorStore } from "../../../store/vendorStore";
+import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
 import { useOrderStore } from "../../../store/orderStore";
 import { useCommissionStore } from "../../../store/commissionStore";
 
@@ -126,7 +126,7 @@ const VendorAnalytics = () => {
                 <tr
                   key={vendor.id}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/admin/vendors/${vendor.id}`)}>
+                  onClick={() => navigate(`/ admin / vendors / ${vendor.id} `)}>
                   <td className="py-3 px-4">
                     <div>
                       <p className="font-semibold text-gray-800">{vendor.storeName || vendor.name}</p>
@@ -155,7 +155,7 @@ const VendorAnalytics = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/admin/vendors/${vendor.id}`);
+                        navigate(`/ admin / vendors / ${vendor.id} `);
                       }}
                       className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                       View

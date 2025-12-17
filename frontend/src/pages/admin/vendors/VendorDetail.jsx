@@ -17,7 +17,7 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { useVendorStore } from '../../../store/vendorStore';
+import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
 import { useOrderStore } from '../../../store/orderStore';
 import { useCommissionStore } from '../../../store/commissionStore';
 import Badge from '../../../components/Badge';
@@ -32,7 +32,7 @@ const VendorDetail = () => {
   const { vendors, updateVendorStatus, updateCommissionRate } = useVendorStore();
   const { orders } = useOrderStore();
   const { getVendorCommissions, getVendorEarningsSummary, getVendorSettlements } = useCommissionStore();
-  
+
   const [vendor, setVendor] = useState(null);
   const [vendorOrders, setVendorOrders] = useState([]);
   const [commissions, setCommissions] = useState([]);
@@ -121,10 +121,10 @@ const VendorDetail = () => {
             value === 'delivered'
               ? 'success'
               : value === 'pending'
-              ? 'warning'
-              : value === 'cancelled' || value === 'canceled'
-              ? 'error'
-              : 'info'
+                ? 'warning'
+                : value === 'cancelled' || value === 'canceled'
+                  ? 'error'
+                  : 'info'
           }>
           {value?.toUpperCase() || 'N/A'}
         </Badge>
@@ -193,8 +193,8 @@ const VendorDetail = () => {
             value === 'paid'
               ? 'success'
               : value === 'pending'
-              ? 'warning'
-              : 'error'
+                ? 'warning'
+                : 'error'
           }>
           {value?.toUpperCase()}
         </Badge>
@@ -230,8 +230,8 @@ const VendorDetail = () => {
               vendor.status === 'approved'
                 ? 'success'
                 : vendor.status === 'pending'
-                ? 'warning'
-                : 'error'
+                  ? 'warning'
+                  : 'error'
             }>
             {vendor.status?.toUpperCase()}
           </Badge>
@@ -261,11 +261,10 @@ const VendorDetail = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-semibold text-sm transition-colors ${
-                activeTab === tab
+              className={`px-6 py-3 font-semibold text-sm transition-colors ${activeTab === tab
                   ? 'text-primary-600 border-b-2 border-primary-600'
                   : 'text-gray-600 hover:text-gray-800'
-              }`}>
+                }`}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}

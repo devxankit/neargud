@@ -15,13 +15,15 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true }) =>
                      location.pathname === '/app/verification';
   
   // Always show bottom nav on /app routes, except auth pages
+  const isReelsPage = location.pathname === '/app/reels';
   const shouldShowBottomNav = location.pathname.startsWith('/app') && !isAuthPage ? true : (showBottomNav && !isAuthPage);
-  // Hide header on categories, search, wishlist, profile, and auth pages
+  // Hide header on categories, search, wishlist, profile, reels, and auth pages
   const shouldShowHeader = !isAuthPage && 
                            location.pathname !== '/app/categories' && 
                            location.pathname !== '/app/search' && 
                            location.pathname !== '/app/wishlist' && 
-                           location.pathname !== '/app/profile';
+                           location.pathname !== '/app/profile' &&
+                           location.pathname !== '/app/reels';
   
   // Ensure body scroll is restored when component mounts
   useEffect(() => {
@@ -35,12 +37,19 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true }) =>
     <>
       {shouldShowHeader && <MobileHeader />}
       <main 
-        className={`min-h-screen w-full overflow-x-hidden ${
+        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide ${
+          isReelsPage ? '' : // No padding for reels page (container is fixed)
           shouldShowBottomNav && showCartBar ? 'pb-24' : 
           shouldShowBottomNav ? 'pb-20' : 
           showCartBar ? 'pb-24' : ''
         }`}
-        style={{ paddingTop: shouldShowHeader ? `${headerHeight}px` : '0px' }}
+        style={{ 
+          paddingTop: shouldShowHeader ? `${headerHeight}px` : '0px',
+          overflowY: isReelsPage ? 'hidden' : 'auto',
+          WebkitOverflowScrolling: 'touch',
+          height: isReelsPage ? '100vh' : 'auto',
+          backgroundColor: isReelsPage ? 'black' : 'transparent', // Black background for reels
+        }}
       >
         {children}
       </main>

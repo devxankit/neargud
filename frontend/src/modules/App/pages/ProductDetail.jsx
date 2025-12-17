@@ -6,7 +6,7 @@ import { useCartStore } from '../../../store/useStore';
 import { useWishlistStore } from '../../../store/wishlistStore';
 import { useReviewsStore } from '../../../store/reviewsStore';
 import { getProductById, getSimilarProducts } from '../../../data/products';
-import { getVendorById } from '../../../data/vendors';
+import { getVendorById } from '../../../modules/vendor/data/vendors';
 import { formatPrice } from '../../../utils/helpers';
 import toast from 'react-hot-toast';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';

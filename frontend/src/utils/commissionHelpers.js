@@ -1,4 +1,4 @@
-import { getVendorById } from '../data/vendors';
+import { getVendorById } from '../modules/vendor/data/vendors';
 
 /**
  * Calculate commission for a single item

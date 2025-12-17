@@ -136,6 +136,7 @@ import MobileOrders from "./modules/App/pages/Orders";
 import MobileOrderDetail from "./modules/App/pages/OrderDetail";
 import MobileAddresses from "./modules/App/pages/Addresses";
 import MobileWishlist from "./modules/App/pages/Wishlist";
+import MobileReels from "./modules/App/pages/Reels";
 import MobileOffers from "./modules/App/pages/Offers";
 import MobileDailyDeals from "./modules/App/pages/DailyDeals";
 import MobileFlashSale from "./modules/App/pages/FlashSale";
@@ -150,42 +151,42 @@ import DeliveryOrders from "./pages/delivery/Orders";
 import DeliveryOrderDetail from "./pages/delivery/OrderDetail";
 import DeliveryProfile from "./pages/delivery/Profile";
 // Vendor Routes
-import VendorLogin from "./pages/vendor/Login";
-import VendorRegister from "./pages/vendor/Register";
-import VendorVerification from "./pages/vendor/Verification";
-import VendorProtectedRoute from "./components/Vendor/VendorProtectedRoute";
-import VendorLayout from "./components/Vendor/Layout/VendorLayout";
-import VendorDashboard from "./pages/vendor/Dashboard";
-import VendorProducts from "./pages/vendor/Products";
-import VendorManageProducts from "./pages/vendor/products/ManageProducts";
-import VendorAddProduct from "./pages/vendor/products/AddProduct";
-import VendorBulkUpload from "./pages/vendor/products/BulkUpload";
-import VendorProductForm from "./pages/vendor/products/ProductForm";
-import VendorOrders from "./pages/vendor/Orders";
-import VendorAllOrders from "./pages/vendor/orders/AllOrders";
-import VendorOrderTracking from "./pages/vendor/orders/OrderTracking";
-import VendorOrderDetail from "./pages/vendor/orders/OrderDetail";
-import VendorAnalytics from "./pages/vendor/Analytics";
-import VendorEarnings from "./pages/vendor/Earnings";
-import VendorSettings from "./pages/vendor/Settings";
-import VendorStockManagement from "./pages/vendor/StockManagement";
-import VendorWalletHistory from "./pages/vendor/WalletHistory";
-import VendorPickupLocations from "./pages/vendor/PickupLocations";
-import VendorChat from "./pages/vendor/Chat";
-import VendorReturnRequests from "./pages/vendor/ReturnRequests";
-import VendorReturnRequestDetail from "./pages/vendor/returns/ReturnRequestDetail";
-import VendorProductReviews from "./pages/vendor/ProductReviews";
-import VendorPromotions from "./pages/vendor/Promotions";
-import VendorNotifications from "./pages/vendor/Notifications";
-import VendorProductFAQs from "./pages/vendor/ProductFAQs";
-import VendorTaxPricing from "./pages/vendor/TaxPricing";
-import VendorShippingManagement from "./pages/vendor/ShippingManagement";
-import VendorCustomers from "./pages/vendor/Customers";
-import VendorSupportTickets from "./pages/vendor/SupportTickets";
-import VendorProductAttributes from "./pages/vendor/ProductAttributes";
-import VendorInventoryReports from "./pages/vendor/InventoryReports";
-import VendorPerformanceMetrics from "./pages/vendor/PerformanceMetrics";
-import VendorDocuments from "./pages/vendor/Documents";
+import VendorLogin from "./modules/vendor/pages/Login";
+import VendorRegister from "./modules/vendor/pages/Register";
+import VendorVerification from "./modules/vendor/pages/Verification";
+import VendorProtectedRoute from "./modules/vendor/components/VendorProtectedRoute";
+import VendorLayout from "./modules/vendor/components/Layout/VendorLayout";
+import VendorDashboard from "./modules/vendor/pages/Dashboard";
+import VendorProducts from "./modules/vendor/pages/Products";
+import VendorManageProducts from "./modules/vendor/pages/products/ManageProducts";
+import VendorAddProduct from "./modules/vendor/pages/products/AddProduct";
+import VendorBulkUpload from "./modules/vendor/pages/products/BulkUpload";
+import VendorProductForm from "./modules/vendor/pages/products/ProductForm";
+import VendorOrders from "./modules/vendor/pages/Orders";
+import VendorAllOrders from "./modules/vendor/pages/orders/AllOrders";
+import VendorOrderTracking from "./modules/vendor/pages/orders/OrderTracking";
+import VendorOrderDetail from "./modules/vendor/pages/orders/OrderDetail";
+import VendorAnalytics from "./modules/vendor/pages/Analytics";
+import VendorEarnings from "./modules/vendor/pages/Earnings";
+import VendorSettings from "./modules/vendor/pages/Settings";
+import VendorStockManagement from "./modules/vendor/pages/StockManagement";
+import VendorWalletHistory from "./modules/vendor/pages/WalletHistory";
+import VendorPickupLocations from "./modules/vendor/pages/PickupLocations";
+import VendorChat from "./modules/vendor/pages/Chat";
+import VendorReturnRequests from "./modules/vendor/pages/ReturnRequests";
+import VendorReturnRequestDetail from "./modules/vendor/pages/returns/ReturnRequestDetail";
+import VendorProductReviews from "./modules/vendor/pages/ProductReviews";
+import VendorPromotions from "./modules/vendor/pages/Promotions";
+import VendorNotifications from "./modules/vendor/pages/Notifications";
+import VendorProductFAQs from "./modules/vendor/pages/ProductFAQs";
+import VendorTaxPricing from "./modules/vendor/pages/TaxPricing";
+import VendorShippingManagement from "./modules/vendor/pages/ShippingManagement";
+import VendorCustomers from "./modules/vendor/pages/Customers";
+import VendorSupportTickets from "./modules/vendor/pages/SupportTickets";
+import VendorProductAttributes from "./modules/vendor/pages/ProductAttributes";
+import VendorInventoryReports from "./modules/vendor/pages/InventoryReports";
+import VendorPerformanceMetrics from "./modules/vendor/pages/PerformanceMetrics";
+import VendorDocuments from "./modules/vendor/pages/Documents";
 
 // Inner component that has access to useLocation
 const AppRoutes = () => {
@@ -416,6 +417,7 @@ const AppRoutes = () => {
       <Route path="/app/vendor/:id" element={<RouteWrapper><VendorStore /></RouteWrapper>} />
       <Route path="/app/checkout" element={<RouteWrapper><MobileCheckout /></RouteWrapper>} />
       <Route path="/app/search" element={<RouteWrapper><MobileSearch /></RouteWrapper>} />
+      <Route path="/app/reels" element={<RouteWrapper><MobileReels /></RouteWrapper>} />
       <Route path="/app/login" element={<RouteWrapper><MobileLogin /></RouteWrapper>} />
       <Route path="/app/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
       <Route path="/app/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />

@@ -8,7 +8,7 @@ import ProductListItem from '../components/ProductListItem';
 import SearchSuggestions from '../components/SearchSuggestions';
 import { products } from '../../../data/products';
 import { categories } from '../../../data/categories';
-import { getApprovedVendors } from '../../../data/vendors';
+import { getApprovedVendors } from '../../../modules/vendor/data/vendors';
 import PageTransition from '../../../components/PageTransition';
 import useInfiniteScroll from '../../../hooks/useInfiniteScroll';
 import toast from 'react-hot-toast';

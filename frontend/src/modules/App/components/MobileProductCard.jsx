@@ -10,8 +10,8 @@ import { useState, useRef } from 'react';
 import useLongPress from '../../../hooks/useLongPress';
 import LongPressMenu from './LongPressMenu';
 import FlyingItem from './FlyingItem';
-import VendorBadge from '../../../components/Vendor/VendorBadge';
-import { getVendorById } from '../../../data/vendors';
+import VendorBadge from '../../../modules/vendor/components/VendorBadge';
+import { getVendorById } from '../../../modules/vendor/data/vendors';
 
 const MobileProductCard = ({ product }) => {
   const addItem = useCartStore((state) => state.addItem);

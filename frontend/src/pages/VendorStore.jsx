@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft, FiStar, FiShoppingBag, FiCheckCircle, FiFilter, FiGrid, FiList } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { getVendorById } from '../data/vendors';
+import { getVendorById } from '../modules/vendor/data/vendors';
 import { products } from '../data/products';
 import { formatPrice } from '../utils/helpers';
 import ProductCard from '../components/ProductCard';
@@ -21,11 +21,16 @@ const VendorStore = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { responsivePadding } = useResponsiveHeaderPadding();
   const vendor = getVendorById(id);
+  const productIdRef = useRef(null);
   
   // Check if we're in the mobile app section
   const isMobileApp = location.pathname.startsWith('/app');
+  
+  // Get productId from query params
+  const productIdFromQuery = searchParams.get('productId');
   
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('popular');
@@ -100,6 +105,19 @@ const VendorStore = () => {
     12,
     12
   );
+
+  // Scroll to product if productId is in query params
+  useEffect(() => {
+    if (productIdFromQuery && productIdRef.current && isMobileApp) {
+      // Small delay to ensure products are rendered
+      setTimeout(() => {
+        productIdRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 300);
+    }
+  }, [productIdFromQuery, displayedItems, isMobileApp]);
 
   if (!vendor) {
     if (isMobileApp) {
@@ -334,19 +352,29 @@ const VendorStore = () => {
             <div className="px-4 pb-4">
               {filteredProducts.length > 0 ? (
                 <>
-                  {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      {displayedItems.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {displayedItems.map((product, index) => (
-                        <ProductListItem key={product.id} product={product} index={index} />
-                      ))}
-                    </div>
-                  )}
+                    {viewMode === 'grid' ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {displayedItems.map((product) => (
+                          <div
+                            key={product.id}
+                            ref={productIdFromQuery && parseInt(productIdFromQuery) === product.id ? productIdRef : null}
+                            className={productIdFromQuery && parseInt(productIdFromQuery) === product.id ? 'ring-2 ring-red-500 rounded-lg' : ''}>
+                            <ProductCard product={product} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {displayedItems.map((product, index) => (
+                          <div
+                            key={product.id}
+                            ref={productIdFromQuery && parseInt(productIdFromQuery) === product.id ? productIdRef : null}
+                            className={productIdFromQuery && parseInt(productIdFromQuery) === product.id ? 'ring-2 ring-red-500 rounded-lg' : ''}>
+                            <ProductListItem product={product} index={index} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   {hasMore && (
                     <div ref={loadMoreRef} className="text-center py-8">
                       <p className="text-gray-500 text-sm">Loading more products...</p>

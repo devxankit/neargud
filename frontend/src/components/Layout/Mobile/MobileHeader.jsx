@@ -6,11 +6,13 @@ import {
   FiLogOut,
   FiPackage,
   FiMapPin,
+  FiHeart,
 } from "react-icons/fi";
 import { HiOutlineUserCircle } from "react-icons/hi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCartStore, useUIStore } from "../../../store/useStore";
 import { useAuthStore } from "../../../store/authStore";
+import { useWishlistStore } from "../../../store/wishlistStore";
 import { appLogo } from "../../../data/logos";
 import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
@@ -57,6 +59,7 @@ const MobileHeader = () => {
     (state) => state.cartAnimationTrigger
   );
   const { user, isAuthenticated, logout } = useAuthStore();
+  const wishlistCount = useWishlistStore((state) => state.getItemCount());
   const { theme, activeTab } = useTheme();
 
   // Get current category from URL (supports both /category/:id and /app/category/:id)
@@ -379,6 +382,23 @@ const MobileHeader = () => {
               )}
             </motion.button>
 
+            {/* Wishlist Button */}
+            <Link
+              to="/app/wishlist"
+              className="relative p-2.5 hover:bg-white/50 rounded-full transition-all duration-300">
+              <FiHeart className="text-xl text-gray-700" />
+              {wishlistCount > 0 && (
+                <motion.span
+                  key={wishlistCount}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-md"
+                  style={{ backgroundColor: '#ffc101' }}>
+                  {wishlistCount > 9 ? "9+" : wishlistCount}
+                </motion.span>
+              )}
+            </Link>
+
             {/* User Menu */}
             {isAuthenticated ? (
               <div ref={userMenuRef} className="relative">
@@ -441,13 +461,7 @@ const MobileHeader = () => {
                   </div>
                 )}
               </div>
-            ) : (
-              <Link
-                to="/app/login"
-                className="px-3 py-1.5 gradient-green text-white rounded-lg font-semibold text-sm hover:shadow-glow-green transition-all duration-300">
-                Login
-              </Link>
-            )}
+            ) : null}
           </div>
         </motion.div>
 

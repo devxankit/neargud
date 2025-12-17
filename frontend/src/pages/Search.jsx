@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { products } from '../data/products';
 import { categories } from '../data/categories';
-import { getApprovedVendors } from '../data/vendors';
+import { getApprovedVendors } from '../modules/vendor/data/vendors';
 import Header from '../components/Layout/Header';
 import Navbar from '../components/Layout/Navbar';
 import Footer from '../components/Layout/Footer';

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowRight } from 'react-icons/fi';
 import VendorShowcaseCard from './VendorShowcaseCard';
-import { getApprovedVendors } from '../../../data/vendors';
+import { getApprovedVendors } from '../../../modules/vendor/data/vendors';
 
 const FeaturedVendorsSection = () => {
   const location = useLocation();

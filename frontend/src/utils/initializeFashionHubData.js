@@ -1,7 +1,7 @@
 import { useOrderStore } from '../store/orderStore';
 import { useCommissionStore } from '../store/commissionStore';
 import { products } from '../data/products';
-import { getVendorById } from '../data/vendors';
+import { getVendorById } from '../modules/vendor/data/vendors';
 
 /**
  * Initialize dummy data for Fashion Hub vendor (vendorId: 1)

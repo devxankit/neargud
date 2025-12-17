@@ -10,8 +10,8 @@ import { useState, useRef } from "react";
 import useLongPress from "../hooks/useLongPress";
 import LongPressMenu from "../modules/App/components/LongPressMenu";
 import FlyingItem from "../modules/App/components/FlyingItem";
-import VendorBadge from "./Vendor/VendorBadge";
-import { getVendorById } from "../data/vendors";
+import VendorBadge from "../modules/vendor/components/VendorBadge";
+import { getVendorById } from "../modules/vendor/data/vendors";
 
 const ProductCard = ({ product, hideRating = false }) => {
   const location = useLocation();
@@ -235,33 +235,33 @@ const ProductCard = ({ product, hideRating = false }) => {
 
           {/* Add Button or Quantity Control */}
           {inCartQty === 0 ? (
-            <motion.button
-              ref={buttonRef}
-              onClick={handleAddToCart}
-              disabled={product.stock === "out_of_stock" || isAdding}
-              whileTap={{ scale: 0.95 }}
-              animate={
-                isAdding
-                  ? {
-                      scale: [1, 1.1, 1],
-                    }
-                  : {}
-              }
-              style={{ willChange: "transform", transform: "translateZ(0)" }}
+          <motion.button
+            ref={buttonRef}
+            onClick={handleAddToCart}
+            disabled={product.stock === "out_of_stock" || isAdding}
+            whileTap={{ scale: 0.95 }}
+            animate={
+              isAdding
+                ? {
+                    scale: [1, 1.1, 1],
+                  }
+                : {}
+            }
+            style={{ willChange: "transform", transform: "translateZ(0)" }}
               className={`w-full py-1.5 rounded-lg font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-1 mt-auto border-2 ${
-                product.stock === "out_of_stock"
+              product.stock === "out_of_stock"
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300"
                   : "border-red-600 text-red-600 bg-transparent hover:bg-red-50"
               }`}>
               <FiShoppingBag className="text-xs transition-transform" />
-              <span>
-                {product.stock === "out_of_stock"
-                  ? "Out of Stock"
-                  : isAdding
-                  ? "Adding..."
+            <span>
+              {product.stock === "out_of_stock"
+                ? "Out of Stock"
+                : isAdding
+                ? "Adding..."
                   : "ADD"}
-              </span>
-            </motion.button>
+            </span>
+          </motion.button>
           ) : (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}

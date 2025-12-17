@@ -8,7 +8,7 @@ import Badge from "../../../components/Badge";
 import ConfirmModal from "../../../components/Admin/ConfirmModal";
 import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
 import { formatPrice } from "../../../utils/helpers";
-import { useVendorStore } from "../../../store/vendorStore";
+import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
 import { useOrderStore } from "../../../store/orderStore";
 import { useCommissionStore } from "../../../store/commissionStore";
 import toast from "react-hot-toast";
@@ -113,8 +113,8 @@ const ManageVendors = () => {
             value === "approved"
               ? "success"
               : value === "pending"
-              ? "warning"
-              : "error"
+                ? "warning"
+                : "error"
           }>
           {value?.toUpperCase() || "N/A"}
         </Badge>

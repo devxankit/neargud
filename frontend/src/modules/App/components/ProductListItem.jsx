@@ -6,8 +6,8 @@ import { useWishlistStore } from "../../../store/wishlistStore";
 import { formatPrice } from "../../../utils/helpers";
 import toast from "react-hot-toast";
 import LazyImage from "../../../components/LazyImage";
-import VendorBadge from "../../../components/Vendor/VendorBadge";
-import { getVendorById } from "../../../data/vendors";
+import VendorBadge from "../../../modules/vendor/components/VendorBadge";
+import { getVendorById } from "../../../modules/vendor/data/vendors";
 
 const ProductListItem = ({ product, index }) => {
   const location = window.location.pathname;
