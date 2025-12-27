@@ -28,6 +28,7 @@ import {
   FiTrendingUp,
   FiFile,
   FiVideo,
+  FiShare2,
 } from "react-icons/fi";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
 import vendorMenu from "../../config/vendorMenu.json";
@@ -55,6 +56,7 @@ const iconMap = {
   Analytics: FiBarChart2,
   Earnings: FiDollarSign,
   Settings: FiSettings,
+  "Social Profile": FiShare2,
   Profile: FiUser,
 };
 

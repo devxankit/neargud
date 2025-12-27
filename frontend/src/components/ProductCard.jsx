@@ -1,3 +1,4 @@
+import React, { useState, useRef, useMemo } from "react";
 import { FiHeart, FiShoppingBag, FiStar } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
@@ -6,35 +7,39 @@ import { useWishlistStore } from "../store/wishlistStore";
 import { formatPrice } from "../utils/helpers";
 import toast from "react-hot-toast";
 import LazyImage from "./LazyImage";
-import { useState, useRef } from "react";
 import useLongPress from "../hooks/useLongPress";
 import LongPressMenu from "../modules/App/components/LongPressMenu";
 import FlyingItem from "../modules/App/components/FlyingItem";
 import VendorBadge from "../modules/vendor/components/VendorBadge";
 import { getVendorById } from "../modules/vendor/data/vendors";
 
-const ProductCard = ({ product, hideRating = false }) => {
+const ProductCard = React.memo(({ product, hideRating = false }) => {
   const location = useLocation();
   // Check if we're in the mobile app section
   const isMobileApp = location.pathname.startsWith("/app");
   const productLink = isMobileApp
     ? `/app/product/${product.id}`
     : `/product/${product.id}`;
-  const { items: cartItems, addItem, updateQuantity } = useCartStore();
+
+  const cartItems = useCartStore((state) => state.items);
+  const addItem = useCartStore((state) => state.addItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+
   const triggerCartAnimation = useUIStore(
     (state) => state.triggerCartAnimation
   );
-  const {
-    addItem: addToWishlist,
-    removeItem: removeFromWishlist,
-    isInWishlist,
-  } = useWishlistStore();
+
+  const wishlistAddItem = useWishlistStore((state) => state.addItem);
+  const wishlistRemoveItem = useWishlistStore((state) => state.removeItem);
+  const isInWishlist = useWishlistStore((state) => state.isInWishlist);
+
   const isFavorite = isInWishlist(product.id);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Find current cart item
-  const cartItem = cartItems.find((item) => item.id === product.id);
+  // Find current cart item - Memoized to prevent finding on every render if items haven't changed
+  const cartItem = useMemo(() => cartItems.find((item) => item.id === product.id), [cartItems, product.id]);
   const inCartQty = cartItem?.quantity || 0;
+
   const [showLongPressMenu, setShowLongPressMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showFlyingItem, setShowFlyingItem] = useState(false);
@@ -43,7 +48,9 @@ const ProductCard = ({ product, hideRating = false }) => {
     end: { x: 0, y: 0 },
   });
   const buttonRef = useRef(null);
-  const cartIconRef = useRef(null);
+
+  // Memoize vendor to avoid repeated lookups
+  const vendor = useMemo(() => product.vendorId ? getVendorById(product.vendorId) : null, [product.vendorId]);
 
   const handleAddToCart = (e) => {
     if (e) {
@@ -124,10 +131,10 @@ const ProductCard = ({ product, hideRating = false }) => {
   const handleFavorite = (e) => {
     e.stopPropagation();
     if (isFavorite) {
-      removeFromWishlist(product.id);
+      wishlistRemoveItem(product.id);
       toast.success("Removed from wishlist");
     } else {
-      addToWishlist({
+      wishlistAddItem({
         id: product.id,
         name: product.name,
         price: product.price,
@@ -141,33 +148,30 @@ const ProductCard = ({ product, hideRating = false }) => {
     <>
       <motion.div
         whileTap={{ scale: 0.98 }}
-        style={{ willChange: "transform", transform: "translateZ(0)" }}
-        className="rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-gradient-to-b from-neutral-100 to-red-50"
+        className="rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-white"
         {...longPressHandlers}>
         <div className="relative">
           {/* Favorite Icon */}
           <div className="absolute top-1.5 right-1.5 z-10">
             <button
               onClick={handleFavorite}
-              className="p-1 glass rounded-full shadow-lg transition-all duration-300 group">
+              className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
-                className={`text-xs transition-all duration-300 ${
-                  isFavorite
+                className={`text-xs transition-all duration-300 ${isFavorite
                     ? "text-red-500 fill-red-500 scale-110"
-                    : "text-gray-600"
-                }`}
+                    : "text-gray-400 group-hover:text-red-400"
+                  }`}
               />
             </button>
           </div>
 
           {/* Product Image */}
-          <Link to={productLink}>
-            <div className="w-full h-32 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
+          <Link to={productLink} className="block w-full">
+            <div className="w-full aspect-square bg-neutral-50 flex items-center justify-center overflow-hidden relative">
               <LazyImage
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-contain max-w-[85%] max-h-[85%]"
-                style={{ willChange: "transform", transform: "translateZ(0)" }}
+                className="w-full h-full object-contain p-4 mix-blend-multiply"
                 onError={(e) => {
                   e.target.src =
                     "https://via.placeholder.com/300x300?text=Product+Image";
@@ -178,21 +182,21 @@ const ProductCard = ({ product, hideRating = false }) => {
         </div>
 
         {/* Product Info */}
-        <div className="p-2 flex-1 flex flex-col bg-red-50/80">
+        <div className="p-2.5 flex-1 flex flex-col bg-white">
           <Link to={productLink}>
-            <h3 className="font-bold text-gray-800 mb-0.5 line-clamp-2 text-xs transition-colors leading-tight">
+            <h3 className="font-bold text-gray-800 mb-1 line-clamp-2 text-xs transition-colors leading-tight min-h-[2.5em]">
               {product.name}
             </h3>
           </Link>
-          <p className="text-[10px] text-gray-500 mb-0.5 font-medium">
+          <p className="text-[10px] text-gray-500 mb-1 font-medium">
             {product.unit}
           </p>
-          
+
           {/* Vendor Badge */}
-          {product.vendorId && (
-            <div className="mb-1">
-              <VendorBadge 
-                vendor={getVendorById(product.vendorId)} 
+          {vendor && (
+            <div className="mb-2">
+              <VendorBadge
+                vendor={vendor}
                 showVerified={true}
                 size="sm"
                 showLogo={true}
@@ -201,110 +205,86 @@ const ProductCard = ({ product, hideRating = false }) => {
           )}
 
           {/* Rating */}
-          {product.rating && !hideRating && (
-            <div className="flex items-center gap-0.5 mb-0.5">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <FiStar
-                    key={i}
-                    className={`text-[8px] ${
-                      i < Math.floor(product.rating)
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
+          {!hideRating && (
+            <div className="flex items-center gap-1 mb-1.5">
+              <div className="flex items-center bg-green-50 px-1 py-0.5 rounded border border-green-100">
+                <span className="text-[9px] text-green-700 font-bold mr-0.5">
+                  {product.rating || 4.2}
+                </span>
+                <FiStar className="text-[8px] text-green-700 fill-green-700" />
               </div>
-              <span className="text-[9px] text-gray-600 font-medium">
-                {product.rating}
+              <span className="text-[9px] text-gray-400">
+                ({product.reviewCount || 42})
               </span>
             </div>
           )}
 
           {/* Price */}
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-xs font-bold text-gray-800">
+          <div className="flex items-center gap-1.5 mb-2 mt-auto">
+            <span className="text-sm font-bold text-gray-900">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice && (
-              <span className="text-[9px] text-gray-400 line-through font-medium">
+              <span className="text-[10px] text-gray-400 line-through font-medium">
                 {formatPrice(product.originalPrice)}
+              </span>
+            )}
+            {product.originalPrice && (
+              <span className="text-[9px] font-bold text-green-600">
+                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
               </span>
             )}
           </div>
 
           {/* Add Button or Quantity Control */}
           {inCartQty === 0 ? (
-          <motion.button
-            ref={buttonRef}
-            onClick={handleAddToCart}
-            disabled={product.stock === "out_of_stock" || isAdding}
-            whileTap={{ scale: 0.95 }}
-            animate={
-              isAdding
-                ? {
-                    scale: [1, 1.1, 1],
-                  }
-                : {}
-            }
-            style={{ willChange: "transform", transform: "translateZ(0)" }}
-              className={`w-full py-1.5 rounded-lg font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-1 mt-auto border-2 ${
-              product.stock === "out_of_stock"
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300"
-                  : "border-red-600 text-red-600 bg-transparent hover:bg-red-50"
-              }`}>
-              <FiShoppingBag className="text-xs transition-transform" />
-            <span>
-              {product.stock === "out_of_stock"
-                ? "Out of Stock"
-                : isAdding
-                ? "Adding..."
-                  : "ADD"}
-            </span>
-          </motion.button>
+            <button
+              ref={buttonRef}
+              onClick={handleAddToCart}
+              disabled={product.stock === "out_of_stock" || isAdding}
+              className={`w-full py-2 rounded-lg font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 ${product.stock === "out_of_stock"
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : isAdding
+                    ? "bg-red-600 text-white"
+                    : "bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                }`}>
+              {product.stock !== "out_of_stock" && <FiShoppingBag className="text-xs" />}
+              <span>
+                {product.stock === "out_of_stock"
+                  ? "Out of Stock"
+                  : isAdding
+                    ? "Added"
+                    : "Add"}
+              </span>
+            </button>
           ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center justify-center gap-2 bg-red-600 rounded-lg px-2 py-1.5 mt-auto"
-            >
-              <motion.button
-                whileTap={{ scale: 0.9 }}
+            <div className="flex items-center justify-between bg-red-50 rounded-lg p-1 border border-red-100">
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   if (inCartQty > 1) {
                     updateQuantity(product.id, inCartQty - 1);
                   } else {
-                    // Remove from cart if quantity becomes 0
                     updateQuantity(product.id, 0);
                   }
                 }}
-                className="w-6 h-6 flex items-center justify-center text-white font-bold hover:bg-red-700 rounded transition-colors"
+                className="w-7 h-7 flex items-center justify-center text-red-600 font-bold hover:bg-red-100 rounded-md transition-colors"
               >
                 −
-              </motion.button>
-              <motion.span
-                key={inCartQty}
-                initial={{ scale: 1.2, y: -4 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                className="text-sm font-bold text-white min-w-[1.5rem] text-center"
-              >
+              </button>
+              <span className="text-xs font-bold text-red-700 min-w-[1rem] text-center">
                 {inCartQty}
-              </motion.span>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
+              </span>
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   updateQuantity(product.id, inCartQty + 1);
                 }}
-                className="w-6 h-6 flex items-center justify-center text-white font-bold hover:bg-red-700 rounded transition-colors"
+                className="w-7 h-7 flex items-center justify-center text-red-600 font-bold hover:bg-red-100 rounded-md transition-colors"
               >
                 +
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
           )}
         </div>
       </motion.div>
@@ -329,6 +309,6 @@ const ProductCard = ({ product, hideRating = false }) => {
       )}
     </>
   );
-};
+});
 
 export default ProductCard;

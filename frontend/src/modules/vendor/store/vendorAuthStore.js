@@ -18,13 +18,13 @@ export const useVendorAuthStore = create(
           // Mock vendor authentication
           // In a real app, this would be an API call
           // const response = await api.post('/vendor/auth/login', { email, password });
-          
+
           // Find vendor by email in vendor store
           const allVendors = useVendorStore.getState().getAllVendors();
           const vendor = allVendors.find((v) => v.email === email);
-          
-          // Mock credentials: use vendor email and password "vendor123"
-          if (vendor && password === 'vendor123') {
+
+          // Mock credentials: use vendor email and password "vendor123", or specific test credentials
+          if (vendor && (password === 'vendor123' || (vendor.email === 'test@gmail.com' && password === 'test123'))) {
             // Check if vendor is approved
             if (vendor.status !== 'approved') {
               throw new Error(`Vendor account is ${vendor.status}. Please contact admin for approval.`);
@@ -41,7 +41,7 @@ export const useVendorAuthStore = create(
 
             // Store token in localStorage for API interceptor
             localStorage.setItem('vendor-token', mockToken);
-            
+
             return { success: true, vendor: vendor };
           } else {
             throw new Error('Invalid credentials');
@@ -59,7 +59,7 @@ export const useVendorAuthStore = create(
           // Mock vendor registration
           // In a real app, this would be an API call
           // const response = await api.post('/vendor/auth/register', vendorData);
-          
+
           // Check if email already exists in vendor store
           const allVendors = useVendorStore.getState().getAllVendors();
           const existingVendor = allVendors.find((v) => v.email === vendorData.email);
@@ -96,9 +96,9 @@ export const useVendorAuthStore = create(
           });
 
           localStorage.setItem('vendor-token', mockToken);
-          
-          return { 
-            success: true, 
+
+          return {
+            success: true,
             vendor: newVendor,
             message: 'Registration successful! Your account is pending admin approval.'
           };
@@ -124,19 +124,19 @@ export const useVendorAuthStore = create(
         try {
           // Mock update - replace with actual API call
           // const response = await api.put('/vendor/profile', profileData);
-          
+
           const currentVendor = get().vendor;
           if (!currentVendor) {
             throw new Error('No vendor logged in');
           }
 
           const updatedVendor = { ...currentVendor, ...profileData };
-          
+
           set({
             vendor: updatedVendor,
             isLoading: false,
           });
-          
+
           return { success: true, vendor: updatedVendor };
         } catch (error) {
           set({ isLoading: false });
@@ -152,7 +152,7 @@ export const useVendorAuthStore = create(
           if (storedState.state?.vendor && storedState.state?.token) {
             const vendor = storedState.state.vendor;
             // Verify vendor is still approved
-            const currentVendor = getVendorById(vendor.id);
+            const currentVendor = useVendorStore.getState().getVendor(vendor.id);
             if (currentVendor && currentVendor.status === 'approved') {
               set({
                 vendor: currentVendor,

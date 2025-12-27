@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiHome, FiGrid, FiSearch, FiUser } from "react-icons/fi";
+import { FiHome, FiGrid, FiUser, FiMessageCircle } from "react-icons/fi";
 import { useAuthStore } from "../../../store/authStore";
 import ReelIcon from "../../Icons/ReelIcon";
 
@@ -14,7 +14,7 @@ const MobileBottomNav = () => {
     { path: "/app", icon: FiHome, label: "Home" },
     { path: "/app/categories", icon: FiGrid, label: "Categories" },
     { path: "/app/reels", icon: ReelIcon, label: "Reels", isCustomIcon: true },
-    { path: "/app/search", icon: FiSearch, label: "Search" },
+    { path: "/app/chat", icon: FiMessageCircle, label: "Chat" },
     {
       path: isAuthenticated ? "/app/profile" : "/app/login",
       icon: FiUser,
@@ -46,11 +46,10 @@ const MobileBottomNav = () => {
   };
 
   const navContent = (
-    <nav className={`fixed bottom-0 left-0 right-0 border-t border-l border-r z-[9999] safe-area-bottom ${
-      isReelsPage 
-        ? 'bg-black border-gray-800 shadow-[0_-2px_10px_rgba(255,255,255,0.1)]' 
+    <nav className={`fixed bottom-0 left-0 right-0 border-t border-l border-r z-[9999] safe-area-bottom ${isReelsPage
+        ? 'bg-black border-gray-800 shadow-[0_-2px_10px_rgba(255,255,255,0.1)]'
         : 'bg-white border-accent-200/30 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
-    }`}>
+      }`}>
       <div className="flex items-center justify-around h-16 px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -68,9 +67,8 @@ const MobileBottomNav = () => {
                 {active && (
                   <motion.div
                     layoutId="activeTab"
-                    className={`absolute inset-0 rounded-full ${
-                      isReelsPage ? 'bg-gray-800' : 'bg-primary-50'
-                    }`}
+                    className={`absolute inset-0 rounded-full ${isReelsPage ? 'bg-gray-800' : 'bg-primary-50'
+                      }`}
                     initial={false}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />

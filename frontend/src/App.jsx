@@ -18,6 +18,7 @@ import DailyDeals from "./pages/DailyDeals";
 import FlashSale from "./pages/FlashSale";
 import CampaignPage from "./pages/CampaignPage";
 import Category from "./pages/Category";
+import Chat from "./pages/Chat";
 import CartDrawer from "./components/Cart/CartDrawer";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
@@ -191,35 +192,37 @@ import VendorReels from "./modules/vendor/pages/Reels";
 import VendorAllReels from "./modules/vendor/pages/reels/AllReels";
 import VendorAddReel from "./modules/vendor/pages/reels/AddReel";
 import VendorEditReel from "./modules/vendor/pages/reels/EditReel";
+import VendorSocial from "./modules/vendor/pages/Social";
 
 // Inner component that has access to useLocation
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<RouteWrapper><Home /></RouteWrapper>} />
-      <Route path="/product/:id" element={<RouteWrapper><ProductDetail /></RouteWrapper>} />
-      <Route path="/category/:id" element={<RouteWrapper><Category /></RouteWrapper>} />
+      <Route path="/" element={<RouteWrapper><MobileHome /></RouteWrapper>} />
+      <Route path="/product/:id" element={<RouteWrapper><MobileProductDetail /></RouteWrapper>} />
+      <Route path="/category/:id" element={<RouteWrapper><MobileCategory /></RouteWrapper>} />
       <Route path="/vendor/:id" element={<RouteWrapper><VendorStore /></RouteWrapper>} />
-      <Route path="/checkout" element={<RouteWrapper><Checkout /></RouteWrapper>} />
-      <Route path="/search" element={<RouteWrapper><Search /></RouteWrapper>} />
-      <Route path="/login" element={<RouteWrapper><Login /></RouteWrapper>} />
-      <Route path="/register" element={<RouteWrapper><Register /></RouteWrapper>} />
-      <Route path="/verification" element={<RouteWrapper><Verification /></RouteWrapper>} />
-      <Route path="/wishlist" element={<RouteWrapper><Wishlist /></RouteWrapper>} />
-      <Route path="/offers" element={<RouteWrapper><Offers /></RouteWrapper>} />
-      <Route path="/daily-deals" element={<RouteWrapper><DailyDeals /></RouteWrapper>} />
-      <Route path="/flash-sale" element={<RouteWrapper><FlashSale /></RouteWrapper>} />
+      <Route path="/chat" element={<RouteWrapper><Chat /></RouteWrapper>} />
+      <Route path="/checkout" element={<RouteWrapper><MobileCheckout /></RouteWrapper>} />
+      <Route path="/search" element={<RouteWrapper><MobileSearch /></RouteWrapper>} />
+      <Route path="/login" element={<RouteWrapper><MobileLogin /></RouteWrapper>} />
+      <Route path="/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
+      <Route path="/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />
+      <Route path="/wishlist" element={<RouteWrapper><MobileWishlist /></RouteWrapper>} />
+      <Route path="/offers" element={<RouteWrapper><MobileOffers /></RouteWrapper>} />
+      <Route path="/daily-deals" element={<RouteWrapper><MobileDailyDeals /></RouteWrapper>} />
+      <Route path="/flash-sale" element={<RouteWrapper><MobileFlashSale /></RouteWrapper>} />
       <Route path="/sale/:slug" element={<RouteWrapper><CampaignPage /></RouteWrapper>} />
       <Route path="/campaign/:id" element={<RouteWrapper><CampaignPage /></RouteWrapper>} />
-      <Route path="/order-confirmation/:orderId" element={<RouteWrapper><OrderConfirmation /></RouteWrapper>} />
-      <Route path="/orders/:orderId" element={<RouteWrapper><OrderDetailPage /></RouteWrapper>} />
-      <Route path="/track-order/:orderId" element={<RouteWrapper><TrackOrder /></RouteWrapper>} />
+      <Route path="/order-confirmation/:orderId" element={<RouteWrapper><MobileOrderConfirmation /></RouteWrapper>} />
+      <Route path="/orders/:orderId" element={<RouteWrapper><MobileOrderDetail /></RouteWrapper>} />
+      <Route path="/track-order/:orderId" element={<RouteWrapper><MobileTrackOrder /></RouteWrapper>} />
       <Route
         path="/profile"
         element={
           <RouteWrapper>
             <ProtectedRoute>
-              <Profile />
+              <MobileProfile />
             </ProtectedRoute>
           </RouteWrapper>
         }
@@ -229,7 +232,7 @@ const AppRoutes = () => {
         element={
           <RouteWrapper>
             <ProtectedRoute>
-              <Orders />
+              <MobileOrders />
             </ProtectedRoute>
           </RouteWrapper>
         }
@@ -239,7 +242,7 @@ const AppRoutes = () => {
         element={
           <RouteWrapper>
             <ProtectedRoute>
-              <Addresses />
+              <MobileAddresses />
             </ProtectedRoute>
           </RouteWrapper>
         }
@@ -416,11 +419,13 @@ const AppRoutes = () => {
         <Route path="settings/shipping" element={<VendorSettings />} />
         <Route path="settings/shipping-settings" element={<VendorSettings />} />
         <Route path="profile" element={<VendorSettings />} />
+        <Route path="social" element={<VendorSocial />} />
       </Route>
       {/* Mobile App Routes */}
       <Route path="/app" element={<RouteWrapper><MobileHome /></RouteWrapper>} />
       <Route path="/app/product/:id" element={<RouteWrapper><MobileProductDetail /></RouteWrapper>} />
       <Route path="/app/category/:id" element={<RouteWrapper><MobileCategory /></RouteWrapper>} />
+      <Route path="/app/chat" element={<RouteWrapper><Chat /></RouteWrapper>} />
       <Route path="/app/categories" element={<RouteWrapper><MobileCategories /></RouteWrapper>} />
       <Route path="/app/vendor/:id" element={<RouteWrapper><VendorStore /></RouteWrapper>} />
       <Route path="/app/checkout" element={<RouteWrapper><MobileCheckout /></RouteWrapper>} />

@@ -1,10 +1,11 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiShoppingBag, FiCheckCircle } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import LazyImage from '../../../components/LazyImage';
 
 const VendorBadge = ({ vendor, showVerified = true, size = 'sm', showLogo = true }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobileApp = location.pathname.startsWith('/app');
   const vendorLink = isMobileApp ? `/app/vendor/${vendor?.id}` : `/vendor/${vendor?.id}`;
 
@@ -25,10 +26,13 @@ const VendorBadge = ({ vendor, showVerified = true, size = 'sm', showLogo = true
   const vendorName = vendor.storeName || vendor.vendorName || vendor.name;
 
   return (
-    <Link
-      to={vendorLink}
-      onClick={(e) => e.stopPropagation()}
-      className="inline-flex items-center gap-1.5 bg-gradient-to-r from-primary-50 to-primary-100 hover:from-primary-100 hover:to-primary-200 text-primary-700 rounded-lg transition-all duration-300 border border-primary-200/50 shadow-sm hover:shadow-md"
+    <span
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(vendorLink);
+      }}
+      className="cursor-pointer inline-flex items-center gap-1.5 bg-gradient-to-r from-primary-50 to-primary-100 hover:from-primary-100 hover:to-primary-200 text-primary-700 rounded-lg transition-all duration-300 border border-primary-200/50 shadow-sm hover:shadow-md"
     >
       <motion.div
         whileHover={{ scale: 1.05 }}
@@ -64,7 +68,7 @@ const VendorBadge = ({ vendor, showVerified = true, size = 'sm', showLogo = true
           </motion.div>
         )}
       </motion.div>
-    </Link>
+    </span>
   );
 };
 

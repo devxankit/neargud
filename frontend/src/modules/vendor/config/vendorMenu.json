@@ -109,6 +109,11 @@
     "children": ["Store Settings", "Payment Settings", "Shipping Settings"]
   },
   {
+    "title": "Social Profile",
+    "route": "/vendor/social",
+    "children": []
+  },
+  {
     "title": "Profile",
     "route": "/vendor/profile",
     "children": []

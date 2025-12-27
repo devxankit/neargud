@@ -16,11 +16,21 @@ export const useVendorStore = create(
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.state?.vendors) {
-            // Merge initial vendors with stored vendors (avoid duplicates)
-            const initialIds = new Set(vendors.map(v => v.id));
             const storedVendors = parsed.state.vendors;
-            const newVendors = storedVendors.filter(v => !initialIds.has(v.id));
-            set({ vendors: [...vendors, ...newVendors] });
+            // Merge initial vendors with stored vendors, preferring stored data for updates
+            const initialVendors = vendors;
+
+            // Update initial vendors with potentially modified stored data
+            const mergedVendors = initialVendors.map(iv =>
+              storedVendors.find(sv => sv.id === iv.id) || iv
+            );
+
+            // Add new vendors created in runtime
+            const newVendors = storedVendors.filter(sv =>
+              !initialVendors.find(iv => iv.id === sv.id)
+            );
+
+            set({ vendors: [...mergedVendors, ...newVendors] });
             return;
           }
         }
@@ -39,7 +49,7 @@ export const useVendorStore = create(
 
       // Get vendor by ID
       getVendor: (id) => {
-        return getVendorById(id);
+        return get().vendors.find((v) => v.id === parseInt(id));
       },
 
       // Get approved vendors only
@@ -86,10 +96,10 @@ export const useVendorStore = create(
           vendors: state.vendors.map((v) =>
             v.id === parseInt(vendorId)
               ? {
-                  ...v,
-                  status,
-                  ...(reason && { suspensionReason: reason }),
-                }
+                ...v,
+                status,
+                ...(reason && { suspensionReason: reason }),
+              }
               : v
           ),
         }));

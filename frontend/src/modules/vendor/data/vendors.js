@@ -27,6 +27,7 @@ export const vendors = [
     totalSales: 1250,
     totalEarnings: 11250.00,
     isVerified: true,
+    deliveryAvailable: true,
   },
   {
     id: 2,
@@ -56,6 +57,7 @@ export const vendors = [
     totalSales: 2100,
     totalEarnings: 18480.00,
     isVerified: true,
+    deliveryAvailable: true,
   },
   {
     id: 3,
@@ -85,6 +87,7 @@ export const vendors = [
     totalSales: 890,
     totalEarnings: 7120.00,
     isVerified: true,
+    deliveryAvailable: true,
   },
   {
     id: 4,
@@ -114,6 +117,7 @@ export const vendors = [
     totalSales: 0,
     totalEarnings: 0,
     isVerified: false,
+    deliveryAvailable: true,
   },
   {
     id: 5,
@@ -144,6 +148,37 @@ export const vendors = [
     totalEarnings: 2720.00,
     isVerified: true,
     suspensionReason: 'Policy violation',
+    deliveryAvailable: true,
+  },
+  {
+    id: 6,
+    name: 'test1',
+    email: 'test@gmail.com',
+    phone: '+1234567895',
+    storeName: 'Test Store 1',
+    storeLogo: '/images/logos/logo.png',
+    storeDescription: 'Test store for development',
+    status: 'approved',
+    commissionRate: 10,
+    joinDate: '2024-04-01',
+    address: {
+      street: '123 Test Lane',
+      city: 'Test City',
+      state: 'TS',
+      zipCode: '12345',
+      country: 'USA',
+    },
+    documents: {
+      businessLicense: '/documents/business-license-test.pdf',
+      taxId: 'TAX-TEST123',
+    },
+    rating: 0,
+    reviewCount: 0,
+    totalProducts: 5,
+    totalSales: 0,
+    totalEarnings: 0,
+    isVerified: true,
+    deliveryAvailable: true,
   },
 ];
 

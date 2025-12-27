@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import LazyImage from "../../../components/LazyImage";
 import VendorBadge from "../../../modules/vendor/components/VendorBadge";
 import { getVendorById } from "../../../modules/vendor/data/vendors";
+import { useVendorStore } from "../../../modules/vendor/store/vendorStore";
 
 const ProductListItem = ({ product, index }) => {
   const location = window.location.pathname;
@@ -16,6 +17,10 @@ const ProductListItem = ({ product, index }) => {
     ? `/app/product/${product.id}`
     : `/product/${product.id}`;
   const addItem = useCartStore((state) => state.addItem);
+  const items = useCartStore((state) => state.items);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const cartItem = items.find((i) => i.id === product.id);
+  const vendor = useVendorStore((state) => state.vendors.find((v) => v.id === product?.vendorId));
   const triggerCartAnimation = useUIStore(
     (state) => state.triggerCartAnimation
   );
@@ -95,8 +100,8 @@ const ProductListItem = ({ product, index }) => {
             <button
               onClick={handleFavorite}
               className={`flex-shrink-0 p-1 rounded-lg transition-colors ${isFavorite
-                  ? "bg-red-50 text-red-600"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-red-50 text-red-600"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}>
               <FiHeart
                 className={`text-xs ${isFavorite ? "fill-current" : ""}`}
@@ -136,13 +141,55 @@ const ProductListItem = ({ product, index }) => {
             )}
           </div>
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={handleAddToCart}
-            className="w-full py-1.5 gradient-green text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1 hover:shadow-glow-green transition-all">
-            <FiShoppingBag className="text-xs" />
-            Add to Cart
-          </button>
+          {/* Add to Cart Button or Chat Button */}
+          {vendor?.deliveryAvailable === false ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Handle chat navigation
+                // navigate(`/app/chat/${vendor.id}`);
+                toast('Chat feature coming soon');
+              }}
+              className="w-full py-1.5 bg-gray-100 text-gray-600 rounded-lg font-semibold text-xs flex items-center justify-center gap-1 hover:bg-gray-200 transition-all border border-gray-200"
+            >
+              <span>Chat to order</span>
+            </button>
+          ) : cartItem ? (
+            <div className="flex items-center justify-between bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(product.id, cartItem.quantity - 1);
+                }}
+                className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-red-600 transition-colors"
+              >
+                -
+              </button>
+              <span className="text-sm font-semibold text-gray-800 w-6 text-center">
+                {cartItem.quantity}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(product.id, cartItem.quantity + 1);
+                }}
+                className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-green-600 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleAddToCart}
+              className="w-full py-1.5 bg-white border border-red-500 text-red-500 rounded-lg font-semibold text-xs flex items-center justify-center gap-1 hover:bg-red-50 transition-all"
+            >
+              <FiShoppingBag className="text-xs" />
+              Add to Cart
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

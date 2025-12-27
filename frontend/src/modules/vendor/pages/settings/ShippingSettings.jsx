@@ -9,6 +9,7 @@ const ShippingSettings = () => {
   const { vendor } = useVendorAuthStore();
   const { updateVendorProfile } = useVendorStore();
   const [formData, setFormData] = useState({
+    deliveryAvailable: true,
     shippingEnabled: true,
     freeShippingThreshold: 100,
     defaultShippingRate: 5,
@@ -22,6 +23,7 @@ const ShippingSettings = () => {
   useEffect(() => {
     if (vendor) {
       setFormData({
+        deliveryAvailable: vendor.deliveryAvailable !== false,
         shippingEnabled: vendor.shippingEnabled !== false,
         freeShippingThreshold: vendor.freeShippingThreshold || 100,
         defaultShippingRate: vendor.defaultShippingRate || 5,
@@ -62,6 +64,7 @@ const ShippingSettings = () => {
 
     try {
       const updateData = {
+        deliveryAvailable: formData.deliveryAvailable,
         shippingEnabled: formData.shippingEnabled,
         freeShippingThreshold: parseFloat(formData.freeShippingThreshold) || 0,
         defaultShippingRate: parseFloat(formData.defaultShippingRate) || 0,
@@ -131,14 +134,29 @@ const ShippingSettings = () => {
               <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
                 <input
                   type="checkbox"
-                  name="shippingEnabled"
-                  checked={formData.shippingEnabled}
+                  name="deliveryAvailable"
+                  checked={formData.deliveryAvailable}
                   onChange={handleChange}
                   className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                 />
                 <div>
-                  <span className="text-sm font-semibold text-gray-700">Enable Shipping</span>
-                  <p className="text-xs text-gray-500 mt-1">Allow customers to purchase products with shipping</p>
+                  <span className="text-sm font-semibold text-gray-700">Accept Online Orders</span>
+                  <p className="text-xs text-gray-500 mt-1">If disabled, customers can only chat with you and cannot place orders directly</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                <input
+                  type="checkbox"
+                  name="shippingEnabled"
+                  checked={formData.shippingEnabled}
+                  onChange={handleChange}
+                  disabled={!formData.deliveryAvailable}
+                  className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 disabled:opacity-50"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-gray-700">Enable Shipping Calculation</span>
+                  <p className="text-xs text-gray-500 mt-1">Allow customers to see shipping costs</p>
                 </div>
               </div>
 

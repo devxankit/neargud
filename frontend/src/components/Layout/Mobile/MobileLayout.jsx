@@ -6,25 +6,36 @@ import MobileCartBar from './MobileCartBar';
 import CartDrawer from '../../Cart/CartDrawer';
 import useMobileHeaderHeight from '../../../hooks/useMobileHeaderHeight';
 
-const MobileLayout = ({ children, showBottomNav = true, showCartBar = true }) => {
+const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, showHeader }) => {
   const location = useLocation();
   const headerHeight = useMobileHeaderHeight();
+  const excludeHeaderRoutes = [
+    '/app/categories',
+    '/app/search',
+    '/app/wishlist',
+    '/app/profile',
+    '/app/reels',
+    '/app/chat',
+    '/app/login',
+    '/app/register',
+    '/app/verification',
+  ];
+
   // Hide header and bottom nav on login, register, and verification pages
-  const isAuthPage = location.pathname === '/app/login' || 
-                     location.pathname === '/app/register' || 
-                     location.pathname === '/app/verification';
-  
+  const isAuthPage = location.pathname === '/app/login' ||
+    location.pathname === '/app/register' ||
+    location.pathname === '/app/verification';
+
   // Always show bottom nav on /app routes, except auth pages
-  const isReelsPage = location.pathname === '/app/reels';
-  const shouldShowBottomNav = location.pathname.startsWith('/app') && !isAuthPage ? true : (showBottomNav && !isAuthPage);
-  // Hide header on categories, search, wishlist, profile, reels, and auth pages
-  const shouldShowHeader = !isAuthPage && 
-                           location.pathname !== '/app/categories' && 
-                           location.pathname !== '/app/search' && 
-                           location.pathname !== '/app/wishlist' && 
-                           location.pathname !== '/app/profile' &&
-                           location.pathname !== '/app/reels';
-  
+  const isFullScreenPage = location.pathname === '/app/reels' || location.pathname === '/app/chat';
+  const shouldShowBottomNav = !isAuthPage && showBottomNav;
+
+  const calculatedShouldShowHeader = !excludeHeaderRoutes.includes(location.pathname) &&
+    !location.pathname.startsWith('/app/product/') &&
+    !location.pathname.startsWith('/app/vendor/');
+
+  const shouldShowHeader = showHeader !== undefined ? showHeader : calculatedShouldShowHeader;
+
   // Ensure body scroll is restored when component mounts
   useEffect(() => {
     document.body.style.overflowY = '';
@@ -36,19 +47,18 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true }) =>
   return (
     <>
       {shouldShowHeader && <MobileHeader />}
-      <main 
-        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide ${
-          isReelsPage ? '' : // No padding for reels page (container is fixed)
-          shouldShowBottomNav && showCartBar ? 'pb-24' : 
-          shouldShowBottomNav ? 'pb-20' : 
-          showCartBar ? 'pb-24' : ''
-        }`}
-        style={{ 
+      <main
+        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide ${isFullScreenPage ? '' : // No padding for reels page (container is fixed)
+          shouldShowBottomNav && showCartBar ? 'pb-24' :
+            shouldShowBottomNav ? 'pb-20' :
+              showCartBar ? 'pb-24' : ''
+          }`}
+        style={{
           paddingTop: shouldShowHeader ? `${headerHeight}px` : '0px',
-          overflowY: isReelsPage ? 'hidden' : 'auto',
+          overflowY: isFullScreenPage ? 'hidden' : 'auto',
           WebkitOverflowScrolling: 'touch',
-          height: isReelsPage ? '100vh' : 'auto',
-          backgroundColor: isReelsPage ? 'black' : 'transparent', // Black background for reels
+          height: isFullScreenPage ? '100vh' : 'auto',
+          backgroundColor: location.pathname === '/app/reels' ? 'black' : 'transparent', // Black background for reels
         }}
       >
         {children}

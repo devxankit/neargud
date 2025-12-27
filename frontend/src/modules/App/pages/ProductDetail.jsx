@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiStar, FiHeart, FiShoppingBag, FiMinus, FiPlus, FiArrowLeft, FiShare2, FiCheckCircle } from 'react-icons/fi';
+import { FiStar, FiHeart, FiShoppingBag, FiMinus, FiPlus, FiArrowLeft, FiShare2, FiCheckCircle, FiMessageCircle } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useCartStore } from '../../../store/useStore';
 import { useWishlistStore } from '../../../store/wishlistStore';
@@ -8,6 +8,7 @@ import { useReviewsStore } from '../../../store/reviewsStore';
 import { getProductById, getSimilarProducts } from '../../../data/products';
 import { getVendorById } from '../../../modules/vendor/data/vendors';
 import { formatPrice } from '../../../utils/helpers';
+import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
 import toast from 'react-hot-toast';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import ImageGallery from '../../../components/Product/ImageGallery';
@@ -20,14 +21,19 @@ const MobileProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const product = getProductById(id);
-  const vendor = product ? getVendorById(product.vendorId) : null;
+  const vendor = useVendorStore((state) => state.vendors.find((v) => v.id === product?.vendorId));
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  
+
   const addItem = useCartStore((state) => state.addItem);
+  const items = useCartStore((state) => state.items);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const removeItem = useCartStore((state) => state.removeItem);
+
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
   const { getReviews, sortReviews } = useReviewsStore();
-  
+
+  const cartItem = useMemo(() => items.find((i) => i.id === product?.id), [items, product]); // Cart item sync
   const isFavorite = product ? isInWishlist(product.id) : false;
   const productReviews = product ? sortReviews(product.id, 'newest') : [];
 
@@ -36,6 +42,32 @@ const MobileProductDetail = () => {
       setSelectedVariant(product.variants.defaultVariant);
     }
   }, [product]);
+
+  useEffect(() => {
+    if (cartItem) {
+      setQuantity(cartItem.quantity);
+    } else {
+      setQuantity(1);
+    }
+  }, [cartItem]);
+
+
+
+  const handleQuantityChange = (change) => {
+    if (cartItem) {
+      const newQty = cartItem.quantity + change;
+      if (newQty <= 0) {
+        removeItem(product.id);
+      } else {
+        updateQuantity(product.id, newQty);
+      }
+    } else {
+      const newQuantity = quantity + change;
+      if (newQuantity >= 1 && newQuantity <= (product.stockQuantity || 10)) {
+        setQuantity(newQuantity);
+      }
+    }
+  };
 
   if (!product) {
     return (
@@ -62,7 +94,7 @@ const MobileProductDetail = () => {
       toast.error('Product is out of stock');
       return;
     }
-    
+
     let finalPrice = product.price;
     if (selectedVariant && product.variants?.prices) {
       if (selectedVariant.size && product.variants.prices[selectedVariant.size]) {
@@ -71,7 +103,7 @@ const MobileProductDetail = () => {
         finalPrice = product.variants.prices[selectedVariant.color];
       }
     }
-    
+
     addItem({
       id: product.id,
       name: product.name,
@@ -97,12 +129,7 @@ const MobileProductDetail = () => {
     }
   };
 
-  const handleQuantityChange = (change) => {
-    const newQuantity = quantity + change;
-    if (newQuantity >= 1 && newQuantity <= (product.stockQuantity || 10)) {
-      setQuantity(newQuantity);
-    }
-  };
+
 
   const productImages = useMemo(() => {
     return product.images && product.images.length > 0 ? product.images : [product.image];
@@ -126,7 +153,7 @@ const MobileProductDetail = () => {
 
   return (
     <PageTransition>
-      <MobileLayout showBottomNav={false} showCartBar={true}>
+      <MobileLayout showBottomNav={false} showCartBar={true} showHeader={false}>
         <div className="w-full pb-24">
           {/* Back Button */}
           <div className="px-4 pt-4">
@@ -190,11 +217,10 @@ const MobileProductDetail = () => {
                           {[...Array(5)].map((_, i) => (
                             <FiStar
                               key={i}
-                              className={`text-[10px] ${
-                                i < Math.floor(vendor.rating)
-                                  ? 'text-yellow-400 fill-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
+                              className={`text-[10px] ${i < Math.floor(vendor.rating)
+                                ? 'text-yellow-400 fill-yellow-400'
+                                : 'text-gray-300'
+                                }`}
                             />
                           ))}
                         </div>
@@ -206,6 +232,13 @@ const MobileProductDetail = () => {
                   </div>
                   <span className="text-primary-600 font-bold">→</span>
                 </Link>
+                <Link
+                  to={`/app/chat?vendorId=${vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.name)}`}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-primary-200 text-primary-700 rounded-xl transition-all duration-300 shadow-sm"
+                >
+                  <FiMessageCircle />
+                  <span className="font-semibold">Chat with Seller</span>
+                </Link>
               </div>
             )}
 
@@ -216,11 +249,10 @@ const MobileProductDetail = () => {
                   {[...Array(5)].map((_, i) => (
                     <FiStar
                       key={i}
-                      className={`text-base ${
-                        i < Math.floor(product.rating)
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-gray-300'
-                      }`}
+                      className={`text-base ${i < Math.floor(product.rating)
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-300'
+                        }`}
                     />
                   ))}
                 </div>
@@ -283,33 +315,52 @@ const MobileProductDetail = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Quantity
               </label>
-              <div className="flex items-center gap-4">
+              {cartItem ? (
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => {
+                      const newQty = cartItem.quantity - 1;
+                      if (newQty <= 0) removeItem(product.id);
+                      else updateQuantity(product.id, newQty);
+                    }}
+                    className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors"
+                  >
+                    <FiMinus className="text-gray-600" />
+                  </button>
+                  <span className="text-xl font-bold text-gray-800 min-w-[3rem] text-center">
+                    {cartItem.quantity}
+                  </span>
+                  <button
+                    onClick={() => updateQuantity(product.id, cartItem.quantity + 1)}
+                    className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors"
+                    disabled={cartItem.quantity >= (product.stockQuantity || 10)}
+                  >
+                    <FiPlus className="text-gray-600" />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => handleQuantityChange(-1)}
-                  disabled={quantity <= 1}
-                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 'out_of_stock'}
+                  className={`w-full py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 ${product.stock === 'out_of_stock'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-white border-2 border-red-500 text-red-500 hover:bg-red-50'
+                    }`}
                 >
-                  <FiMinus className="text-gray-600" />
+                  <FiShoppingBag className="text-xl" />
+                  <span>
+                    {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
+                  </span>
                 </button>
-                <span className="text-xl font-bold text-gray-800 min-w-[3rem] text-center">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => handleQuantityChange(1)}
-                  disabled={quantity >= (product.stockQuantity || 10)}
-                  className="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <FiPlus className="text-gray-600" />
-                </button>
-              </div>
+              )}
             </div>
 
             {/* Description */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-800 mb-3">Description</h3>
               <p className="text-gray-600 leading-relaxed text-sm">
-                High-quality {product.name.toLowerCase()} available in {product.unit.toLowerCase()}. 
-                This product is carefully selected to ensure the best quality and freshness. 
+                High-quality {product.name.toLowerCase()} available in {product.unit.toLowerCase()}.
+                This product is carefully selected to ensure the best quality and freshness.
                 Perfect for your daily needs with excellent value for money.
               </p>
             </div>
@@ -328,11 +379,10 @@ const MobileProductDetail = () => {
                           {[...Array(5)].map((_, i) => (
                             <FiStar
                               key={i}
-                              className={`text-xs ${
-                                i < review.rating
-                                  ? 'text-yellow-400 fill-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
+                              className={`text-xs ${i < review.rating
+                                ? 'text-yellow-400 fill-yellow-400'
+                                : 'text-gray-300'
+                                }`}
                             />
                           ))}
                         </div>
@@ -360,15 +410,14 @@ const MobileProductDetail = () => {
         </div>
 
         {/* Sticky Bottom Action Bar */}
-        <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 safe-area-bottom">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 safe-area-bottom">
           <div className="flex items-center gap-3">
             <button
               onClick={handleFavorite}
-              className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center ${
-                isFavorite
-                  ? 'bg-red-50 text-red-600 border-2 border-red-200'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
+              className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center ${isFavorite
+                ? 'bg-red-50 text-red-600 border-2 border-red-200'
+                : 'bg-gray-100 text-gray-700'
+                }`}
             >
               <FiHeart className={`text-xl ${isFavorite ? 'fill-red-600' : ''}`} />
             </button>
@@ -389,20 +438,39 @@ const MobileProductDetail = () => {
             >
               <FiShare2 className="text-xl" />
             </button>
-            <button
-              onClick={handleAddToCart}
-              disabled={product.stock === 'out_of_stock'}
-              className={`flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 ${
-                product.stock === 'out_of_stock'
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'gradient-green text-white hover:shadow-glow-green'
-              }`}
-            >
-              <FiShoppingBag className="text-xl" />
-              <span>
-                {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
-              </span>
-            </button>
+            {vendor?.deliveryAvailable !== false ? (
+              cartItem ? (
+                <Link
+                  to="/app/cart"
+                  className="flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-600/30"
+                >
+                  <FiShoppingBag className="text-xl" />
+                  <span>Go to Cart</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 'out_of_stock'}
+                  className={`flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 ${product.stock === 'out_of_stock'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'gradient-green text-white hover:shadow-glow-green'
+                    }`}
+                >
+                  <FiShoppingBag className="text-xl" />
+                  <span>
+                    {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
+                  </span>
+                </button>
+              )
+            ) : (
+              <Link
+                to={`/app/chat?vendorId=${vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || vendor?.name || '')}`}
+                className="flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+              >
+                <FiMessageCircle className="text-xl" />
+                <span>Chat to Buy</span>
+              </Link>
+            )}
           </div>
         </div>
       </MobileLayout>

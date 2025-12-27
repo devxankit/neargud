@@ -1,72 +1,68 @@
-import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { gsapAnimations } from '../../utils/animations';
+import { FiArrowRight, FiZap } from 'react-icons/fi';
 import ProductCard from '../ProductCard';
 import { getFlashSale } from '../../data/products';
 
 const FlashSaleSection = () => {
-  const sectionRef = useRef(null);
   const products = getFlashSale();
 
-  useEffect(() => {
-    if (sectionRef.current) {
-      gsapAnimations.scrollReveal(sectionRef.current);
-    }
-  }, []);
+  if (products.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="py-16 md:py-0 bg-transparent relative">
-      {/* Desktop Layout - White card container with horizontal scroll */}
-      <div className="hidden md:block bg-white rounded-lg mb-4 p-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">Flash Sale</h2>
+    <section className="py-4 md:py-0 bg-transparent relative">
+      {/* Desktop Layout */}
+      <div className="hidden md:block bg-gradient-to-r from-red-50 to-orange-50 rounded-lg mb-4 p-4 shadow-sm border border-red-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
+            <FiZap className="fill-red-600" /> Flash Sale
+          </h2>
           <Link
-            to="/flash-sale"
-            className="text-sm text-primary-500 hover:text-primary-600 font-medium"
+            to="/app/flash-sale"
+            className="text-sm text-red-600 font-semibold hover:text-red-700 transition-colors flex items-center gap-1"
           >
-            View All
+            See All <FiArrowRight />
           </Link>
         </div>
         <div className="overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="flex gap-4 min-w-max pb-2">
             {products.map((product, index) => (
-              <motion.div
+              <div
                 key={product.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
                 className="flex-shrink-0"
-                style={{ width: '216px' }}
+                style={{ width: '200px' }}
               >
-                <ProductCard product={product} />
-              </motion.div>
+                <div className="h-full">
+                  <ProductCard product={product} />
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Mobile Layout - Unchanged */}
-      <div className="md:hidden container mx-auto px-2 sm:px-4 relative">
-        <div className="flex items-center justify-between mb-10 relative z-20">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gradient relative z-20">Flash Sale</h2>
+      {/* Mobile Layout */}
+      <div className="md:hidden container mx-auto px-2 relative">
+        <div className="flex items-center justify-between mb-3 relative z-20 px-1 bg-gradient-to-r from-red-500/10 to-transparent p-2 rounded-lg">
+          <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
+            <FiZap className="fill-red-600 animate-pulse" /> Flash Sale
+          </h2>
           <Link
-            to="/flash-sale"
-            className="gradient-green text-white px-6 py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 hover:scale-105"
+            to="/app/flash-sale"
+            className="text-xs font-semibold text-red-600 flex items-center gap-1"
           >
-            View All
+            View All <FiArrowRight />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6 relative z-[1]">
-          {products.map((product, index) => (
+        <div className="grid grid-cols-2 gap-3 pb-4">
+          {products.slice(0, 4).map((product, index) => (
             <motion.div
               key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.05 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, margin: "50px" }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
             >
               <ProductCard product={product} />
             </motion.div>

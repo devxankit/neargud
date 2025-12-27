@@ -10,19 +10,19 @@ interface LowestPricesEverProps {
 }
 
 // Product Card Component - Defined outside to prevent recreation on every render
-const ProductCard = memo(({ 
-  product, 
+const ProductCard = memo(({
+  product,
   cartQuantity,
   onAddToCart,
   onUpdateQuantity
-}: { 
-  product: any; 
+}: {
+  product: any;
   cartQuantity: number;
   onAddToCart: (product: any, element?: HTMLElement | null) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
 }) => {
   const navigate = useNavigate();
-  
+
   // Calculate discount - use originalPrice if available, otherwise calculate from price
   const originalPrice = product.originalPrice || product.price * 1.2; // Fallback if no originalPrice
   const discount = originalPrice ? Math.round(((originalPrice - product.price) / originalPrice) * 100) : 0;
@@ -105,7 +105,7 @@ const ProductCard = memo(({
                       e.stopPropagation();
                       onAddToCart(product, e.currentTarget);
                     }}
-                    className="bg-white/95 backdrop-blur-sm text-orange-600 border-2 border-orange-600 text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-white transition-colors"
+                    className="bg-white/95 backdrop-blur-sm text-red-500 border border-red-500 text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-red-50 transition-colors"
                   >
                     ADD
                   </motion.button>
@@ -116,7 +116,7 @@ const ProductCard = memo(({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-1 bg-orange-600 rounded px-1.5 py-1 shadow-md"
+                    className="flex items-center gap-1 bg-red-500 rounded px-1.5 py-1 shadow-md"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <motion.button
@@ -124,9 +124,9 @@ const ProductCard = memo(({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onUpdateQuantity(product.id.toString(), inCartQty - 1);
+                        onUpdateQuantity(product.id, inCartQty - 1);
                       }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-orange-700 rounded transition-colors p-0 leading-none"
+                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-red-600 rounded transition-colors p-0 leading-none"
                       style={{ lineHeight: 1, fontSize: '14px' }}
                     >
                       <span className="relative top-[-1px]">−</span>
@@ -146,9 +146,9 @@ const ProductCard = memo(({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onUpdateQuantity(product.id.toString(), inCartQty + 1);
+                        onUpdateQuantity(product.id, inCartQty + 1);
                       }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-orange-700 rounded transition-colors p-0 leading-none"
+                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-red-600 rounded transition-colors p-0 leading-none"
                       style={{ lineHeight: 1, fontSize: '14px' }}
                     >
                       <span className="relative top-[-1px]">+</span>
@@ -238,7 +238,7 @@ const ProductCard = memo(({
             <div className="flex items-center gap-0.5">
               <div className="w-px h-2 bg-red-300"></div>
               <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 0L8 4L0 8Z" fill="#dc2626"/>
+                <path d="M0 0L8 4L0 8Z" fill="#dc2626" />
               </svg>
             </div>
           </Link>
@@ -250,7 +250,7 @@ const ProductCard = memo(({
   // Custom comparison: only re-render if the product ID or cart quantity changes
   // Functions are stable references, so we don't need to compare them
   return (
-    prevProps.product.id === nextProps.product.id && 
+    prevProps.product.id === nextProps.product.id &&
     prevProps.cartQuantity === nextProps.cartQuantity
   );
 });
@@ -294,7 +294,7 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
   const cartItemsMap = useMemo(() => {
     const map = new Map();
     items.forEach(item => {
-      map.set(item.id.toString(), item.quantity);
+      map.set(item.id, item.quantity);
     });
     return map;
   }, [items]);
@@ -313,7 +313,7 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
   // Get products with discounts for this section, filtered by activeTab
   const getFilteredProducts = () => {
     let filtered = products;
-    
+
     if (activeTab !== 'all') {
       const keywords = categoryKeywordMap[activeTab] || [];
       if (keywords.length > 0) {
@@ -323,7 +323,7 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
         });
       }
     }
-    
+
     return filtered
       .filter((product) => {
         if (!product.originalPrice) return false;
@@ -360,7 +360,7 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
   }
 
   return (
-    <div 
+    <div
       className="relative w-full overflow-x-hidden"
       style={{
         background: `linear-gradient(to bottom, ${theme.primary[3]}, ${theme.primary[3]}, ${theme.secondary[1]}, ${theme.secondary[2]})`,
@@ -419,50 +419,50 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
         <div className="flex items-center justify-center gap-2 mb-1">
           {/* Left horizontal line */}
           <div className="flex-1 h-px bg-neutral-300"></div>
-          
-          <h2 
+
+          <h2
             className="font-black text-center whitespace-nowrap"
-              style={{
-                fontFamily: '"Poppins", sans-serif',
-                fontSize: '28px',
-                color: '#000000',
-                opacity: fontLoaded ? 1 : 0,
-                transition: 'opacity 0.2s ease-in',
-                textShadow: 
-                  '-1.5px -1.5px 0 white, 1.5px -1.5px 0 white, -1.5px 1.5px 0 white, 1.5px 1.5px 0 white, ' +
-                  '-1.5px 0px 0 white, 1.5px 0px 0 white, 0px -1.5px 0 white, 0px 1.5px 0 white, ' +
-                  '-1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white, ' +
-                  '3px 3px 4px rgba(0, 0, 0, 0.5), ' +
-                  '2px 2px 3px rgba(0, 0, 0, 0.6), ' +
-                  '1px 1px 2px rgba(0, 0, 0, 0.7), ' +
-                  '0px 2px 1px rgba(0, 0, 0, 0.4)',
-                letterSpacing: '0.8px',
-                fontWeight: 900,
-                lineHeight: '1.1',
-                transform: 'perspective(500px) rotateX(2deg) rotateY(-1deg)',
-                transformStyle: 'preserve-3d',
-              } as React.CSSProperties}
+            style={{
+              fontFamily: '"Poppins", sans-serif',
+              fontSize: '28px',
+              color: '#000000',
+              opacity: fontLoaded ? 1 : 0,
+              transition: 'opacity 0.2s ease-in',
+              textShadow:
+                '-1.5px -1.5px 0 white, 1.5px -1.5px 0 white, -1.5px 1.5px 0 white, 1.5px 1.5px 0 white, ' +
+                '-1.5px 0px 0 white, 1.5px 0px 0 white, 0px -1.5px 0 white, 0px 1.5px 0 white, ' +
+                '-1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white, ' +
+                '3px 3px 4px rgba(0, 0, 0, 0.5), ' +
+                '2px 2px 3px rgba(0, 0, 0, 0.6), ' +
+                '1px 1px 2px rgba(0, 0, 0, 0.7), ' +
+                '0px 2px 1px rgba(0, 0, 0, 0.4)',
+              letterSpacing: '0.8px',
+              fontWeight: 900,
+              lineHeight: '1.1',
+              transform: 'perspective(500px) rotateX(2deg) rotateY(-1deg)',
+              transformStyle: 'preserve-3d',
+            } as React.CSSProperties}
           >
             LOWEST PRICES EVER
           </h2>
-          
+
           {/* Right horizontal line */}
           <div className="flex-1 h-px bg-neutral-300"></div>
         </div>
       </div>
 
       {/* Horizontal Scrollable Product Cards */}
-      <div 
+      <div
         ref={scrollContainerRef}
         className="flex gap-2 overflow-x-auto scrollbar-hide px-4"
         style={{ scrollSnapType: 'x mandatory' }}
       >
         {discountedProducts.map((product) => {
-          const cartQuantity = cartItemsMap.get(product.id.toString()) || 0;
+          const cartQuantity = cartItemsMap.get(product.id) || 0;
           return (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
+            <ProductCard
+              key={product.id}
+              product={product}
               cartQuantity={cartQuantity}
               onAddToCart={handleAddToCart}
               onUpdateQuantity={handleUpdateQuantity}
