@@ -178,7 +178,18 @@ const MobileProductDetail = () => {
 
           {/* Product Info */}
           <div className="px-4 py-4">
-            <h1 className="text-2xl font-bold text-gray-800 mb-3">{product.name}</h1>
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h1 className="text-2xl font-bold text-gray-800 flex-1">{product.name}</h1>
+              <button
+                onClick={handleFavorite}
+                className={`p-2 rounded-full transition-colors flex-shrink-0 ${isFavorite
+                  ? 'bg-red-50 text-red-500'
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  }`}
+              >
+                <FiHeart className={`text-xl ${isFavorite ? 'fill-current' : ''}`} />
+              </button>
+            </div>
 
             {/* Vendor Badge */}
             {vendor && (

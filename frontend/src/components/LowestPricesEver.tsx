@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { products } from '../data/products';
 import { getTheme } from '../utils/themes';
 import { useCartStore } from '../store/useStore';
+import { useWishlistStore } from '../store/wishlistStore';
+import toast from 'react-hot-toast';
 
 interface LowestPricesEverProps {
   activeTab?: string;
@@ -22,6 +24,26 @@ const ProductCard = memo(({
   onUpdateQuantity: (productId: string, quantity: number) => void;
 }) => {
   const navigate = useNavigate();
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+  const isFavorite = isInWishlist(product.id);
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isFavorite) {
+      removeFromWishlist(product.id);
+      toast.success('Removed from wishlist');
+    } else {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image || product.imageUrl,
+      });
+      toast.success('Added to wishlist');
+    }
+  };
 
   // Calculate discount - use originalPrice if available, otherwise calculate from price
   const originalPrice = product.originalPrice || product.price * 1.2; // Fallback if no originalPrice
@@ -63,21 +85,18 @@ const ProductCard = memo(({
 
             {/* Heart Icon - Top Right */}
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Handle wishlist toggle
-              }}
-              className="absolute top-1 right-1 z-10 w-5 h-5 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm"
-              aria-label="Add to wishlist"
+              onClick={handleFavorite}
+              className={`absolute top-1 right-1 z-10 w-5 h-5 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors shadow-sm ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-white/95 text-neutral-700 hover:bg-white'
+                }`}
+              aria-label={isFavorite ? "Remove from wishlist" : "Add to wishlist"}
             >
               <svg
                 width="12"
                 height="12"
                 viewBox="0 0 24 24"
-                fill="none"
+                fill={isFavorite ? "currentColor" : "none"}
                 xmlns="http://www.w3.org/2000/svg"
-                className="text-neutral-700"
+                className={isFavorite ? "text-red-500" : "text-neutral-700"}
               >
                 <path
                   d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
