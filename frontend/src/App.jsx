@@ -143,6 +143,8 @@ import MobileDailyDeals from "./modules/App/pages/DailyDeals";
 import MobileFlashSale from "./modules/App/pages/FlashSale";
 import MobileTrackOrder from "./modules/App/pages/TrackOrder";
 import MobileOrderConfirmation from "./modules/App/pages/OrderConfirmation";
+import MobilePolicies from "./modules/App/pages/Policies";
+import MobileSavedCards from "./modules/App/pages/SavedCards";
 // Delivery Routes
 import DeliveryLogin from "./pages/delivery/Login";
 import DeliveryProtectedRoute from "./components/Delivery/DeliveryProtectedRoute";
@@ -471,6 +473,9 @@ const AppRoutes = () => {
           </RouteWrapper>
         }
       />
+      <Route path="/app/cards" element={<RouteWrapper><MobileSavedCards /></RouteWrapper>} />
+      <Route path="/app/help" element={<RouteWrapper><Chat /></RouteWrapper>} />
+      <Route path="/app/policies" element={<RouteWrapper><MobilePolicies /></RouteWrapper>} />
     </Routes>
   );
 };

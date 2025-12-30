@@ -58,7 +58,7 @@ const MobileOrders = () => {
   return (
     <ProtectedRoute>
       <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true}>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
           <div className="w-full pb-24">
             {/* Header */}
             <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-30">
@@ -93,11 +93,10 @@ const MobileOrders = () => {
                         setSelectedStatus(option.value);
                         setShowFilter(false);
                       }}
-                      className={`px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap transition-all ${
-                        selectedStatus === option.value
+                      className={`px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap transition-all ${selectedStatus === option.value
                           ? 'gradient-green text-white'
                           : 'bg-gray-100 text-gray-700'
-                      }`}
+                        }`}
                     >
                       {option.label}
                     </button>

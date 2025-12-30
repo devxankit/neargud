@@ -145,6 +145,11 @@
     ]
   },
   {
+    "title": "Content",
+    "route": "/admin/content",
+    "children": []
+  },
+  {
     "title": "Settings",
     "route": "/admin/settings",
     "children": [
@@ -174,4 +179,3 @@
     ]
   }
 ]
-

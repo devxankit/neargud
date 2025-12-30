@@ -6,7 +6,6 @@ import {
   FiPackage,
   FiShoppingBag,
   FiBarChart2,
-  FiDollarSign,
   FiSettings,
   FiUser,
   FiChevronDown,
@@ -30,6 +29,7 @@ import {
   FiVideo,
   FiShare2,
 } from "react-icons/fi";
+import { IndianRupee } from "lucide-react";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
 import vendorMenu from "../../config/vendorMenu.json";
 
@@ -54,7 +54,7 @@ const iconMap = {
   "Performance Metrics": FiTrendingUp,
   Documents: FiFile,
   Analytics: FiBarChart2,
-  Earnings: FiDollarSign,
+  Earnings: IndianRupee,
   Settings: FiSettings,
   "Social Profile": FiShare2,
   Profile: FiUser,
@@ -339,4 +339,3 @@ const VendorSidebar = ({ isOpen, onClose }) => {
 };
 
 export default VendorSidebar;
-

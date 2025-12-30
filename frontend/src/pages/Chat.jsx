@@ -20,6 +20,10 @@ const Chat = () => {
     const queryParams = new URLSearchParams(location.search);
     const initialVendorId = queryParams.get('vendorId');
     const initialVendorName = queryParams.get('vendorName');
+    const productId = queryParams.get('productId');
+    const productName = queryParams.get('productName');
+    const productImage = queryParams.get('productImage');
+    const productPrice = queryParams.get('productPrice');
 
     // userId would come from auth store in real app
     const userId = 'user-123';
@@ -57,11 +61,60 @@ const Chat = () => {
 
             setChats(loadedChats);
             const chatToSelect = existingChat || loadedChats[0];
+
+            // If we have product context, we might want to attach it to the chat
+            // For now, we'll handle sending the product message in a separate effect once selectedChat is set
             setSelectedChat(chatToSelect);
         } else {
             setChats(loadedChats);
         }
     }, [initialVendorId, initialVendorName]);
+
+    // Handle initial product message
+    useEffect(() => {
+        if (selectedChat && productId && initialVendorId === selectedChat.vendorId) {
+            const chatMessagesKey = `user-${userId}-chat-${selectedChat.id}-messages`;
+            const existingMessages = JSON.parse(localStorage.getItem(chatMessagesKey) || '[]');
+
+            // Check if this product was already sent as the VERY last message to avoid dupes on refresh
+            // or if we want to be stricter "only for the first time" -> check if ANY message has this productId
+            // The request says "only for the first time", implying start of conversation about this product.
+            // Let's check if the last message is about this product.
+            const isProductAlreadySent = existingMessages.some(m => m.type === 'product' && m.product?.id === productId);
+
+            if (!isProductAlreadySent) {
+                const productMsg = {
+                    id: Date.now(),
+                    sender: 'user',
+                    type: 'product',
+                    message: `Hi, I'm interested in this product: ${productName}`,
+                    time: new Date().toISOString(),
+                    product: {
+                        id: productId,
+                        name: productName,
+                        image: productImage,
+                        price: productPrice
+                    }
+                };
+
+                const updatedMessages = [...existingMessages, productMsg];
+                setMessages(updatedMessages);
+                localStorage.setItem(chatMessagesKey, JSON.stringify(updatedMessages));
+
+                // Update chat list preview
+                const updatedChats = chats.map(c =>
+                    c.id === selectedChat.id
+                        ? { ...c, lastMessage: `Sent a product: ${productName}`, lastActivity: new Date().toISOString() }
+                        : c
+                );
+                setChats(updatedChats);
+                localStorage.setItem(`user-${userId}-chats`, JSON.stringify(updatedChats));
+
+                // Clear URL params to prevent re-sending on reload (optional but good UX)
+                // navigate(location.pathname + `?vendorId=${initialVendorId}&vendorName=${initialVendorName}`, { replace: true });
+            }
+        }
+    }, [selectedChat, productId, initialVendorId, productName, productImage, productPrice, chats, userId]);
 
     useEffect(() => {
         if (selectedChat) {
@@ -270,16 +323,45 @@ const Chat = () => {
                                             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[75%] px-4 py-2.5 shadow-sm ${msg.sender === 'user'
+                                                className={`max-w-[75%] shadow-sm ${msg.sender === 'user'
                                                     ? 'bg-primary-600 text-white rounded-2xl rounded-tr-none'
                                                     : 'bg-white text-gray-900 rounded-2xl rounded-tl-none border border-gray-100'
-                                                    }`}
+                                                    } ${msg.type === 'product' ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}
                                             >
-                                                <p className="text-[15px] leading-relaxed">{msg.message}</p>
-                                                <p className={`text-[10px] mt-1 text-right ${msg.sender === 'user' ? 'text-primary-100' : 'text-gray-400'
-                                                    }`}>
-                                                    {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </p>
+                                                {msg.type === 'product' ? (
+                                                    <div className="w-64 bg-white rounded-lg overflow-hidden border-2 border-primary-500">
+                                                        <div className="relative h-32">
+                                                            <img
+                                                                src={msg.product.image}
+                                                                alt={msg.product.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => e.target.src = 'https://via.placeholder.com/150'}
+                                                            />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-2">
+                                                                <span className="text-white font-bold text-lg">
+                                                                    ₹{parseFloat(msg.product.price).toLocaleString()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-3 bg-white">
+                                                            <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-2">
+                                                                {msg.product.name}
+                                                            </h4>
+                                                            <p className="text-xs text-primary-600 mb-0 font-medium">
+                                                                {msg.message}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-[15px] leading-relaxed">{msg.message}</p>
+                                                )}
+
+                                                {msg.type !== 'product' && (
+                                                    <p className={`text-[10px] mt-1 text-right ${msg.sender === 'user' ? 'text-primary-100' : 'text-gray-400'
+                                                        }`}>
+                                                        {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

@@ -13,12 +13,13 @@ import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const MobileProfile = () => {
   const navigate = useNavigate();
-  const { user, updateProfile, changePassword, isLoading } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('personal');
+  const { user, logout, updateProfile, changePassword, isLoading } = useAuthStore();
+  const [view, setView] = useState('main'); // 'main', 'personal', 'password'
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Forms
   const {
     register: registerPersonal,
     handleSubmit: handleSubmitPersonal,
@@ -45,6 +46,7 @@ const MobileProfile = () => {
     try {
       await updateProfile(data);
       toast.success('Profile updated successfully!');
+      setView('main');
     } catch (error) {
       toast.error(error.message || 'Failed to update profile');
     }
@@ -55,329 +57,289 @@ const MobileProfile = () => {
       await changePassword(data.currentPassword, data.newPassword);
       toast.success('Password changed successfully!');
       resetPassword();
+      setView('main');
     } catch (error) {
       toast.error(error.message || 'Failed to change password');
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/app/login');
+  };
+
+  const menuItems = [
+    { icon: FiUser, label: 'My Orders', path: '/app/orders', color: 'text-blue-500', bg: 'bg-blue-50' },
+    { icon: FiUser, label: 'Wishlist', path: '/app/wishlist', color: 'text-pink-500', bg: 'bg-pink-50' },
+    { icon: FiUser, label: 'My Addresses', path: '/app/addresses', color: 'text-orange-500', bg: 'bg-orange-50' },
+    { icon: FiUser, label: 'Saved Cards', path: '/app/cards', color: 'text-purple-500', bg: 'bg-purple-50' }, // Placeholder
+  ];
+
+  const settingItems = [
+    { icon: FiUser, label: 'Personal Information', action: () => setView('personal'), color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiLock, label: 'Change Password', action: () => setView('password'), color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiUser, label: 'Help Center', path: '/app/help', color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiUser, label: 'Terms & Policies', path: '/app/policies', color: 'text-gray-700', bg: 'bg-gray-100' },
+  ];
+
   return (
     <ProtectedRoute>
       <PageTransition>
         <MobileLayout showBottomNav={true} showCartBar={true}>
-          <div className="w-full pb-24">
-            {/* Header */}
-            <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-30">
-              <div className="flex items-center gap-3 mb-4">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <FiArrowLeft className="text-xl text-gray-700" />
-                </button>
+          <div className="w-full pb-24 min-h-screen bg-gray-50">
+            {/* Header / Navigation */}
+            <div className="px-4 py-4 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between">
+              {view === 'main' ? (
                 <h1 className="text-xl font-bold text-gray-800">My Profile</h1>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex gap-2 border-b border-gray-200 -mx-4 px-4">
-                <button
-                  onClick={() => setActiveTab('personal')}
-                  className={`px-4 py-2 font-semibold text-sm transition-colors border-b-2 ${
-                    activeTab === 'personal'
-                      ? 'text-primary-600 border-primary-600'
-                      : 'text-gray-600 border-transparent'
-                  }`}
-                >
-                  Personal
-                </button>
-                <button
-                  onClick={() => setActiveTab('password')}
-                  className={`px-4 py-2 font-semibold text-sm transition-colors border-b-2 ${
-                    activeTab === 'password'
-                      ? 'text-primary-600 border-primary-600'
-                      : 'text-gray-600 border-transparent'
-                  }`}
-                >
-                  Password
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setView('main')}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <FiArrowLeft className="text-xl text-gray-700" />
+                  </button>
+                  <h1 className="text-xl font-bold text-gray-800">
+                    {view === 'personal' ? 'Edit Profile' : 'Change Password'}
+                  </h1>
+                </div>
+              )}
             </div>
 
-            {/* Content */}
-            <div className="px-4 py-4">
-              {/* Personal Information Tab */}
-              {activeTab === 'personal' && (
+            <AnimatePresence mode="wait">
+              {view === 'main' && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass-card rounded-2xl p-4"
+                  key="main"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="px-4 py-2"
                 >
-                  {/* Avatar */}
-                  <div className="flex items-center gap-4 mb-6">
+                  {/* User Profile Card */}
+                  <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 flex items-center gap-4 border border-gray-100 mt-2">
                     <div className="relative">
-                      <div className="w-20 h-20 rounded-full gradient-green flex items-center justify-center text-white text-2xl font-bold">
+                      <div className="w-16 h-16 rounded-full gradient-green flex items-center justify-center text-white text-2xl font-bold shadow-md">
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
-                      <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white hover:bg-primary-700 transition-colors">
-                        <FiCamera className="text-sm" />
-                      </button>
+                      <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
-                    <div>
-                      <p className="text-gray-600 text-sm mb-1">Profile Picture</p>
-                      <p className="text-xs text-gray-500">JPG, PNG or GIF. Max size 2MB</p>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-lg font-bold text-gray-800 truncate">{user?.name || 'User'}</h2>
+                      <p className="text-sm text-gray-500 truncate">{user?.email || 'No email'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{user?.phone || 'No phone'}</p>
                     </div>
+                    <button
+                      onClick={() => setView('personal')}
+                      className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                    >
+                      <FiUser className="text-xl" />
+                    </button>
                   </div>
 
-                  <form onSubmit={handleSubmitPersonal(onPersonalSubmit)} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <FiUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                          type="text"
-                          {...registerPersonal('name', {
-                            required: 'Name is required',
-                            minLength: {
-                              value: 2,
-                              message: 'Name must be at least 2 characters',
-                            },
-                          })}
-                          className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                            personalErrors.name
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
-                          } focus:outline-none transition-colors text-base`}
-                          placeholder="Your full name"
-                        />
-                      </div>
-                      <AnimatePresence>
-                        {personalErrors.name && (
-                          <motion.p
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="mt-1 text-sm text-red-600"
-                          >
-                            {personalErrors.name.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                  {/* Main Menu Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {menuItems.map((item, index) => (
+                      <button
+                        key={index}
+                        onClick={() => item.path && navigate(item.path)}
+                        className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 hover:shadow-md transition-shadow active:scale-95 duration-200"
+                      >
+                        <div className={`w-10 h-10 ${item.bg} rounded-full flex items-center justify-center`}>
+                          <item.icon className={`text-xl ${item.color}`} />
+                        </div>
+                        <span className="text-sm font-semibold text-gray-700">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <FiMail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                          type="email"
-                          {...registerPersonal('email', {
-                            required: 'Email is required',
-                            validate: (value) =>
-                              isValidEmail(value) || 'Please enter a valid email',
-                          })}
-                          className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                            personalErrors.email
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
-                          } focus:outline-none transition-colors text-base`}
-                          placeholder="your.email@example.com"
-                        />
-                      </div>
-                      <AnimatePresence>
-                        {personalErrors.email && (
-                          <motion.p
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="mt-1 text-sm text-red-600"
-                          >
-                            {personalErrors.email.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                  {/* Settings List */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                    {settingItems.map((item, index) => (
+                      <button
+                        key={index}
+                        onClick={() => item.action ? item.action() : item.path && navigate(item.path)}
+                        className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${index !== settingItems.length - 1 ? 'border-b border-gray-100' : ''
+                          }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-8 h-8 ${item.bg} rounded-full flex items-center justify-center`}>
+                            <item.icon className={`text-sm ${item.color}`} />
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                        </div>
+                        <FiArrowLeft className="text-gray-400 rotate-180" />
+                      </button>
+                    ))}
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Phone Number
-                      </label>
-                      <div className="relative">
-                        <FiPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                          type="tel"
-                          {...registerPersonal('phone', {
-                            validate: (value) =>
-                              !value || isValidPhone(value) || 'Please enter a valid phone number',
-                          })}
-                          className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                            personalErrors.phone
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
-                          } focus:outline-none transition-colors text-base`}
-                          placeholder="1234567890"
-                        />
-                      </div>
-                      <AnimatePresence>
-                        {personalErrors.phone && (
-                          <motion.p
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="mt-1 text-sm text-red-600"
-                          >
-                            {personalErrors.phone.message}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                  {/* Logout Button */}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full bg-red-50 text-red-600 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+                  >
+                    <FiArrowLeft className="rotate-180" />
+                    Log Out
+                  </button>
 
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full gradient-green text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FiSave />
-                      {isLoading ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </form>
+                  <div className="text-center mt-6 text-xs text-gray-400">
+                    Version 1.0.0
+                  </div>
                 </motion.div>
               )}
 
-              {/* Change Password Tab */}
-              {activeTab === 'password' && (
+              {/* Edit Personal Info View */}
+              {view === 'personal' && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass-card rounded-2xl p-4"
+                  key="personal"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="px-4 py-2"
                 >
-                  <h2 className="text-lg font-bold text-gray-800 mb-4">Change Password</h2>
-
-                  <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Current Password
-                      </label>
+                  <div className="glass-card rounded-2xl p-4 bg-white shadow-sm border border-gray-100">
+                    <div className="flex justify-center mb-6">
                       <div className="relative">
-                        <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                          type={showCurrentPassword ? 'text' : 'password'}
-                          {...registerPassword('currentPassword', {
-                            required: 'Current password is required',
-                          })}
-                          className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${
-                            passwordErrors.currentPassword
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
-                          } focus:outline-none transition-colors text-base`}
-                          placeholder="Enter current password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showCurrentPassword ? <FiEyeOff /> : <FiEye />}
+                        <div className="w-24 h-24 rounded-full gradient-green flex items-center justify-center text-white text-3xl font-bold">
+                          {user?.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <button className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white hover:bg-blue-600 transition-colors border-2 border-white shadow-sm">
+                          <FiCamera className="text-sm" />
                         </button>
                       </div>
-                      {passwordErrors.currentPassword && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {passwordErrors.currentPassword.message}
-                        </p>
-                      )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        New Password
-                      </label>
-                      <div className="relative">
-                        <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                          type={showNewPassword ? 'text' : 'password'}
-                          {...registerPassword('newPassword', {
-                            required: 'New password is required',
-                            minLength: {
-                              value: 6,
-                              message: 'Password must be at least 6 characters',
-                            },
-                          })}
-                          className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${
-                            passwordErrors.newPassword
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
-                          } focus:outline-none transition-colors text-base`}
-                          placeholder="Enter new password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showNewPassword ? <FiEyeOff /> : <FiEye />}
-                        </button>
+                    <form onSubmit={handleSubmitPersonal(onPersonalSubmit)} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                        <div className="relative">
+                          <FiUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            {...registerPersonal('name', { required: 'Name is required' })}
+                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
+                            placeholder="Your full name"
+                          />
+                        </div>
+                        {personalErrors.name && <p className="text-red-500 text-xs mt-1">{personalErrors.name.message}</p>}
                       </div>
-                      {passwordErrors.newPassword && (
-                        <motion.p
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="mt-1 text-sm text-red-600"
-                        >
-                          {passwordErrors.newPassword.message}
-                        </motion.p>
-                      )}
-                      <PasswordStrengthMeter password={newPassword} />
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Confirm New Password
-                      </label>
-                      <div className="relative">
-                        <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                          type={showConfirmPassword ? 'text' : 'password'}
-                          {...registerPassword('confirmPassword', {
-                            required: 'Please confirm your password',
-                            validate: (value) =>
-                              value === newPassword || 'Passwords do not match',
-                          })}
-                          className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${
-                            passwordErrors.confirmPassword
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
-                          } focus:outline-none transition-colors text-base`}
-                          placeholder="Confirm new password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
-                        </button>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                        <div className="relative">
+                          <FiMail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="email"
+                            {...registerPersonal('email', { required: 'Email is required', validate: isValidEmail })}
+                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
+                            placeholder="Email address"
+                          />
+                        </div>
+                        {personalErrors.email && <p className="text-red-500 text-xs mt-1">{personalErrors.email.message}</p>}
                       </div>
-                      {passwordErrors.confirmPassword && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {passwordErrors.confirmPassword.message}
-                        </p>
-                      )}
-                    </div>
 
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full gradient-green text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FiSave />
-                      {isLoading ? 'Changing Password...' : 'Change Password'}
-                    </button>
-                  </form>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
+                        <div className="relative">
+                          <FiPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="tel"
+                            {...registerPersonal('phone', { validate: (v) => !v || isValidPhone(v) || 'Invalid phone' })}
+                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
+                            placeholder="Phone Number"
+                          />
+                        </div>
+                        {personalErrors.phone && <p className="text-red-500 text-xs mt-1">{personalErrors.phone.message}</p>}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full gradient-green text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all mt-4"
+                      >
+                        <FiSave />
+                        {isLoading ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </form>
+                  </div>
                 </motion.div>
               )}
-            </div>
+
+              {/* Change Password View */}
+              {view === 'password' && (
+                <motion.div
+                  key="password"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="px-4 py-2"
+                >
+                  <div className="glass-card rounded-2xl p-4 bg-white shadow-sm border border-gray-100">
+                    <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
+                        <div className="relative">
+                          <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                            type={showCurrentPassword ? 'text' : 'password'}
+                            {...registerPassword('currentPassword', { required: 'Required' })}
+                            className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none"
+                            placeholder="Current Password"
+                          />
+                          <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            {showCurrentPassword ? <FiEyeOff /> : <FiEye />}
+                          </button>
+                        </div>
+                        {passwordErrors.currentPassword && <p className="text-red-500 text-xs mt-1">{passwordErrors.currentPassword.message}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+                        <div className="relative">
+                          <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                            type={showNewPassword ? 'text' : 'password'}
+                            {...registerPassword('newPassword', { required: 'Required', minLength: { value: 6, message: 'Min 6 chars' } })}
+                            className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none"
+                            placeholder="New Password"
+                          />
+                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                          </button>
+                        </div>
+                        {passwordErrors.newPassword && <p className="text-red-500 text-xs mt-1">{passwordErrors.newPassword.message}</p>}
+                        <PasswordStrengthMeter password={newPassword} />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                        <div className="relative">
+                          <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            {...registerPassword('confirmPassword', { validate: v => v === newPassword || 'Passwords do not match' })}
+                            className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none"
+                            placeholder="Confirm Password"
+                          />
+                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                          </button>
+                        </div>
+                        {passwordErrors.confirmPassword && <p className="text-red-500 text-xs mt-1">{passwordErrors.confirmPassword.message}</p>}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full gradient-green text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all mt-4"
+                      >
+                        <FiSave />
+                        {isLoading ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </form>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </MobileLayout>
       </PageTransition>

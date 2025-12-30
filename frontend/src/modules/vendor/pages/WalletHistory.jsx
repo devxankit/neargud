@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { FiDollarSign, FiTrendingUp, FiDownload, FiFilter, FiClock, FiCheckCircle } from 'react-icons/fi';
+import { FiTrendingUp, FiDownload, FiFilter, FiClock, FiCheckCircle } from 'react-icons/fi';
+import { IndianRupee } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Badge from '../../../components/Badge';
 import ExportButton from '../../../components/Admin/ExportButton';

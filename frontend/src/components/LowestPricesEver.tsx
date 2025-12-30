@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { products } from '../data/products';
 import { getTheme } from '../utils/themes';
+import { useContentStore } from '../store/contentStore';
 import { useCartStore } from '../store/useStore';
 import { useWishlistStore } from '../store/wishlistStore';
 import toast from 'react-hot-toast';
@@ -11,17 +12,27 @@ interface LowestPricesEverProps {
   activeTab?: string;
 }
 
+// Helper to convert hex to rgba
+const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 // Product Card Component - Defined outside to prevent recreation on every render
 const ProductCard = memo(({
   product,
   cartQuantity,
   onAddToCart,
-  onUpdateQuantity
+  onUpdateQuantity,
+  theme
 }: {
   product: any;
   cartQuantity: number;
   onAddToCart: (product: any, element?: HTMLElement | null) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
+  theme: any;
 }) => {
   const navigate = useNavigate();
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
@@ -52,6 +63,11 @@ const ProductCard = memo(({
   // Use cartQuantity from props
   const inCartQty = cartQuantity;
 
+  // Dynamic Styles
+  const cardBgColor = hexToRgba(theme.accentColor, 0.05);
+  const linkBgColor = hexToRgba(theme.accentColor, 0.12);
+  const hoverLinkBgColor = hexToRgba(theme.accentColor, 0.2);
+
   return (
     <div
       className="flex-shrink-0 w-[140px]"
@@ -76,9 +92,12 @@ const ProductCard = memo(({
               </div>
             )}
 
-            {/* Red Discount Badge - Top Left */}
+            {/* Discount Badge - Dynamic Color */}
             {discount > 0 && (
-              <div className="absolute top-1 left-1 z-10 bg-red-600 text-white text-[9px] font-bold px-1 py-0.5 rounded">
+              <div
+                className="absolute top-1 left-1 z-10 text-white text-[9px] font-bold px-1 py-0.5 rounded"
+                style={{ backgroundColor: theme.accentColor }}
+              >
                 {discount}% OFF
               </div>
             )}
@@ -86,8 +105,9 @@ const ProductCard = memo(({
             {/* Heart Icon - Top Right */}
             <button
               onClick={handleFavorite}
-              className={`absolute top-1 right-1 z-10 w-5 h-5 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors shadow-sm ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-white/95 text-neutral-700 hover:bg-white'
+              className={`absolute top-1 right-1 z-10 w-5 h-5 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors shadow-sm ${isFavorite ? 'bg-red-50' : 'bg-white/95 text-neutral-700 hover:bg-white'
                 }`}
+              style={isFavorite ? { color: theme.accentColor, backgroundColor: hexToRgba(theme.accentColor, 0.1) } : {}}
               aria-label={isFavorite ? "Remove from wishlist" : "Add to wishlist"}
             >
               <svg
@@ -96,7 +116,8 @@ const ProductCard = memo(({
                 viewBox="0 0 24 24"
                 fill={isFavorite ? "currentColor" : "none"}
                 xmlns="http://www.w3.org/2000/svg"
-                className={isFavorite ? "text-red-500" : "text-neutral-700"}
+                className={!isFavorite ? "text-neutral-700" : ""}
+                style={isFavorite ? { color: theme.accentColor } : {}}
               >
                 <path
                   d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
@@ -124,7 +145,12 @@ const ProductCard = memo(({
                       e.stopPropagation();
                       onAddToCart(product, e.currentTarget);
                     }}
-                    className="bg-white/95 backdrop-blur-sm text-red-500 border border-red-500 text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-red-50 transition-colors"
+                    className="bg-white/95 backdrop-blur-sm result-add-btn text-[10px] font-semibold px-2 py-1 rounded shadow-md transition-colors hover:opacity-80"
+                    style={{
+                      color: theme.accentColor,
+                      borderColor: theme.accentColor,
+                      borderWidth: '1px'
+                    }}
                   >
                     ADD
                   </motion.button>
@@ -135,7 +161,8 @@ const ProductCard = memo(({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-1 bg-red-500 rounded px-1.5 py-1 shadow-md"
+                    className="flex items-center gap-1 rounded px-1.5 py-1 shadow-md"
+                    style={{ backgroundColor: theme.accentColor }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <motion.button
@@ -145,7 +172,7 @@ const ProductCard = memo(({
                         e.stopPropagation();
                         onUpdateQuantity(product.id, inCartQty - 1);
                       }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-red-600 rounded transition-colors p-0 leading-none"
+                      className="w-4 h-4 flex items-center justify-center text-white font-bold rounded transition-colors p-0 leading-none hover:bg-black/20"
                       style={{ lineHeight: 1, fontSize: '14px' }}
                     >
                       <span className="relative top-[-1px]">−</span>
@@ -167,7 +194,7 @@ const ProductCard = memo(({
                         e.stopPropagation();
                         onUpdateQuantity(product.id, inCartQty + 1);
                       }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-red-600 rounded transition-colors p-0 leading-none"
+                      className="w-4 h-4 flex items-center justify-center text-white font-bold rounded transition-colors p-0 leading-none hover:bg-black/20"
                       style={{ lineHeight: 1, fontSize: '14px' }}
                     >
                       <span className="relative top-[-1px]">+</span>
@@ -179,8 +206,8 @@ const ProductCard = memo(({
           </div>
         </div>
 
-        {/* Product Details */}
-        <div className="p-1.5 flex-1 flex flex-col" style={{ background: '#fef2f2' }}>
+        {/* Product Details - Dynamic Background */}
+        <div className="p-1.5 flex-1 flex flex-col" style={{ background: cardBgColor }}>
           {/* Light Grey Tags */}
           <div className="flex gap-0.5 mb-0.5">
             <div className="bg-neutral-200 text-neutral-700 text-[8px] font-medium px-1 py-0.5 rounded">
@@ -227,9 +254,9 @@ const ProductCard = memo(({
             20 MINS
           </div>
 
-          {/* Discount - Blue Text */}
+          {/* Discount - Dynamic Text Color */}
           {discount > 0 && (
-            <div className="text-[9px] text-blue-600 font-semibold mb-0.5">
+            <div className="text-[9px] font-semibold mb-0.5" style={{ color: theme.accentColor }}>
               {discount}% OFF
             </div>
           )}
@@ -248,16 +275,22 @@ const ProductCard = memo(({
             </div>
           </div>
 
-          {/* Bottom Link */}
+          {/* Bottom Link - Dynamic Background & Text */}
           <Link
             to={`/app/category/${product.categoryId || 'all'}`}
-            className="w-full bg-red-100 text-red-700 text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-red-200 transition-colors mt-auto"
+            className="w-full text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 transition-colors mt-auto"
+            style={{
+              backgroundColor: linkBgColor,
+              color: theme.accentColor
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverLinkBgColor}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = linkBgColor}
           >
             <span>See more like this</span>
             <div className="flex items-center gap-0.5">
-              <div className="w-px h-2 bg-red-300"></div>
+              <div className="w-px h-2" style={{ backgroundColor: hexToRgba(theme.accentColor, 0.4) }}></div>
               <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 0L8 4L0 8Z" fill="#dc2626" />
+                <path d="M0 0L8 4L0 8Z" fill={theme.accentColor} />
               </svg>
             </div>
           </Link>
@@ -268,15 +301,20 @@ const ProductCard = memo(({
 }, (prevProps, nextProps) => {
   // Custom comparison: only re-render if the product ID or cart quantity changes
   // Functions are stable references, so we don't need to compare them
+  // Also check if theme changed
   return (
     prevProps.product.id === nextProps.product.id &&
-    prevProps.cartQuantity === nextProps.cartQuantity
+    prevProps.cartQuantity === nextProps.cartQuantity &&
+    prevProps.theme === nextProps.theme
   );
 });
+
 
 ProductCard.displayName = 'ProductCard';
 
 export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEverProps) {
+  const { content } = useContentStore();
+  const lowestPricesTitle = content?.homepage?.lowestPrices?.title || 'LOWEST PRICES EVER';
   const theme = getTheme(activeTab);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const items = useCartStore((state) => state.items);
@@ -462,7 +500,7 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
               transformStyle: 'preserve-3d',
             } as React.CSSProperties}
           >
-            LOWEST PRICES EVER
+            {lowestPricesTitle}
           </h2>
 
           {/* Right horizontal line */}
@@ -485,6 +523,7 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
               cartQuantity={cartQuantity}
               onAddToCart={handleAddToCart}
               onUpdateQuantity={handleUpdateQuantity}
+              theme={theme}
             />
           );
         })}
@@ -492,4 +531,5 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
     </div>
   );
 }
+
 

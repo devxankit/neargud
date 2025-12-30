@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { FiHeart, FiMessageCircle, FiSend, FiArrowLeft, FiGift, FiShoppingBag, FiMoreVertical, FiVideo, FiVolume2, FiVolumeX } from "react-icons/fi";
+import { FiHeart, FiMessageCircle, FiSend, FiArrowLeft, FiGift, FiShoppingBag, FiMoreVertical, FiVideo, FiVolume2, FiVolumeX, FiX } from "react-icons/fi";
 import { FaHeart } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { getActiveReels } from "../../../utils/reelHelpers";
@@ -8,6 +8,12 @@ import { getProductById } from "../../../data/products";
 import toast from "react-hot-toast";
 import MobileLayout from "../../../components/Layout/Mobile/MobileLayout";
 import useMobileHeaderHeight from "../../../hooks/useMobileHeaderHeight";
+
+const MOCK_COMMENTS = [
+  { id: 1, user: "Sarah J.", text: "Love this! 😍", avatar: "https://ui-avatars.com/api/?name=Sarah+J&background=random" },
+  { id: 2, user: "Mike T.", text: "Is this available in black?", avatar: "https://ui-avatars.com/api/?name=Mike+T&background=random" },
+  { id: 3, user: "Priya K.", text: "Bought this last week, totally worth it.", avatar: "https://ui-avatars.com/api/?name=Priya+K&background=random" },
+];
 
 const MobileReels = () => {
   const navigate = useNavigate();
@@ -18,7 +24,27 @@ const MobileReels = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [showMuteIcon, setShowMuteIcon] = useState(false);
   const [likedReels, setLikedReels] = useState([]);
+
   const [showHeartAnim, setShowHeartAnim] = useState(false);
+  const [followedVendors, setFollowedVendors] = useState([]);
+
+  // Comment State
+  const [showComments, setShowComments] = useState(false);
+  const [activeReelComments, setActiveReelComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [activeReelId, setActiveReelId] = useState(null);
+
+  const handleFollow = (vendorId) => {
+    if (!vendorId) return;
+
+    if (followedVendors.includes(vendorId)) {
+      setFollowedVendors(prev => prev.filter(id => id !== vendorId));
+    } else {
+      setFollowedVendors(prev => [...prev, vendorId]);
+    }
+  };
+
+
 
   const videoRefs = useRef([]);
   const containerRef = useRef(null);
@@ -89,7 +115,11 @@ const MobileReels = () => {
           if (playPromise !== undefined) {
             playPromise.catch(e => {
               console.log("Autoplay prevented", e);
-              // User interaction needed usually
+              // Fallback to muted autoplay if audio is blocked
+              video.muted = true;
+              video.play().then(() => {
+                setIsMuted(true);
+              }).catch(err => console.log("Muted autoplay also failed", err));
             });
           }
         } else {
@@ -177,6 +207,26 @@ const MobileReels = () => {
       navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied to clipboard!");
     }
+  };
+
+  const handleCommentClick = (reelId) => {
+    setActiveReelId(reelId);
+    setActiveReelComments(MOCK_COMMENTS);
+    setShowComments(true);
+  };
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+
+    const newCommentObj = {
+      id: Date.now(),
+      user: "You",
+      text: newComment,
+      avatar: "https://ui-avatars.com/api/?name=You&background=random"
+    };
+
+    setActiveReelComments(prev => [newCommentObj, ...prev]);
+    setNewComment("");
   };
 
   if (reels.length === 0) {
@@ -305,10 +355,54 @@ const MobileReels = () => {
               </AnimatePresence>
             </div>
 
+            {/* Right Actions Bar - Moved to Middle Right */}
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-6 z-20">
+              <button onClick={() => toggleLike(reel.id)} className="flex flex-col items-center gap-1 group">
+                <div className="group-active:scale-90 transition-transform drop-shadow-lg">
+                  {likedReels.includes(reel.id) ? (
+                    <FaHeart className="text-4xl text-red-500" />
+                  ) : (
+                    <FiHeart className="text-4xl text-white" />
+                  )}
+                </div>
+                <span className="text-white text-xs font-medium">{likedReels.includes(reel.id) ? (reel.likes + 1) : reel.likes}</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCommentClick(reel.id);
+                }}
+                className="flex flex-col items-center gap-1 group"
+              >
+                <div className="drop-shadow-lg">
+                  <FiMessageCircle className="text-4xl text-white" />
+                </div>
+                <span className="text-white text-xs font-medium">{reel.comments}</span>
+              </button>
+
+              <button onClick={() => handleShare(reel)} className="flex flex-col items-center gap-1 group">
+                <div className="drop-shadow-lg">
+                  <FiSend className="text-4xl text-white transform -rotate-[90deg] -translate-y-1" />
+                </div>
+                <span className="text-white text-xs font-medium">Share</span>
+              </button>
+
+              {/* Mega Reward Promo Button */}
+              {reel.isPromotional && (
+                <button className="flex flex-col items-center gap-1 animate-pulse">
+                  <div className="p-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50">
+                    <FiGift className="text-2xl text-white" />
+                  </div>
+                  <span className="text-white text-[10px] font-bold">Win Big</span>
+                </button>
+              )}
+            </div>
+
             {/* Overlay Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 pb-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-              <div className="flex items-end justify-between">
-                <div className="flex-1 mr-12">
+            <div className="absolute bottom-0 left-0 right-0 p-4 pb-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none">
+              <div className="flex items-end justify-between pointer-events-auto">
+                <div className="flex-1 mr-16">
                   {/* User/Vendor Info */}
                   <div className="flex items-center gap-2 mb-3">
                     <Link
@@ -325,7 +419,18 @@ const MobileReels = () => {
                       </div>
                       <span className="text-white font-bold text-sm drop-shadow-md">{reel.vendorName || reel.uploadedBy || "Store"}</span>
                     </Link>
-                    <button onClick={(e) => e.stopPropagation()} className="text-xs border border-white/50 text-white px-2 py-0.5 rounded-md backdrop-blur-sm hover:bg-white/20 shadow-sm">Follow</button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFollow(reel.vendorId);
+                      }}
+                      className={`text-xs border px-2 py-0.5 rounded-md backdrop-blur-sm shadow-sm transition-all duration-200 ${followedVendors.includes(reel.vendorId)
+                        ? "bg-transparent text-white border-white font-medium"
+                        : "border-white/50 text-white hover:bg-white/20"
+                        }`}
+                    >
+                      {followedVendors.includes(reel.vendorId) ? "Following" : "Follow"}
+                    </button>
                   </div>
 
                   {/* Description */}
@@ -340,48 +445,85 @@ const MobileReels = () => {
                     </Link>
                   )}
                 </div>
-
-                {/* Right Actions Bar */}
-                <div className="flex flex-col items-center gap-6">
-                  <button onClick={() => toggleLike(reel.id)} className="flex flex-col items-center gap-1 group">
-                    <div className="group-active:scale-90 transition-transform drop-shadow-lg">
-                      {likedReels.includes(reel.id) ? (
-                        <FaHeart className="text-4xl text-red-500" />
-                      ) : (
-                        <FiHeart className="text-4xl text-white" />
-                      )}
-                    </div>
-                    <span className="text-white text-xs font-medium">{likedReels.includes(reel.id) ? (reel.likes + 1) : reel.likes}</span>
-                  </button>
-
-                  <button className="flex flex-col items-center gap-1 group">
-                    <div className="drop-shadow-lg">
-                      <FiMessageCircle className="text-4xl text-white" />
-                    </div>
-                    <span className="text-white text-xs font-medium">{reel.comments}</span>
-                  </button>
-
-                  <button onClick={() => handleShare(reel)} className="flex flex-col items-center gap-1 group">
-                    <div className="drop-shadow-lg">
-                      <FiSend className="text-4xl text-white transform -rotate-[90deg] -translate-y-1" />
-                    </div>
-                  </button>
-
-                  {/* Mega Reward Promo Button */}
-                  {reel.isPromotional && (
-                    <button className="flex flex-col items-center gap-1 animate-pulse">
-                      <div className="p-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50">
-                        <FiGift className="text-2xl text-white" />
-                      </div>
-                      <span className="text-white text-[10px] font-bold">Win Big</span>
-                    </button>
-                  )}
-                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+
+      <AnimatePresence>
+        {showComments && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowComments(false)}
+              className="absolute inset-0 bg-black/50 z-40"
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl z-50 h-[60vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
+                <h3 className="font-bold text-gray-800 dark:text-white">Comments</h3>
+                <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                  <FiX className="text-xl text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+
+              {/* Comments List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {activeReelComments.length === 0 ? (
+                  <div className="text-center text-gray-400 dark:text-gray-500 py-8">
+                    No comments yet. Be the first!
+                  </div>
+                ) : (
+                  activeReelComments.map((comment) => (
+                    <div key={comment.id} className="flex gap-3">
+                      <img src={comment.avatar} alt={comment.user} className="w-8 h-8 rounded-full bg-gray-200" />
+                      <div className="flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-sm text-gray-800 dark:text-gray-100">{comment.user}</span>
+                          <span className="text-xs text-gray-400">Just now</span>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{comment.text}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Input Area */}
+              <div className="p-4 border-t dark:border-gray-800 flex gap-2 items-center bg-gray-50 dark:bg-gray-900">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                  placeholder="Add a comment..."
+                  className="flex-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-black dark:focus:border-white text-sm"
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="p-2 bg-black text-white dark:bg-white dark:text-black rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <FiSend className="text-lg" />
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Nav Overlay handled by layout or parent */}
     </div>

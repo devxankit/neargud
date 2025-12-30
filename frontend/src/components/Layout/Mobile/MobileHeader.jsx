@@ -18,7 +18,6 @@ import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
-import MultiVendorBadge from "../../../modules/App/components/MultiVendorBadge";
 import { useTheme } from "/src/context/ThemeContext";
 import { getTheme } from "../../../utils/themes";
 
@@ -346,10 +345,6 @@ const MobileHeader = () => {
                 />
               </div>
             </Link>
-            {/* Marketplace Badge */}
-            <div className="hidden sm:block">
-              <MultiVendorBadge vendorCount={50} size="sm" />
-            </div>
           </div>
 
           {/* Right Side Actions */}
@@ -466,7 +461,7 @@ const MobileHeader = () => {
         </motion.div>
 
         {/* Second Row: Search Bar */}
-        <div className="overflow-visible mb-2">
+        <div className="overflow-visible mb-2 relative z-[10005]">
           <SearchBar />
         </div>
 

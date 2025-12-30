@@ -244,7 +244,7 @@ const MobileProductDetail = () => {
                   <span className="text-primary-600 font-bold">→</span>
                 </Link>
                 <Link
-                  to={`/app/chat?vendorId=${vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.name)}`}
+                  to={`/app/chat?vendorId=${vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.name)}&productId=${product.id}&productName=${encodeURIComponent(product.name)}&productImage=${encodeURIComponent(product.image)}&productPrice=${product.price}`}
                   className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-primary-200 text-primary-700 rounded-xl transition-all duration-300 shadow-sm"
                 >
                   <FiMessageCircle />
@@ -475,7 +475,7 @@ const MobileProductDetail = () => {
               )
             ) : (
               <Link
-                to={`/app/chat?vendorId=${vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || vendor?.name || '')}`}
+                to={`/app/chat?vendorId=${vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || vendor?.name || '')}&productId=${product.id}&productName=${encodeURIComponent(product.name)}&productImage=${encodeURIComponent(product.image)}&productPrice=${product.price}`}
                 className="flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
               >
                 <FiMessageCircle className="text-xl" />

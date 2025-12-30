@@ -58,7 +58,7 @@ const MobileAddresses = () => {
   return (
     <ProtectedRoute>
       <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true}>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
           <div className="w-full pb-24">
             {/* Header */}
             <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-30">
@@ -210,9 +210,8 @@ const AddressFormModal = ({
             <input
               type="text"
               {...register('name', { required: 'Address label is required' })}
-              className={`w-full px-4 py-3 rounded-xl border-2 ${
-                errors.name ? 'border-red-300' : 'border-gray-200'
-              } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+              className={`w-full px-4 py-3 rounded-xl border-2 ${errors.name ? 'border-red-300' : 'border-gray-200'
+                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
               placeholder="Home, Work, etc."
             />
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
@@ -222,9 +221,8 @@ const AddressFormModal = ({
             <input
               type="text"
               {...register('fullName', { required: 'Full name is required' })}
-              className={`w-full px-4 py-3 rounded-xl border-2 ${
-                errors.fullName ? 'border-red-300' : 'border-gray-200'
-              } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+              className={`w-full px-4 py-3 rounded-xl border-2 ${errors.fullName ? 'border-red-300' : 'border-gray-200'
+                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
             />
             {errors.fullName && (
               <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
@@ -235,9 +233,8 @@ const AddressFormModal = ({
             <input
               type="tel"
               {...register('phone', { required: 'Phone number is required' })}
-              className={`w-full px-4 py-3 rounded-xl border-2 ${
-                errors.phone ? 'border-red-300' : 'border-gray-200'
-              } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+              className={`w-full px-4 py-3 rounded-xl border-2 ${errors.phone ? 'border-red-300' : 'border-gray-200'
+                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
             />
             {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>}
           </div>
@@ -246,9 +243,8 @@ const AddressFormModal = ({
             <input
               type="text"
               {...register('address', { required: 'Address is required' })}
-              className={`w-full px-4 py-3 rounded-xl border-2 ${
-                errors.address ? 'border-red-300' : 'border-gray-200'
-              } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+              className={`w-full px-4 py-3 rounded-xl border-2 ${errors.address ? 'border-red-300' : 'border-gray-200'
+                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
             />
             {errors.address && (
               <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
@@ -260,9 +256,8 @@ const AddressFormModal = ({
               <input
                 type="text"
                 {...register('city', { required: 'City is required' })}
-                className={`w-full px-4 py-3 rounded-xl border-2 ${
-                  errors.city ? 'border-red-300' : 'border-gray-200'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+                className={`w-full px-4 py-3 rounded-xl border-2 ${errors.city ? 'border-red-300' : 'border-gray-200'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
               />
             </div>
             <div>
@@ -270,9 +265,8 @@ const AddressFormModal = ({
               <input
                 type="text"
                 {...register('state', { required: 'State is required' })}
-                className={`w-full px-4 py-3 rounded-xl border-2 ${
-                  errors.state ? 'border-red-300' : 'border-gray-200'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+                className={`w-full px-4 py-3 rounded-xl border-2 ${errors.state ? 'border-red-300' : 'border-gray-200'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
               />
             </div>
             <div>
@@ -280,9 +274,8 @@ const AddressFormModal = ({
               <input
                 type="text"
                 {...register('zipCode', { required: 'Zip code is required' })}
-                className={`w-full px-4 py-3 rounded-xl border-2 ${
-                  errors.zipCode ? 'border-red-300' : 'border-gray-200'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+                className={`w-full px-4 py-3 rounded-xl border-2 ${errors.zipCode ? 'border-red-300' : 'border-gray-200'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
               />
             </div>
           </div>
@@ -291,9 +284,8 @@ const AddressFormModal = ({
             <input
               type="text"
               {...register('country', { required: 'Country is required' })}
-              className={`w-full px-4 py-3 rounded-xl border-2 ${
-                errors.country ? 'border-red-300' : 'border-gray-200'
-              } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
+              className={`w-full px-4 py-3 rounded-xl border-2 ${errors.country ? 'border-red-300' : 'border-gray-200'
+                } focus:outline-none focus:ring-2 focus:ring-primary-500 text-base`}
             />
           </div>
           <div className="flex gap-3 pt-4">

@@ -5,9 +5,9 @@ import {
   FiHome,
   FiPackage,
   FiShoppingBag,
-  FiDollarSign,
   FiMessageCircle,
 } from "react-icons/fi";
+import { IndianRupee } from 'lucide-react';
 
 const VendorBottomNav = () => {
   const location = useLocation();
@@ -17,7 +17,7 @@ const VendorBottomNav = () => {
     { path: "/vendor/products", icon: FiPackage, label: "Products" },
     { path: "/vendor/orders", icon: FiShoppingBag, label: "Orders" },
     { path: "/vendor/chat", icon: FiMessageCircle, label: "Chat" },
-    { path: "/vendor/earnings", icon: FiDollarSign, label: "Earnings" },
+    { path: "/vendor/earnings", icon: IndianRupee, label: "Earnings" },
   ];
 
   const isActive = (path) => {

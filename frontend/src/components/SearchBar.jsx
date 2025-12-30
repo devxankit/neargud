@@ -17,7 +17,7 @@ const SearchBar = () => {
   const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Check if we're in the mobile app section
   const isMobileApp = location.pathname.startsWith('/app');
   const searchRef = useRef(null);
@@ -26,7 +26,7 @@ const SearchBar = () => {
 
   // Popular searches (can be made dynamic later)
   const popularSearches = ['Diapers', 'Vegetables', 'Meat', 'Fruits', 'Baby Care'];
-  
+
   // Animated placeholder texts
   const placeholderTexts = [
     'Search for groceries...',
@@ -133,7 +133,7 @@ const SearchBar = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       saveRecentSearch(searchQuery);
-      const searchRoute = isMobileApp 
+      const searchRoute = isMobileApp
         ? `/app/search?q=${encodeURIComponent(searchQuery.trim())}`
         : `/search?q=${encodeURIComponent(searchQuery.trim())}`;
       navigate(searchRoute);
@@ -149,7 +149,7 @@ const SearchBar = () => {
       // Product suggestions
       if (index < suggestions.length) {
         selectedItem = suggestions[index];
-        const productRoute = isMobileApp 
+        const productRoute = isMobileApp
           ? `/app/product/${selectedItem.id}`
           : `/product/${selectedItem.id}`;
         navigate(productRoute);
@@ -160,7 +160,7 @@ const SearchBar = () => {
         const query = recentSearches[index];
         setSearchQuery(query);
         saveRecentSearch(query);
-        const searchRoute = isMobileApp 
+        const searchRoute = isMobileApp
           ? `/app/search?q=${encodeURIComponent(query)}`
           : `/search?q=${encodeURIComponent(query)}`;
         navigate(searchRoute);
@@ -168,7 +168,7 @@ const SearchBar = () => {
         const query = popularSearches[index - recentSearches.length];
         setSearchQuery(query);
         saveRecentSearch(query);
-        const searchRoute = isMobileApp 
+        const searchRoute = isMobileApp
           ? `/app/search?q=${encodeURIComponent(query)}`
           : `/search?q=${encodeURIComponent(query)}`;
         navigate(searchRoute);
@@ -214,21 +214,11 @@ const SearchBar = () => {
   return (
     <div className="w-full relative" ref={searchRef}>
       <form onSubmit={handleSubmit} className="w-full">
-        <div className="relative group">
-          <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors z-10" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchQuery}
-            onChange={handleInputChange}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            onKeyDown={handleKeyDown}
-            placeholder=""
-            className="w-full pl-12 pr-4 py-3 glass-card rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:shadow-glow transition-all duration-300 text-gray-700 placeholder:text-transparent"
-          />
+        <div className="relative group w-full glass-card rounded-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:shadow-glow bg-white/10 backdrop-blur-md">
+          <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors z-0" />
+
           {!searchQuery.trim() && (
-            <div className="absolute left-12 top-1/2 transform -translate-y-1/2 pointer-events-none overflow-hidden z-[1] h-6">
+            <div className="absolute left-12 top-1/2 transform -translate-y-1/2 pointer-events-none overflow-hidden z-10 h-6 flex items-center">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.span
                   key={currentPlaceholderIndex}
@@ -243,6 +233,18 @@ const SearchBar = () => {
               </AnimatePresence>
             </div>
           )}
+
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchQuery}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            onKeyDown={handleKeyDown}
+            placeholder=""
+            className="w-full pl-12 pr-4 py-3 bg-transparent border-none rounded-xl focus:outline-none relative z-20 text-gray-700 placeholder:text-transparent"
+          />
         </div>
       </form>
 
@@ -260,9 +262,8 @@ const SearchBar = () => {
                 <button
                   key={suggestion.id}
                   onClick={() => handleSuggestionSelect(index)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors ${
-                    selectedIndex === index ? 'bg-primary-50' : ''
-                  }`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors ${selectedIndex === index ? 'bg-primary-50' : ''
+                    }`}
                 >
                   <img
                     src={suggestion.image}
@@ -289,9 +290,8 @@ const SearchBar = () => {
                 <button
                   key={index}
                   onClick={() => handleSuggestionSelect(index)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left ${
-                    selectedIndex === index ? 'bg-primary-50' : ''
-                  }`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left ${selectedIndex === index ? 'bg-primary-50' : ''
+                    }`}
                 >
                   <FiClock className="text-gray-400" />
                   <span className="text-sm text-gray-700">{search}</span>
@@ -311,9 +311,8 @@ const SearchBar = () => {
                 <button
                   key={index}
                   onClick={() => handleSuggestionSelect(recentSearches.length + index)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left ${
-                    selectedIndex === recentSearches.length + index ? 'bg-primary-50' : ''
-                  }`}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left ${selectedIndex === recentSearches.length + index ? 'bg-primary-50' : ''
+                    }`}
                 >
                   <FiTrendingUp className="text-gray-400" />
                   <span className="text-sm text-gray-700">{search}</span>
