@@ -355,7 +355,7 @@ const MobileProductDetail = () => {
                   disabled={product.stock === 'out_of_stock'}
                   className={`w-full py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 ${product.stock === 'out_of_stock'
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-white border-2 border-red-500 text-red-500 hover:bg-red-50'
+                    : 'bg-white border-2 border-primary-600 text-primary-700 hover:bg-primary-50'
                     }`}
                 >
                   <FiShoppingBag className="text-xl" />

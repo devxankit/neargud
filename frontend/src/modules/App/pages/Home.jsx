@@ -39,74 +39,58 @@ const MobileHome = () => {
   const trending = getTrending();
   const flashSale = getFlashSale();
 
-  // Auto-slide functionality (pauses when user is dragging)
-  useEffect(() => {
-    if (autoSlidePaused) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [slides.length, autoSlidePaused]);
+  // Auto-slide disabled - banners are manually scrollable only
 
   // Minimum swipe distance (in pixels) to trigger slide change
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
-    e.stopPropagation(); // Prevent pull-to-refresh from interfering
-    setTouchEnd(null);
-    const touch = e.targetTouches[0];
-    setTouchStart(touch.clientX);
-    setDragOffset(0);
-    setAutoSlidePaused(true);
+    e.stopPropagation();
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      setTouchStart(touch.clientX);
+      setTouchEnd(null);
+      setDragOffset(0);
+      setAutoSlidePaused(true);
+    }
   };
 
   const onTouchMove = (e) => {
     if (touchStart === null) return;
-    e.stopPropagation(); // Prevent pull-to-refresh from interfering
-    const touch = e.targetTouches[0];
-    const currentX = touch.clientX;
-    // Calculate difference: positive when swiping left, negative when swiping right
-    const diff = touchStart - currentX;
-    // Constrain the drag offset to prevent over-dragging
-    // Use container width for better responsiveness
-    const containerWidth = e.currentTarget?.offsetWidth || 400;
-    const maxDrag = containerWidth * 0.5; // Maximum drag distance (50% of container)
-    // dragOffset: positive = swiping left (show next), negative = swiping right (show previous)
-    setDragOffset(Math.max(-maxDrag, Math.min(maxDrag, diff)));
-    setTouchEnd(currentX);
+    e.stopPropagation();
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      const currentX = touch.clientX;
+      const diff = touchStart - currentX;
+      const containerWidth = e.currentTarget?.offsetWidth || 400;
+      const maxDrag = containerWidth * 0.5;
+      setDragOffset(Math.max(-maxDrag, Math.min(maxDrag, diff)));
+      setTouchEnd(currentX);
+    }
   };
 
   const onTouchEnd = (e) => {
-    if (e) e.stopPropagation(); // Prevent pull-to-refresh from interfering
+    if (e) e.stopPropagation();
 
     if (touchStart === null) {
       setAutoSlidePaused(false);
       return;
     }
 
-    // Calculate swipe distance: positive = left swipe, negative = right swipe
     const distance = touchStart - (touchEnd || touchStart);
-    const isLeftSwipe = distance > minSwipeDistance;  // Finger moved left = show next slide
-    const isRightSwipe = distance < -minSwipeDistance; // Finger moved right = show previous slide
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
 
     if (isLeftSwipe) {
-      // Swipe left (finger moved left) - go to next slide (slide moves left)
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     } else if (isRightSwipe) {
-      // Swipe right (finger moved right) - go to previous slide (slide moves right)
       setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
     }
 
-    // Reset touch state
     setTouchStart(null);
     setTouchEnd(null);
     setDragOffset(0);
-
-    // Resume auto-slide after a short delay
-    setTimeout(() => {
-      setAutoSlidePaused(false);
-    }, 2000);
+    setAutoSlidePaused(false);
   };
 
   // Pull to refresh handler
@@ -147,67 +131,29 @@ const MobileHome = () => {
             activeTab={activeTab}
             heroBanner={
               <div className="py-2">
-                <div
-                  className="relative w-full h-48 rounded-2xl overflow-hidden"
-                  data-carousel
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  style={{ touchAction: 'pan-y', userSelect: 'none' }}>
-                  {/* Slider Container - All slides in a row */}
-                  <motion.div
-                    className="flex h-full"
-                    style={{
-                      width: `${slides.length * 100}%`,
-                      height: "100%",
-                    }}
-                    animate={{
-                      x: dragOffset !== 0
-                        ? `calc(-${currentSlide * (100 / slides.length)}% - ${dragOffset}px)`
-                        : `-${currentSlide * (100 / slides.length)}%`,
-                    }}
-                    transition={{
-                      duration: dragOffset !== 0 ? 0 : 0.6,
-                      ease: [0.25, 0.46, 0.45, 0.94], // Smooth easing
-                      type: "tween",
-                    }}>
-                    {slides.map((slide, index) => (
-                      <div
-                        key={index}
-                        className="flex-shrink-0"
-                        style={{
-                          width: `${100 / slides.length}%`,
-                          height: "100%",
-                        }}>
-                        <LazyImage
-                          src={slide.image}
-                          alt={`Slide ${index + 1}`}
-                          className="w-full h-full object-cover pointer-events-none select-none"
-                          draggable={false}
-                          onError={(e) => {
-                            e.target.src = `https://via.placeholder.com/400x200?text=Slide+${index + 1
-                              }`;
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </motion.div>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10 pointer-events-none">
-                    {slides.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setCurrentSlide(index);
-                          setAutoSlidePaused(true);
-                          setTimeout(() => setAutoSlidePaused(false), 2000);
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', paddingLeft: '1.5rem' }}>
+                  {slides.map((slide, index) => (
+                    <div
+                      key={index}
+                      className="flex-shrink-0 rounded-2xl overflow-hidden"
+                      style={{
+                        width: '75%',
+                        maxWidth: '280px',
+                        height: '320px',
+                        scrollSnapAlign: 'start',
+                        marginLeft: index === 0 ? '0' : '0'
+                      }}>
+                      <LazyImage
+                        src={slide.image}
+                        alt={`Banner ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                        onError={(e) => {
+                          e.target.src = `https://via.placeholder.com/400x200?text=Banner+${index + 1}`;
                         }}
-                        className={`h-1.5 rounded-full transition-all pointer-events-auto ${index === currentSlide
-                            ? "bg-white w-6"
-                            : "bg-white/50 w-1.5"
-                          }`}
                       />
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             }
@@ -334,7 +280,7 @@ const MobileHome = () => {
 
           {/* Flash Sale */}
           {flashSale.length > 0 && (
-            <div className="px-4 py-4 bg-gradient-to-br from-red-50 to-orange-50">
+            <div className="px-4 py-4 bg-gradient-to-br from-purple-50 to-purple-100">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-bold text-gray-800">

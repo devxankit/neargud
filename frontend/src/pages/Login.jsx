@@ -20,7 +20,11 @@ const Login = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      countryCode: '+91'
+    }
+  });
 
   const from = location.state?.from?.pathname || '/';
 
@@ -107,6 +111,7 @@ const Login = () => {
                           <FiPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                           <input
                             type="tel"
+                            maxLength={10}
                             {...register('phone', {
                               required: loginMethod === 'phone' ? 'Phone number is required' : false,
                               validate: (value) =>

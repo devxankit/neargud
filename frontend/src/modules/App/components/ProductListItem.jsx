@@ -100,7 +100,7 @@ const ProductListItem = ({ product, index }) => {
             <button
               onClick={handleFavorite}
               className={`flex-shrink-0 p-1 rounded-lg transition-colors ${isFavorite
-                ? "bg-red-50 text-red-600"
+                ? "bg-primary-50 text-primary-700"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}>
               <FiHeart
@@ -163,7 +163,7 @@ const ProductListItem = ({ product, index }) => {
                   e.stopPropagation();
                   updateQuantity(product.id, cartItem.quantity - 1);
                 }}
-                className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-red-600 transition-colors"
+                className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-primary-700 transition-colors"
               >
                 -
               </button>
@@ -184,7 +184,7 @@ const ProductListItem = ({ product, index }) => {
           ) : (
             <button
               onClick={handleAddToCart}
-              className="w-full py-1.5 bg-white border border-red-500 text-red-500 rounded-lg font-semibold text-xs flex items-center justify-center gap-1 hover:bg-red-50 transition-all"
+              className="w-full py-1.5 bg-white border border-primary-600 text-primary-700 rounded-lg font-semibold text-xs flex items-center justify-center gap-1 hover:bg-primary-50 transition-all"
             >
               <FiShoppingBag className="text-xs" />
               Add to Cart

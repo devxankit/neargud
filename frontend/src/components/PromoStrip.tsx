@@ -645,7 +645,7 @@ export default function PromoStrip({ activeTab = 'all', heroBanner, categoryName
 
       {/* Hero Banner Carousel - Inserted between HOUSEFULL SALE and CRAZY DEALS */}
       {heroBanner && (
-        <div className="px-4 mb-2">
+        <div className="pl-4 mb-2">
           {heroBanner}
         </div>
       )}

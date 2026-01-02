@@ -9,10 +9,10 @@ export interface Theme {
 
 export const themes: Record<string, Theme> = {
   all: {
-    primary: ['rgb(185, 28, 28)', 'rgb(220, 38, 38)', 'rgb(239, 68, 68)', 'rgb(248, 113, 113)'],
-    secondary: ['rgb(248, 113, 113)', 'rgb(239, 68, 68)', 'rgb(220, 38, 38)'],
-    textColor: '#7f1d1d',
-    accentColor: '#991b1b',
+    primary: ['rgb(91, 33, 182)', 'rgb(109, 40, 217)', 'rgb(124, 58, 237)', 'rgb(139, 92, 246)'],
+    secondary: ['rgb(139, 92, 246)', 'rgb(124, 58, 237)', 'rgb(109, 40, 217)'],
+    textColor: '#5b21b6',
+    accentColor: '#6d28d9',
     bannerText: 'HOUSEFULL',
     saleText: 'SALE',
   },

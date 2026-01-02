@@ -37,7 +37,7 @@ const MobileBottomNav = () => {
     },
     active: {
       scale: 1.1,
-      color: "#DC2626", // Primary Buttons color (red) - same for both
+      color: "#6d28d9", // Primary Buttons color (purple) - same for both
       transition: {
         duration: 0.3,
         ease: "easeOut",
@@ -81,7 +81,7 @@ const MobileBottomNav = () => {
                   initial="inactive"
                   animate={active ? "active" : "inactive"}
                   transition={{ duration: 0.2 }}
-                  style={{ color: active ? "#DC2626" : (isReelsPage ? "#9CA3AF" : "#878787") }}>
+                  style={{ color: active ? "#6d28d9" : (isReelsPage ? "#9CA3AF" : "#878787") }}>
                   {item.isCustomIcon ? (
                     <Icon className="text-2xl w-6 h-6" />
                   ) : (

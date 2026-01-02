@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useMemo, memo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { products } from '../data/products';
 import { getTheme } from '../utils/themes';
@@ -62,6 +62,35 @@ const ProductCard = memo(({
 
   // Use cartQuantity from props
   const inCartQty = cartQuantity;
+
+  // Determine category ID based on product name keywords
+  const getCategoryId = (productName: string): number => {
+    const name = productName.toLowerCase();
+    const categoryMap: Record<number, string[]> = {
+      1: ['t-shirt', 'shirt', 'jeans', 'dress', 'gown', 'skirt', 'blazer', 'jacket', 'cardigan', 'sweater', 'flannel', 'maxi'],
+      2: ['sneakers', 'pumps', 'boots', 'heels', 'shoes'],
+      3: ['bag', 'crossbody', 'handbag'],
+      4: ['necklace', 'watch', 'wristwatch'],
+      5: ['sunglasses', 'belt', 'scarf'],
+      6: ['athletic', 'running', 'track', 'sporty'],
+    };
+
+    for (const [categoryId, keywords] of Object.entries(categoryMap)) {
+      if (keywords.some(keyword => name.includes(keyword))) {
+        return parseInt(categoryId);
+      }
+    }
+    // Default to category 1 (fashion) if no match found
+    return 1;
+  };
+
+  // Ensure categoryId is always a valid number
+  const categoryId = (product.categoryId && typeof product.categoryId === 'number' && product.categoryId > 0) 
+    ? product.categoryId 
+    : getCategoryId(product.name);
+  
+  // Debug: Log categoryId
+  console.log('Product:', product.name, 'CategoryId:', categoryId);
 
   // Dynamic Styles
   const cardBgColor = hexToRgba(theme.accentColor, 0.05);
@@ -128,81 +157,6 @@ const ProductCard = memo(({
                 />
               </svg>
             </button>
-
-            {/* ADD Button or Quantity Stepper - Overlaid on bottom right of image */}
-            <div className="absolute bottom-1.5 right-1.5 z-10">
-              <AnimatePresence mode="wait">
-                {inCartQty === 0 ? (
-                  <motion.button
-                    key="add-button"
-                    type="button"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onAddToCart(product, e.currentTarget);
-                    }}
-                    className="bg-white/95 backdrop-blur-sm result-add-btn text-[10px] font-semibold px-2 py-1 rounded shadow-md transition-colors hover:opacity-80"
-                    style={{
-                      color: theme.accentColor,
-                      borderColor: theme.accentColor,
-                      borderWidth: '1px'
-                    }}
-                  >
-                    ADD
-                  </motion.button>
-                ) : (
-                  <motion.div
-                    key="stepper"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center gap-1 rounded px-1.5 py-1 shadow-md"
-                    style={{ backgroundColor: theme.accentColor }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onUpdateQuantity(product.id, inCartQty - 1);
-                      }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold rounded transition-colors p-0 leading-none hover:bg-black/20"
-                      style={{ lineHeight: 1, fontSize: '14px' }}
-                    >
-                      <span className="relative top-[-1px]">−</span>
-                    </motion.button>
-                    <motion.span
-                      key={inCartQty}
-                      initial={{ scale: 1.2, y: -2 }}
-                      animate={{ scale: 1, y: 0 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                      className="text-white font-bold min-w-[0.75rem] text-center"
-                      style={{ fontSize: '12px' }}
-                    >
-                      {inCartQty}
-                    </motion.span>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onUpdateQuantity(product.id, inCartQty + 1);
-                      }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold rounded transition-colors p-0 leading-none hover:bg-black/20"
-                      style={{ lineHeight: 1, fontSize: '14px' }}
-                    >
-                      <span className="relative top-[-1px]">+</span>
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
         </div>
 
@@ -276,15 +230,55 @@ const ProductCard = memo(({
           </div>
 
           {/* Bottom Link - Dynamic Background & Text */}
-          <Link
-            to={`/app/category/${product.categoryId || 'all'}`}
-            className="w-full text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 transition-colors mt-auto"
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const targetPath = `/app/category/${categoryId}`;
+              console.log('See more clicked!', {
+                productName: product.name,
+                categoryId: categoryId,
+                targetPath: targetPath
+              });
+              navigate(targetPath);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const targetPath = `/app/category/${categoryId}`;
+              console.log('See more touched!', {
+                productName: product.name,
+                categoryId: categoryId,
+                targetPath: targetPath
+              });
+              navigate(targetPath);
+            }}
+            className="w-full text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 transition-colors mt-auto cursor-pointer select-none"
             style={{
               backgroundColor: linkBgColor,
-              color: theme.accentColor
+              color: theme.accentColor,
+              position: 'relative',
+              zIndex: 50,
+              pointerEvents: 'auto',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation'
             }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverLinkBgColor}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = linkBgColor}
+            role="button"
+            tabIndex={0}
+            aria-label={`See more products in category ${categoryId}`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/app/category/${categoryId}`);
+              }
+            }}
           >
             <span>See more like this</span>
             <div className="flex items-center gap-0.5">
@@ -293,7 +287,7 @@ const ProductCard = memo(({
                 <path d="M0 0L8 4L0 8Z" fill={theme.accentColor} />
               </svg>
             </div>
-          </Link>
+          </div>
         </div>
       </div>
     </div>

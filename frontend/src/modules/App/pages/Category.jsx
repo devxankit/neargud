@@ -79,37 +79,33 @@ const MobileCategory = () => {
 
   const activeTab = getThemeTab(categoryId);
 
-  // Auto-slide functionality
-  useEffect(() => {
-    if (autoSlidePaused) return;
-    
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [slides.length, autoSlidePaused]);
+  // Auto-slide disabled - banners are manually scrollable only
 
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
     e.stopPropagation();
-    setTouchEnd(null);
-    const touch = e.targetTouches[0];
-    setTouchStart(touch.clientX);
-    setDragOffset(0);
-    setAutoSlidePaused(true);
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      setTouchStart(touch.clientX);
+      setTouchEnd(null);
+      setDragOffset(0);
+      setAutoSlidePaused(true);
+    }
   };
 
   const onTouchMove = (e) => {
     if (touchStart === null) return;
     e.stopPropagation();
-    const touch = e.targetTouches[0];
-    const currentX = touch.clientX;
-    const diff = touchStart - currentX;
-    const containerWidth = e.currentTarget?.offsetWidth || 400;
-    const maxDrag = containerWidth * 0.5;
-    setDragOffset(Math.max(-maxDrag, Math.min(maxDrag, diff)));
-    setTouchEnd(currentX);
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      const currentX = touch.clientX;
+      const diff = touchStart - currentX;
+      const containerWidth = e.currentTarget?.offsetWidth || 400;
+      const maxDrag = containerWidth * 0.5;
+      setDragOffset(Math.max(-maxDrag, Math.min(maxDrag, diff)));
+      setTouchEnd(currentX);
+    }
   };
 
   const onTouchEnd = (e) => {
@@ -133,10 +129,7 @@ const MobileCategory = () => {
     setTouchStart(null);
     setTouchEnd(null);
     setDragOffset(0);
-    
-    setTimeout(() => {
-      setAutoSlidePaused(false);
-    }, 2000);
+    setAutoSlidePaused(false);
   };
 
   const categoryMap = {
@@ -264,69 +257,29 @@ const MobileCategory = () => {
             categoryName={category?.name}
             categoryId={categoryId}
             heroBanner={
-              <div className="py-2 px-4">
-                <div 
-                  className="relative w-full h-48 rounded-2xl overflow-hidden"
-                  data-carousel
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  style={{ touchAction: 'pan-y', userSelect: 'none' }}>
-                  <motion.div
-                    className="flex h-full"
-                    style={{
-                      width: `${slides.length * 100}%`,
-                      height: "100%",
-                    }}
-                    animate={{
-                      x: dragOffset !== 0 
-                        ? `calc(-${currentSlide * (100 / slides.length)}% - ${dragOffset}px)`
-                        : `-${currentSlide * (100 / slides.length)}%`,
-                    }}
-                    transition={{
-                      duration: dragOffset !== 0 ? 0 : 0.6,
-                      ease: [0.25, 0.46, 0.45, 0.94],
-                      type: "tween",
-                    }}>
-                    {slides.map((slide, index) => (
-                      <div
-                        key={index}
-                        className="flex-shrink-0"
-                        style={{
-                          width: `${100 / slides.length}%`,
-                          height: "100%",
-                        }}>
-                        <LazyImage
-                          src={slide.image}
-                          alt={`Slide ${index + 1}`}
-                          className="w-full h-full object-cover pointer-events-none select-none"
-                          draggable={false}
-                          onError={(e) => {
-                            e.target.src = `https://via.placeholder.com/400x200?text=Slide+${
-                              index + 1
-                            }`;
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </motion.div>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10 pointer-events-none">
-                    {slides.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setCurrentSlide(index);
-                          setAutoSlidePaused(true);
-                          setTimeout(() => setAutoSlidePaused(false), 2000);
+              <div className="py-2">
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', paddingLeft: '1.5rem' }}>
+                  {slides.map((slide, index) => (
+                    <div
+                      key={index}
+                      className="flex-shrink-0 rounded-2xl overflow-hidden"
+                      style={{
+                        width: '75%',
+                        maxWidth: '280px',
+                        height: '320px',
+                        scrollSnapAlign: 'start'
+                      }}>
+                      <LazyImage
+                        src={slide.image}
+                        alt={`Banner ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                        onError={(e) => {
+                          e.target.src = `https://via.placeholder.com/400x200?text=Banner+${index + 1}`;
                         }}
-                        className={`h-1.5 rounded-full transition-all pointer-events-auto ${
-                          index === currentSlide
-                            ? "bg-white w-6"
-                            : "bg-white/50 w-1.5"
-                        }`}
                       />
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             }

@@ -158,8 +158,8 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
                 className={`text-xs transition-all duration-300 ${isFavorite
-                    ? "text-red-500 fill-red-500 scale-110"
-                    : "text-gray-400 group-hover:text-red-400"
+                    ? "text-primary-700 fill-primary-700 scale-110"
+                    : "text-gray-400 group-hover:text-primary-500"
                   }`}
               />
             </button>
@@ -245,8 +245,8 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               className={`w-full py-2 rounded-lg font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 ${product.stock === "out_of_stock"
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : isAdding
-                    ? "bg-red-600 text-white"
-                    : "bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                    ? "bg-primary-700 text-white"
+                    : "bg-white border border-primary-200 text-primary-700 hover:bg-primary-50 hover:border-primary-300"
                 }`}>
               {product.stock !== "out_of_stock" && <FiShoppingBag className="text-xs" />}
               <span>
@@ -258,7 +258,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               </span>
             </button>
           ) : (
-            <div className="flex items-center justify-between bg-red-50 rounded-lg p-1 border border-red-100">
+            <div className="flex items-center justify-between bg-primary-50 rounded-lg p-1 border border-primary-100">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -268,11 +268,11 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
                     updateQuantity(product.id, 0);
                   }
                 }}
-                className="w-7 h-7 flex items-center justify-center text-red-600 font-bold hover:bg-red-100 rounded-md transition-colors"
+                className="w-7 h-7 flex items-center justify-center text-primary-700 font-bold hover:bg-primary-100 rounded-md transition-colors"
               >
                 −
               </button>
-              <span className="text-xs font-bold text-red-700 min-w-[1rem] text-center">
+              <span className="text-xs font-bold text-primary-700 min-w-[1rem] text-center">
                 {inCartQty}
               </span>
               <button
@@ -280,7 +280,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
                   e.stopPropagation();
                   updateQuantity(product.id, inCartQty + 1);
                 }}
-                className="w-7 h-7 flex items-center justify-center text-red-600 font-bold hover:bg-red-100 rounded-md transition-colors"
+                className="w-7 h-7 flex items-center justify-center text-primary-700 font-bold hover:bg-primary-100 rounded-md transition-colors"
               >
                 +
               </button>
