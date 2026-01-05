@@ -13,12 +13,15 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/app/categories',
     '/app/search',
     '/app/wishlist',
+    '/app/favorites',
     '/app/profile',
     '/app/reels',
     '/app/chat',
     '/app/login',
     '/app/register',
     '/app/verification',
+    '/app/checkout',
+    '/checkout',
   ];
 
   // Hide header and bottom nav on login, register, and verification pages
@@ -32,7 +35,11 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
 
   const calculatedShouldShowHeader = !excludeHeaderRoutes.includes(location.pathname) &&
     !location.pathname.startsWith('/app/product/') &&
-    !location.pathname.startsWith('/app/vendor/');
+    !location.pathname.startsWith('/app/vendor/') &&
+    !location.pathname.startsWith('/app/order-confirmation/') &&
+    !location.pathname.startsWith('/order-confirmation/') &&
+    !location.pathname.startsWith('/app/track-order/') &&
+    !location.pathname.startsWith('/track-order/');
 
   const shouldShowHeader = showHeader !== undefined ? showHeader : calculatedShouldShowHeader;
 

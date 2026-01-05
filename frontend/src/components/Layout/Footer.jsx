@@ -8,8 +8,16 @@ const Footer = () => {
   const location = useLocation();
   const [email, setEmail] = useState('');
   
-  // Hide footer on mobile app routes
-  if (location.pathname.startsWith('/app')) {
+  // Hide footer on mobile app routes and checkout-related routes
+  const isCheckoutRoute = 
+    location.pathname.startsWith('/checkout') || 
+    location.pathname.startsWith('/app/checkout') ||
+    location.pathname.startsWith('/order-confirmation') || 
+    location.pathname.startsWith('/app/order-confirmation') ||
+    location.pathname.startsWith('/track-order') || 
+    location.pathname.startsWith('/app/track-order');
+
+  if (location.pathname.startsWith('/app') || isCheckoutRoute) {
     return null;
   }
 

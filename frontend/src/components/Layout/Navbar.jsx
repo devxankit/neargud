@@ -10,8 +10,16 @@ const Navbar = () => {
   const [headerHeight, setHeaderHeight] = useState(0);
   const navRef = useRef(null);
   
-  // Hide navbar on mobile app routes
-  if (location.pathname.startsWith('/app')) {
+  // Hide navbar on mobile app routes and checkout-related routes
+  const isCheckoutRoute = 
+    location.pathname.startsWith('/checkout') || 
+    location.pathname.startsWith('/app/checkout') ||
+    location.pathname.startsWith('/order-confirmation') || 
+    location.pathname.startsWith('/app/order-confirmation') ||
+    location.pathname.startsWith('/track-order') || 
+    location.pathname.startsWith('/app/track-order');
+
+  if (location.pathname.startsWith('/app') || isCheckoutRoute) {
     return null;
   }
 

@@ -4,6 +4,7 @@ import { FiStar, FiHeart, FiShoppingBag, FiMinus, FiPlus, FiArrowLeft, FiShare2,
 import { motion } from 'framer-motion';
 import { useCartStore } from '../../../store/useStore';
 import { useWishlistStore } from '../../../store/wishlistStore';
+import { useFavoritesStore } from '../../../store/favoritesStore';
 import { useReviewsStore } from '../../../store/reviewsStore';
 import { getProductById, getSimilarProducts } from '../../../data/products';
 import { getVendorById } from '../../../modules/vendor/data/vendors';
@@ -31,10 +32,12 @@ const MobileProductDetail = () => {
   const removeItem = useCartStore((state) => state.removeItem);
 
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+  const { addProduct: addToFavorites, removeProduct: removeFromFavorites, isInProducts } = useFavoritesStore();
   const { getReviews, sortReviews } = useReviewsStore();
 
   const cartItem = useMemo(() => items.find((i) => i.id === product?.id), [items, product]); // Cart item sync
-  const isFavorite = product ? isInWishlist(product.id) : false;
+  const isWishlisted = product ? isInWishlist(product.id) : false;
+  const isLiked = product ? isInProducts(product.id) : false;
   const productReviews = product ? sortReviews(product.id, 'newest') : [];
 
   useEffect(() => {
@@ -114,8 +117,8 @@ const MobileProductDetail = () => {
     });
   };
 
-  const handleFavorite = () => {
-    if (isFavorite) {
+  const handleWishlist = () => {
+    if (isWishlisted) {
       removeFromWishlist(product.id);
       toast.success('Removed from wishlist');
     } else {
@@ -126,6 +129,21 @@ const MobileProductDetail = () => {
         image: product.image,
       });
       toast.success('Added to wishlist');
+    }
+  };
+
+  const handleLike = () => {
+    if (isLiked) {
+      removeFromFavorites(product.id);
+      toast.success('Removed from liked items');
+    } else {
+      addToFavorites({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      });
+      toast.success('Added to liked items');
     }
   };
 
@@ -180,15 +198,26 @@ const MobileProductDetail = () => {
           <div className="px-4 py-4">
             <div className="flex items-start justify-between gap-4 mb-3">
               <h1 className="text-2xl font-bold text-gray-800 flex-1">{product.name}</h1>
-              <button
-                onClick={handleFavorite}
-                className={`p-2 rounded-full transition-colors flex-shrink-0 ${isFavorite
-                  ? 'bg-red-50 text-red-500'
-                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                  }`}
-              >
-                <FiHeart className={`text-xl ${isFavorite ? 'fill-current' : ''}`} />
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={handleLike}
+                  className={`p-2 rounded-full transition-colors ${isLiked
+                    ? 'bg-yellow-50 text-yellow-500'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                    }`}
+                >
+                  <FiStar className={`text-xl ${isLiked ? 'fill-current' : ''}`} />
+                </button>
+                <button
+                  onClick={handleWishlist}
+                  className={`p-2 rounded-full transition-colors ${isWishlisted
+                    ? 'bg-red-50 text-red-500'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                    }`}
+                >
+                  <FiHeart className={`text-xl ${isWishlisted ? 'fill-current' : ''}`} />
+                </button>
+              </div>
             </div>
 
             {/* Vendor Badge */}
@@ -424,13 +453,22 @@ const MobileProductDetail = () => {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 safe-area-bottom">
           <div className="flex items-center gap-3">
             <button
-              onClick={handleFavorite}
-              className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center ${isFavorite
+              onClick={handleLike}
+              className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center ${isLiked
+                ? 'bg-yellow-50 text-yellow-600 border-2 border-yellow-200'
+                : 'bg-gray-100 text-gray-700'
+                }`}
+            >
+              <FiStar className={`text-xl ${isLiked ? 'fill-yellow-600' : ''}`} />
+            </button>
+            <button
+              onClick={handleWishlist}
+              className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center ${isWishlisted
                 ? 'bg-red-50 text-red-600 border-2 border-red-200'
                 : 'bg-gray-100 text-gray-700'
                 }`}
             >
-              <FiHeart className={`text-xl ${isFavorite ? 'fill-red-600' : ''}`} />
+              <FiHeart className={`text-xl ${isWishlisted ? 'fill-red-600' : ''}`} />
             </button>
             <button
               onClick={() => {

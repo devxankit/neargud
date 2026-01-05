@@ -199,7 +199,7 @@ const MobileCheckout = () => {
   return (
     <PageTransition>
       <MobileLayout showBottomNav={false} showCartBar={false}>
-        <div className="w-full pb-24">
+        <div className="w-full">
           {/* Header */}
           <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
             {/* Title Bar */}
@@ -603,20 +603,20 @@ const MobileCheckout = () => {
             )}
 
             {/* Navigation Buttons */}
-            <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 safe-area-bottom">
+            <div className="px-4 pt-2 pb-6">
               <div className="flex gap-3">
                 {step > 1 && (
                   <button
                     type="button"
                     onClick={() => setStep(step - 1)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                   >
                     Back
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="flex-1 gradient-green text-white py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
+                  className="flex-[2] gradient-green text-white py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
                 >
                   {step === 2 ? 'Place Order' : 'Continue'}
                 </button>

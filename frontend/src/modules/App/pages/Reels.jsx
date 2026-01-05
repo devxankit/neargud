@@ -5,6 +5,7 @@ import { FaHeart } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { getActiveReels } from "../../../utils/reelHelpers";
 import { getProductById } from "../../../data/products";
+import { useFavoritesStore } from "../../../store/favoritesStore";
 import toast from "react-hot-toast";
 import MobileLayout from "../../../components/Layout/Mobile/MobileLayout";
 import useMobileHeaderHeight from "../../../hooks/useMobileHeaderHeight";
@@ -23,7 +24,7 @@ const MobileReels = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showMuteIcon, setShowMuteIcon] = useState(false);
-  const [likedReels, setLikedReels] = useState([]);
+  const { addVideo, removeVideo, isInVideos } = useFavoritesStore();
 
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [followedVendors, setFollowedVendors] = useState([]);
@@ -149,13 +150,20 @@ const MobileReels = () => {
     }
   };
 
-  const toggleLike = (id) => {
-    if (likedReels.includes(id)) {
-      setLikedReels(prev => prev.filter(rId => rId !== id));
-      // No animation on unlike, as requested
+  const toggleLike = (reel) => {
+    if (isInVideos(reel.id)) {
+      removeVideo(reel.id);
+      toast.success("Removed from favorites");
     } else {
-      setLikedReels(prev => [...prev, id]);
+      addVideo({
+        id: reel.id,
+        videoUrl: reel.videoUrl,
+        thumbnail: reel.thumbnail,
+        vendorName: reel.vendorName || reel.uploadedBy || "Store",
+        title: reel.productName || reel.title,
+      });
       triggerHeartAnimation();
+      toast.success("Added to favorites");
     }
   };
 
@@ -165,7 +173,7 @@ const MobileReels = () => {
     heartAnimTimeout.current = setTimeout(() => setShowHeartAnim(false), 800);
   };
 
-  const handleVideoClick = (e, id) => {
+  const handleVideoClick = (e, reel) => {
     if (!isLongPress.current) {
       const now = Date.now();
       const DOUBLE_TAP_DELAY = 300;
@@ -177,8 +185,15 @@ const MobileReels = () => {
           clickTimer.current = null;
         }
 
-        if (!likedReels.includes(id)) {
-          setLikedReels(prev => [...prev, id]);
+        if (!isInVideos(reel.id)) {
+          addVideo({
+            id: reel.id,
+            videoUrl: reel.videoUrl,
+            thumbnail: reel.thumbnail,
+            vendorName: reel.vendorName || reel.uploadedBy || "Store",
+            title: reel.productName || reel.title,
+          });
+          toast.success("Added to favorites");
         }
         // Always show animation on double tap (like confirmation)
         triggerHeartAnimation();
@@ -316,7 +331,7 @@ const MobileReels = () => {
                 }
                 setTimeout(() => { isLongPress.current = false; }, 100);
               }}
-              onClick={(e) => handleVideoClick(e, reel.id)}
+              onClick={(e) => handleVideoClick(e, reel)}
             />
 
             {/* Mute Indicator */}
@@ -357,15 +372,15 @@ const MobileReels = () => {
 
             {/* Right Actions Bar - Moved to Middle Right */}
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-6 z-20">
-              <button onClick={() => toggleLike(reel.id)} className="flex flex-col items-center gap-1 group">
+              <button onClick={() => toggleLike(reel)} className="flex flex-col items-center gap-1 group">
                 <div className="group-active:scale-90 transition-transform drop-shadow-lg">
-                  {likedReels.includes(reel.id) ? (
+                  {isInVideos(reel.id) ? (
                     <FaHeart className="text-4xl text-red-500" />
                   ) : (
                     <FiHeart className="text-4xl text-white" />
                   )}
                 </div>
-                <span className="text-white text-xs font-medium">{likedReels.includes(reel.id) ? (reel.likes + 1) : reel.likes}</span>
+                <span className="text-white text-xs font-medium">{isInVideos(reel.id) ? (reel.likes + 1) : reel.likes}</span>
               </button>
 
               <button

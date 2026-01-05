@@ -186,31 +186,12 @@ const MobileProductCard = ({ product }) => {
               )}
 
               {/* Price */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg font-bold text-gray-800">
-                  {formatPrice(product.price)}
-                </span>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-gray-900">{formatPrice(product.price)}</span>
                 {product.originalPrice && (
-                  <span className="text-xs text-gray-400 line-through font-medium">
-                    {formatPrice(product.originalPrice)}
-                  </span>
+                  <span className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</span>
                 )}
               </div>
-
-              {/* Add to Cart Button */}
-              <motion.button
-                ref={buttonRef}
-                onClick={handleAddToCart}
-                disabled={product.stock === 'out_of_stock'}
-                whileTap={{ scale: 0.95 }}
-                className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${product.stock === 'out_of_stock'
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-white border border-primary-600 text-primary-700 hover:bg-primary-50'
-                  }`}
-              >
-                <FiShoppingBag className="text-base" />
-                <span>{product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}</span>
-              </motion.button>
             </div>
           </div>
         </motion.div>

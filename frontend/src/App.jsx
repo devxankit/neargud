@@ -137,6 +137,7 @@ import MobileOrders from "./modules/App/pages/Orders";
 import MobileOrderDetail from "./modules/App/pages/OrderDetail";
 import MobileAddresses from "./modules/App/pages/Addresses";
 import MobileWishlist from "./modules/App/pages/Wishlist";
+import MobileFavorites from "./modules/App/pages/Favorites";
 import MobileReels from "./modules/App/pages/Reels";
 import MobileOffers from "./modules/App/pages/Offers";
 import MobileDailyDeals from "./modules/App/pages/DailyDeals";
@@ -437,6 +438,7 @@ const AppRoutes = () => {
       <Route path="/app/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
       <Route path="/app/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />
       <Route path="/app/wishlist" element={<RouteWrapper><MobileWishlist /></RouteWrapper>} />
+      <Route path="/app/favorites" element={<RouteWrapper><MobileFavorites /></RouteWrapper>} />
       <Route path="/app/offers" element={<RouteWrapper><MobileOffers /></RouteWrapper>} />
       <Route path="/app/daily-deals" element={<RouteWrapper><MobileDailyDeals /></RouteWrapper>} />
       <Route path="/app/flash-sale" element={<RouteWrapper><MobileFlashSale /></RouteWrapper>} />

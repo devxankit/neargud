@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiSave, FiCamera, FiArrowLeft } from 'react-icons/fi';
+import { 
+  FiUser, 
+  FiMail, 
+  FiPhone, 
+  FiLock, 
+  FiEye, 
+  FiEyeOff, 
+  FiSave, 
+  FiCamera, 
+  FiArrowLeft,
+  FiPackage,
+  FiHeart,
+  FiStar,
+  FiMapPin,
+  FiCreditCard,
+  FiHelpCircle,
+  FiFileText
+} from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
@@ -69,17 +86,18 @@ const MobileProfile = () => {
   };
 
   const menuItems = [
-    { icon: FiUser, label: 'My Orders', path: '/app/orders', color: 'text-blue-500', bg: 'bg-blue-50' },
-    { icon: FiUser, label: 'Wishlist', path: '/app/wishlist', color: 'text-pink-500', bg: 'bg-pink-50' },
-    { icon: FiUser, label: 'My Addresses', path: '/app/addresses', color: 'text-orange-500', bg: 'bg-orange-50' },
-    { icon: FiUser, label: 'Saved Cards', path: '/app/cards', color: 'text-purple-500', bg: 'bg-purple-50' }, // Placeholder
+    { icon: FiPackage, label: 'My Orders', path: '/app/orders', color: 'text-blue-500', bg: 'bg-blue-50' },
+    { icon: FiHeart, label: 'Wishlist', path: '/app/wishlist', color: 'text-pink-500', bg: 'bg-pink-50' },
+    { icon: FiStar, label: 'Favorites', path: '/app/favorites', color: 'text-yellow-500', bg: 'bg-yellow-50' },
+    { icon: FiMapPin, label: 'My Addresses', path: '/app/addresses', color: 'text-orange-500', bg: 'bg-orange-50' },
+    { icon: FiCreditCard, label: 'Saved Cards', path: '/app/cards', color: 'text-purple-500', bg: 'bg-purple-50' },
+    { icon: FiHelpCircle, label: 'Help Center', path: '/app/help', color: 'text-green-500', bg: 'bg-green-50' },
   ];
 
   const settingItems = [
     { icon: FiUser, label: 'Personal Information', action: () => setView('personal'), color: 'text-gray-700', bg: 'bg-gray-100' },
     { icon: FiLock, label: 'Change Password', action: () => setView('password'), color: 'text-gray-700', bg: 'bg-gray-100' },
-    { icon: FiUser, label: 'Help Center', path: '/app/help', color: 'text-gray-700', bg: 'bg-gray-100' },
-    { icon: FiUser, label: 'Terms & Policies', path: '/app/policies', color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiFileText, label: 'Terms & Policies', path: '/app/policies', color: 'text-gray-700', bg: 'bg-gray-100' },
   ];
 
   return (

@@ -220,7 +220,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
           )}
 
           {/* Price */}
-          <div className="flex items-center gap-1.5 mb-2 mt-auto">
+          <div className="flex items-center gap-1.5 mt-auto">
             <span className="text-sm font-bold text-gray-900">
               {formatPrice(product.price)}
             </span>
@@ -235,57 +235,6 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               </span>
             )}
           </div>
-
-          {/* Add Button or Quantity Control */}
-          {inCartQty === 0 ? (
-            <button
-              ref={buttonRef}
-              onClick={handleAddToCart}
-              disabled={product.stock === "out_of_stock" || isAdding}
-              className={`w-full py-2 rounded-lg font-bold text-xs transition-all duration-300 flex items-center justify-center gap-1.5 ${product.stock === "out_of_stock"
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : isAdding
-                    ? "bg-primary-700 text-white"
-                    : "bg-white border border-primary-200 text-primary-700 hover:bg-primary-50 hover:border-primary-300"
-                }`}>
-              {product.stock !== "out_of_stock" && <FiShoppingBag className="text-xs" />}
-              <span>
-                {product.stock === "out_of_stock"
-                  ? "Out of Stock"
-                  : isAdding
-                    ? "Added"
-                    : "Add"}
-              </span>
-            </button>
-          ) : (
-            <div className="flex items-center justify-between bg-primary-50 rounded-lg p-1 border border-primary-100">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (inCartQty > 1) {
-                    updateQuantity(product.id, inCartQty - 1);
-                  } else {
-                    updateQuantity(product.id, 0);
-                  }
-                }}
-                className="w-7 h-7 flex items-center justify-center text-primary-700 font-bold hover:bg-primary-100 rounded-md transition-colors"
-              >
-                −
-              </button>
-              <span className="text-xs font-bold text-primary-700 min-w-[1rem] text-center">
-                {inCartQty}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  updateQuantity(product.id, inCartQty + 1);
-                }}
-                className="w-7 h-7 flex items-center justify-center text-primary-700 font-bold hover:bg-primary-100 rounded-md transition-colors"
-              >
-                +
-              </button>
-            </div>
-          )}
         </div>
       </motion.div>
 

@@ -277,6 +277,8 @@ const MobileCategoryIcons = () => {
     );
   };
 
+  const isHomePage = location.pathname === "/" || location.pathname === "/app";
+
   return (
     <div className="relative" ref={containerRef}>
       <motion.div
@@ -293,6 +295,11 @@ const MobileCategoryIcons = () => {
             currentCategoryId && currentCategoryId === category.id
               ? getActiveColor(category.id)
               : null;
+          
+          const iconColorClass = isHomePage ? "text-white/85" : "text-black";
+          const textColorClass = isHomePage ? "text-white/85" : "text-black";
+          const indicatorColorClass = isHomePage ? "bg-white/85" : "bg-black";
+
           return (
             <div
               key={category.id}
@@ -306,7 +313,7 @@ const MobileCategoryIcons = () => {
                 {!isScrolling && (
                   <div>
                     <IconComponent
-                      className="text-lg text-black"
+                      className={`text-lg ${iconColorClass}`}
                       style={{
                         strokeWidth:
                           category.name === "Clothing" ||
@@ -317,7 +324,7 @@ const MobileCategoryIcons = () => {
                     />
                   </div>
                 )}
-                <span className="text-[10px] font-semibold text-center line-clamp-1 text-black">
+                <span className={`text-[10px] font-semibold text-center line-clamp-1 ${textColorClass}`}>
                   {category.name}
                 </span>
               </Link>
@@ -325,9 +332,9 @@ const MobileCategoryIcons = () => {
           );
         })}
       </motion.div>
-      {/* Black indicator line at bottom edge of header for selected category - using CSS transitions like reference app */}
+      {/* Indicator line at bottom edge of header for selected category */}
       <div
-        className="absolute bottom-[-12px] h-1 bg-black rounded-t-lg pointer-events-none"
+        className={`absolute bottom-[-12px] h-1 rounded-t-lg pointer-events-none ${isHomePage ? 'bg-white/85' : 'bg-black'}`}
         style={{
           left: `${indicatorStyle.left}px`,
           width: `${indicatorStyle.width}px`,

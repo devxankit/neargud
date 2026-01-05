@@ -8,13 +8,8 @@ import { useAddressStore } from '../store/addressStore';
 import { useOrderStore } from '../store/orderStore';
 import { formatPrice } from '../utils/helpers';
 import toast from 'react-hot-toast';
-import Header from '../components/Layout/Header';
-import Navbar from '../components/Layout/Navbar';
-import Footer from '../components/Layout/Footer';
 import PageTransition from '../components/PageTransition';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
-
-import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -22,7 +17,6 @@ const Checkout = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { addresses, getDefaultAddress, addAddress } = useAddressStore();
   const { createOrder } = useOrderStore();
-  const { responsivePadding } = useResponsiveHeaderPadding();
 
   // Group items by vendor
   const itemsByVendor = useMemo(() => getItemsByVendor(), [items, getItemsByVendor]);
@@ -162,9 +156,7 @@ const Checkout = () => {
   if (items.length === 0) {
     return (
       <PageTransition>
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
-          <Header />
-          <Navbar />
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden flex items-center justify-center">
           <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
@@ -176,7 +168,6 @@ const Checkout = () => {
               </button>
             </div>
           </main>
-          <Footer />
         </div>
       </PageTransition>
     );
@@ -228,10 +219,8 @@ const Checkout = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
-        <Header />
-        <Navbar />
-        <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-2">
+        <main className="w-full overflow-x-hidden">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-12">
             <div className="max-w-5xl mx-auto">
               <Breadcrumbs />
               <h1 className="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
@@ -263,23 +252,39 @@ const Checkout = () => {
               )}
 
               {/* Progress Steps */}
-              <div className="flex items-center justify-center mb-8">
-                <div className="flex items-center gap-4">
-                  {[1, 2, 3].map((s) => (
-                    <div key={s} className="flex items-center">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= s
-                            ? 'gradient-green text-white'
-                            : 'bg-gray-200 text-gray-500'
-                          }`}
-                      >
-                        {s}
-                      </div>
-                      {s < 3 && (
+              <div className="flex items-center justify-center mb-10">
+                <div className="flex items-center w-full max-w-lg">
+                  {[
+                    { id: 1, label: 'Shipping' },
+                    { id: 2, label: 'Payment' },
+                    { id: 3, label: 'Review' }
+                  ].map((s, index) => (
+                    <div key={s.id} className="flex items-center flex-1 last:flex-none">
+                      <div className="flex flex-col items-center relative">
                         <div
-                          className={`w-16 h-1 mx-2 ${step > s ? 'gradient-green' : 'bg-gray-200'
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${step >= s.id
+                              ? 'gradient-green text-white shadow-glow-green scale-110'
+                              : 'bg-white text-gray-400 border-2 border-gray-100 shadow-sm'
                             }`}
-                        />
+                        >
+                          {step > s.id ? <FiCheck className="text-xl" /> : s.id}
+                        </div>
+                        <span
+                          className={`absolute -bottom-7 whitespace-nowrap text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${step >= s.id ? 'text-primary-600' : 'text-gray-400'
+                            }`}
+                        >
+                          {s.label}
+                        </span>
+                      </div>
+                      {index < 2 && (
+                        <div className="flex-1 mx-4">
+                          <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ease-out ${step > s.id ? 'w-full gradient-green' : 'w-0'
+                                }`}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -311,8 +316,8 @@ const Checkout = () => {
                                 <div
                                   key={address.id}
                                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedAddressId === address.id
-                                      ? 'border-primary-500 bg-primary-50'
-                                      : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-primary-500 bg-primary-50'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     }`}
                                   onClick={() => handleSelectAddress(address)}
                                 >
@@ -510,8 +515,8 @@ const Checkout = () => {
                             <label
                               key={method}
                               className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.paymentMethod === method
-                                  ? 'border-primary-500 bg-primary-50'
-                                  : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
                               <input
@@ -536,8 +541,8 @@ const Checkout = () => {
                             <div className="space-y-3">
                               <label
                                 className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${shippingOption === 'standard'
-                                    ? 'border-primary-500 bg-primary-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                  ? 'border-primary-500 bg-primary-50'
+                                  : 'border-gray-200 hover:border-gray-300'
                                   }`}
                               >
                                 <div>
@@ -556,8 +561,8 @@ const Checkout = () => {
                               </label>
                               <label
                                 className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${shippingOption === 'express'
-                                    ? 'border-primary-500 bg-primary-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                  ? 'border-primary-500 bg-primary-50'
+                                  : 'border-gray-200 hover:border-gray-300'
                                   }`}
                               >
                                 <div>
@@ -793,7 +798,6 @@ const Checkout = () => {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     </PageTransition>
   );

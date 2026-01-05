@@ -45,6 +45,19 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Hide header on checkout-related routes
+  const isCheckoutRoute = 
+    location.pathname.startsWith('/checkout') || 
+    location.pathname.startsWith('/app/checkout') ||
+    location.pathname.startsWith('/order-confirmation') || 
+    location.pathname.startsWith('/app/order-confirmation') ||
+    location.pathname.startsWith('/track-order') || 
+    location.pathname.startsWith('/app/track-order');
+
+  if (isCheckoutRoute) {
+    return null;
+  }
+
   const itemCount = useCartStore((state) => state.getItemCount());
   const wishlistCount = useWishlistStore((state) => state.getItemCount());
   const toggleCart = useUIStore((state) => state.toggleCart);

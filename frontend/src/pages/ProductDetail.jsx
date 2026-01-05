@@ -4,6 +4,7 @@ import { FiStar, FiHeart, FiShoppingBag, FiMinus, FiPlus, FiArrowLeft, FiCheckCi
 import { motion } from 'framer-motion';
 import { useCartStore } from '../store/useStore';
 import { useWishlistStore } from '../store/wishlistStore';
+import { useFavoritesStore } from '../store/favoritesStore';
 import { useReviewsStore } from '../store/reviewsStore';
 import { getProductById, getSimilarProducts } from '../data/products';
 import { getVendorById } from '../modules/vendor/data/vendors';
@@ -37,9 +38,11 @@ const ProductDetail = () => {
 
   const addItem = useCartStore((state) => state.addItem);
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+  const { addProduct: addToFavorites, removeProduct: removeFromFavorites, isInProducts } = useFavoritesStore();
   const { getReviews, addReview, sortReviews, voteHelpful, voteNotHelpful, hasVoted } = useReviewsStore();
 
-  const isFavorite = product ? isInWishlist(product.id) : false;
+  const isWishlisted = product ? isInWishlist(product.id) : false;
+  const isLiked = product ? isInProducts(product.id) : false;
   const productReviews = product ? sortReviews(product.id, reviewSortBy) : [];
 
   // Initialize variant if product has variants
@@ -96,8 +99,8 @@ const ProductDetail = () => {
     toast.success(`Added ${quantity} item(s) to cart!`);
   };
 
-  const handleFavorite = () => {
-    if (isFavorite) {
+  const handleWishlist = () => {
+    if (isWishlisted) {
       removeFromWishlist(product.id);
       toast.success('Removed from wishlist');
     } else {
@@ -108,6 +111,21 @@ const ProductDetail = () => {
         image: product.image,
       });
       toast.success('Added to wishlist');
+    }
+  };
+
+  const handleLike = () => {
+    if (isLiked) {
+      removeFromFavorites(product.id);
+      toast.success('Removed from liked items');
+    } else {
+      addToFavorites({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      });
+      toast.success('Added to liked items');
     }
   };
 
@@ -325,18 +343,27 @@ const ProductDetail = () => {
                     >
                       <FiShoppingBag className="text-xl" />
                       <span>
-                        {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
-                      </span>
-                    </button>
-                    <button
-                      onClick={handleFavorite}
-                      className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isFavorite
-                        ? 'bg-red-50 text-red-600 border-2 border-red-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                    >
-                      <FiHeart className={`text-xl ${isFavorite ? 'fill-red-600' : ''}`} />
-                    </button>
+                      {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleLike}
+                    className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isLiked
+                      ? 'bg-yellow-50 text-yellow-600 border-2 border-yellow-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                  >
+                    <FiStar className={`text-xl ${isLiked ? 'fill-yellow-600' : ''}`} />
+                  </button>
+                  <button
+                    onClick={handleWishlist}
+                    className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isWishlisted
+                      ? 'bg-red-50 text-red-600 border-2 border-red-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                  >
+                    <FiHeart className={`text-xl ${isWishlisted ? 'fill-red-600' : ''}`} />
+                  </button>
                     <div className="flex items-center">
                       <SocialShare
                         productName={product.name}

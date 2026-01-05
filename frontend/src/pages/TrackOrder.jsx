@@ -4,20 +4,15 @@ import { FiCheckCircle, FiClock, FiPackage, FiTruck, FiMapPin, FiArrowLeft } fro
 import { motion } from 'framer-motion';
 import { useOrderStore } from '../store/orderStore';
 import { formatPrice } from '../utils/helpers';
-import Header from '../components/Layout/Header';
-import Navbar from '../components/Layout/Navbar';
-import Footer from '../components/Layout/Footer';
 import PageTransition from '../components/PageTransition';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Badge from '../components/Badge';
 import ProtectedRoute from '../components/Auth/ProtectedRoute';
-import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 
 const TrackOrder = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { getOrder } = useOrderStore();
-  const { responsivePadding } = useResponsiveHeaderPadding();
   const order = getOrder(orderId);
 
   useEffect(() => {
@@ -30,8 +25,6 @@ const TrackOrder = () => {
     return (
       <PageTransition>
         <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
-          <Header />
-          <Navbar />
           <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Order Not Found</h2>
@@ -43,7 +36,6 @@ const TrackOrder = () => {
               </button>
             </div>
           </main>
-          <Footer />
         </div>
       </PageTransition>
     );
@@ -108,10 +100,8 @@ const TrackOrder = () => {
     <ProtectedRoute>
       <PageTransition>
         <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
-          <Header />
-          <Navbar />
-          <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-2">
+          <main className="w-full overflow-x-hidden">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-12">
               <Breadcrumbs />
               
               <div className="max-w-6xl mx-auto">
@@ -288,7 +278,6 @@ const TrackOrder = () => {
               </div>
             </div>
           </main>
-          <Footer />
         </div>
       </PageTransition>
     </ProtectedRoute>
