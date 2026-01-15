@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiSettings, FiCreditCard, FiTruck, FiUser } from 'react-icons/fi';
+import { FiSettings, FiCreditCard, FiTruck, FiUser, FiShoppingBag, FiGlobe, FiImage } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import StoreSettings from './settings/StoreSettings';
 import PaymentSettings from './settings/PaymentSettings';
 import ShippingSettings from './settings/ShippingSettings';
 import ProfileSettings from './settings/ProfileSettings';
 
+// Wrapper components for StoreSettings sections
+const IdentitySettings = () => <StoreSettings section="identity" />;
+const ContactSettings = () => <StoreSettings section="contact" />;
+const SocialSettings = () => <StoreSettings section="social" />;
+
 const VendorSettings = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Get active tab from URL or default to 'store'
+
+  // Get active tab from URL or default to 'identity'
   const getActiveTabFromUrl = () => {
     const path = location.pathname;
-    if (path.includes('/payment') || path.includes('/payment-settings')) return 'payment';
-    if (path.includes('/shipping') || path.includes('/shipping-settings')) return 'shipping';
-    if (path.includes('/profile')) return 'profile';
-    if (path.includes('/store')) return 'store';
-    return 'store';
+    if (path.includes('/contact-info')) return 'contact';
+    if (path.includes('/social-media')) return 'social';
+    if (path.includes('/shipping-delivery')) return 'shipping';
+    if (path.includes('/store-identity') || path.includes('/settings')) return 'identity';
+    return 'identity';
   };
 
   const [activeTab, setActiveTab] = useState(getActiveTabFromUrl());
@@ -29,25 +34,25 @@ const VendorSettings = () => {
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'store') {
-      navigate('/vendor/settings/store');
-    } else if (tabId === 'payment') {
-      navigate('/vendor/settings/payment');
+    if (tabId === 'identity') {
+      navigate('/vendor/settings/store-identity');
+    } else if (tabId === 'contact') {
+      navigate('/vendor/settings/contact-info');
+    } else if (tabId === 'social') {
+      navigate('/vendor/settings/social-media');
     } else if (tabId === 'shipping') {
-      navigate('/vendor/settings/shipping');
-    } else if (tabId === 'profile') {
-      navigate('/vendor/profile');
+      navigate('/vendor/settings/shipping-delivery');
     }
   };
 
   const tabs = [
-    { id: 'store', label: 'Store Settings', icon: FiSettings, component: StoreSettings, route: '/vendor/settings' },
-    { id: 'payment', label: 'Payment Settings', icon: FiCreditCard, component: PaymentSettings, route: '/vendor/settings/payment-settings' },
-    { id: 'shipping', label: 'Shipping Settings', icon: FiTruck, component: ShippingSettings, route: '/vendor/settings/shipping-settings' },
-    { id: 'profile', label: 'Profile', icon: FiUser, component: ProfileSettings, route: '/vendor/profile' },
+    { id: 'identity', label: 'Store Identity', icon: FiShoppingBag, component: IdentitySettings },
+    { id: 'contact', label: 'Contact Info', icon: FiGlobe, component: ContactSettings },
+    { id: 'social', label: 'Social Media', icon: FiImage, component: SocialSettings },
+    { id: 'shipping', label: 'Shipping & Delivery', icon: FiTruck, component: ShippingSettings },
   ];
 
-  const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || StoreSettings;
+  const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component || IdentitySettings;
 
   return (
     <motion.div
@@ -71,11 +76,10 @@ const VendorSettings = () => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${
-                    activeTab === tab.id
-                      ? 'border-purple-600 text-purple-600 font-semibold'
-                      : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${activeTab === tab.id
+                    ? 'border-purple-600 text-purple-600 font-semibold'
+                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                    }`}
                 >
                   <Icon className="text-base sm:text-lg" />
                   <span className="hidden xs:inline">{tab.label}</span>

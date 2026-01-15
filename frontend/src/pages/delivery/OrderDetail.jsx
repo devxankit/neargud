@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -15,98 +15,52 @@ import {
 import PageTransition from '../../components/PageTransition';
 import { formatPrice } from '../../utils/helpers';
 import toast from 'react-hot-toast';
+import { useDeliveryStore } from '../../store/deliveryStore';
 
 const DeliveryOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { currentOrder: order, fetchOrderDetails, updateOrderStatus, loading } = useDeliveryStore();
 
   useEffect(() => {
-    // Mock order data - replace with actual API call
-    setTimeout(() => {
-      setOrder({
-        id: id,
-        customer: 'John Doe',
-        phone: '+1234567890',
-        email: 'john.doe@example.com',
-        address: '123 Main St, City, State 12345',
-        latitude: 40.7128, // New York City coordinates (example)
-        longitude: -74.0060,
-        amount: 45.99,
-        deliveryFee: 5.00,
-        total: 50.99,
-        status: 'pending',
-        distance: '2.5 km',
-        estimatedTime: '15 min',
-        items: [
-          { name: 'Product 1', quantity: 2, price: 15.99 },
-          { name: 'Product 2', quantity: 1, price: 14.00 },
-        ],
-        createdAt: '2024-01-15T10:30:00',
-        instructions: 'Please ring the doorbell twice',
-      });
-      setLoading(false);
-    }, 500);
+    if (id) {
+      fetchOrderDetails(id);
+    }
   }, [id]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
+      case 'ready_to_ship':
+      case 'dispatched':
+      case 'shipped':
         return 'bg-yellow-100 text-yellow-800';
-      case 'in-transit':
+      case 'out_for_delivery':
         return 'bg-blue-100 text-blue-800';
-      case 'completed':
+      case 'delivered':
         return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleAcceptOrder = () => {
-    setOrder({ ...order, status: 'in-transit' });
-    toast.success('Order accepted! Map location is now available.');
-  };
-
-  const handleCompleteOrder = () => {
-    setOrder({ ...order, status: 'completed' });
+  const handleUpdateStatus = async (newStatus) => {
+    try {
+      await updateOrderStatus(id, newStatus);
+      toast.success(`Order status updated to ${newStatus.replace(/_/g, ' ')}`);
+    } catch (e) {
+      toast.error("Failed to update status");
+    }
   };
 
   const openInGoogleMaps = () => {
-    const { latitude, longitude } = order;
-    
-    // Detect platform
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-    const isAndroid = /android/i.test(userAgent);
-    
-    if (isAndroid) {
-      // Android: Use intent URL (opens Google Maps app if installed, otherwise web)
-      const intentUrl = `intent://maps.google.com/maps?daddr=${latitude},${longitude}&directionsmode=driving#Intent;scheme=https;package=com.google.android.apps.maps;end`;
-      window.location.href = intentUrl;
-    } else if (isIOS) {
-      // iOS: Try Google Maps app URL scheme first
-      const appUrl = `comgooglemaps://?daddr=${latitude},${longitude}&directionsmode=driving`;
-      // Universal link as fallback (opens app if installed, otherwise web)
-      const universalUrl = `https://maps.google.com/maps?daddr=${latitude},${longitude}&directionsmode=driving`;
-      
-      // Try app URL
-      const link = document.createElement('a');
-      link.href = appUrl;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Fallback to universal link after brief delay
-      setTimeout(() => {
-        window.location.href = universalUrl;
-      }, 400);
-    } else {
-      // Desktop: Use web version
-      const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
-      window.open(webUrl, '_blank');
-    }
+    const addressStr = order?.shippingAddress?.address + ", " + order?.shippingAddress?.city + ", " + order?.shippingAddress?.zipCode;
+    const encodedAddress = encodeURIComponent(addressStr);
+
+    // Universal Maps URL
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    window.open(mapUrl, '_blank');
   };
 
   if (loading) {
@@ -127,10 +81,17 @@ const DeliveryOrderDetail = () => {
       <PageTransition>
         <div className="px-4 py-6 text-center">
           <p className="text-gray-600">Order not found</p>
+          <button onClick={() => navigate('/delivery/orders')} className="text-primary-600 mt-4">Back to Orders</button>
         </div>
       </PageTransition>
     );
   }
+
+  const customerName = order.customerSnapshot?.name || order.customerId?.firstName ? `${order.customerId.firstName} ${order.customerId.lastName}` : 'Customer';
+  const customerPhone = order.customerSnapshot?.phone || order.customerId?.phone || 'N/A';
+  const customerEmail = order.customerSnapshot?.email || order.customerId?.email || 'N/A';
+  const addressString = order.shippingAddress ? `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zipCode}` : 'N/A';
+  const formattedStatus = order.status ? order.status.replace(/_/g, ' ') : '';
 
   return (
     <PageTransition>
@@ -144,9 +105,9 @@ const DeliveryOrderDetail = () => {
             <FiArrowLeft className="text-xl text-gray-700" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-800">{order.id}</h1>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-              {order.status.replace('-', ' ')}
+            <h1 className="text-xl font-bold text-gray-800">Order #{order.orderCode || order._id?.substring(0, 8)}</h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)} uppercase`}>
+              {formattedStatus}
             </span>
           </div>
         </div>
@@ -162,14 +123,14 @@ const DeliveryOrderDetail = () => {
             Customer Information
           </h2>
           <div className="space-y-2">
-            <p className="text-gray-800 font-semibold">{order.customer}</p>
+            <p className="text-gray-800 font-semibold">{customerName}</p>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <FiPhone />
-              <a href={`tel:${order.phone}`} className="hover:text-primary-600">
-                {order.phone}
+              <a href={`tel:${customerPhone}`} className="hover:text-primary-600">
+                {customerPhone}
               </a>
             </div>
-            <p className="text-sm text-gray-600">{order.email}</p>
+            <p className="text-sm text-gray-600">{customerEmail}</p>
           </div>
         </motion.div>
 
@@ -184,62 +145,26 @@ const DeliveryOrderDetail = () => {
             <FiMapPin />
             Delivery Address
           </h2>
-          <p className="text-gray-700 mb-3">{order.address}</p>
+          <p className="text-gray-700 mb-3">{addressString}</p>
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <div className="flex items-center gap-1">
-              <FiNavigation />
-              <span>{order.distance}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <FiClock />
-              <span>{order.estimatedTime}</span>
-            </div>
-          </div>
-          {order.instructions && (
-            <div className="mt-3 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
-              <p className="text-sm text-yellow-800">
-                <span className="font-semibold">Instructions: </span>
-                {order.instructions}
-              </p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Map - Show when order is accepted */}
-        {(order.status === 'in-transit' || order.status === 'completed') && order.latitude && order.longitude && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="bg-white rounded-2xl p-4 shadow-sm"
-          >
-            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <FiMapPin className="text-primary-600" />
-              Delivery Location
-            </h2>
-            <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: '300px' }}>
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${order.longitude - 0.01},${order.latitude - 0.01},${order.longitude + 0.01},${order.latitude + 0.01}&layer=mapnik&marker=${order.latitude},${order.longitude}`}
-                title="Delivery Location Map"
-              />
-            </div>
-            <div className="mt-3">
-              <button
-                onClick={openInGoogleMaps}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold text-sm hover:bg-primary-700 transition-colors"
-              >
+            {/* Distance logic requires coordinates or backend calc. For now placeholder or removing if undefined */}
+            {order.distance && (
+              <div className="flex items-center gap-1">
                 <FiNavigation />
-                Open in Google Maps
-              </button>
-            </div>
-          </motion.div>
-        )}
+                <span>{order.distance}</span>
+              </div>
+            )}
+          </div>
+          <div className="mt-3">
+            <button
+              onClick={openInGoogleMaps}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold text-sm hover:bg-primary-700 transition-colors"
+            >
+              <FiNavigation />
+              Open in Google Maps
+            </button>
+          </div>
+        </motion.div>
 
         {/* Order Items */}
         <motion.div
@@ -253,7 +178,7 @@ const DeliveryOrderDetail = () => {
             Order Items
           </h2>
           <div className="space-y-3">
-            {order.items.map((item, index) => (
+            {order.items?.map((item, index) => (
               <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                 <div>
                   <p className="font-semibold text-gray-800">{item.name}</p>
@@ -279,15 +204,16 @@ const DeliveryOrderDetail = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-gray-700">
               <span>Subtotal</span>
-              <span>{formatPrice(order.amount)}</span>
+              {/* Calculating subtotal since backend might aggregate differently, but order.items usually has prices */}
+              <span>{formatPrice(order.items?.reduce((cur, item) => cur + (item.price * item.quantity), 0) || 0)}</span>
             </div>
             <div className="flex items-center justify-between text-gray-700">
-              <span>Delivery Fee</span>
-              <span>{formatPrice(order.deliveryFee)}</span>
+              <span className="font-medium text-gray-900">Your Earning</span>
+              <span className="font-bold text-green-600">{formatPrice(order.deliveryFee || 0)}</span>
             </div>
-            <div className="pt-2 border-t border-gray-200 flex items-center justify-between">
-              <span className="font-bold text-gray-800">Total</span>
-              <span className="font-bold text-primary-600 text-lg">{formatPrice(order.total)}</span>
+            <div className="flex items-center justify-between text-gray-700">
+              <span>Total</span>
+              <span className="font-bold text-primary-600 text-lg">{formatPrice(order.total || 0)}</span>
             </div>
           </div>
         </motion.div>
@@ -299,18 +225,18 @@ const DeliveryOrderDetail = () => {
           transition={{ delay: 0.4 }}
           className="space-y-3 pt-4"
         >
-          {order.status === 'pending' && (
+          {(['shipped', 'dispatched', 'ready_to_ship', 'shipped_seller'].includes(order.status)) && (
             <button
-              onClick={handleAcceptOrder}
+              onClick={() => handleUpdateStatus('out_for_delivery')}
               className="w-full gradient-green text-white py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2"
             >
               <FiCheckCircle />
-              Accept Order
+              Pick Up Order
             </button>
           )}
-          {order.status === 'in-transit' && (
+          {order.status === 'out_for_delivery' && (
             <button
-              onClick={handleCompleteOrder}
+              onClick={() => handleUpdateStatus('delivered')}
               className="w-full gradient-green text-white py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2"
             >
               <FiCheckCircle />
@@ -318,7 +244,7 @@ const DeliveryOrderDetail = () => {
             </button>
           )}
           <button
-            onClick={() => window.open(`tel:${order.phone}`, '_self')}
+            onClick={() => window.open(`tel:${customerPhone}`, '_self')}
             className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-2 hover:bg-gray-200"
           >
             <FiPhone />
@@ -331,6 +257,3 @@ const DeliveryOrderDetail = () => {
 };
 
 export default DeliveryOrderDetail;
-
-
-

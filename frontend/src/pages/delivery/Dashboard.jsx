@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDeliveryAuthStore } from '../../store/deliveryAuthStore';
+import { useDeliveryStore } from '../../store/deliveryStore';
 import { FiPackage, FiCheckCircle, FiClock, FiTrendingUp, FiMapPin, FiTruck } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import PageTransition from '../../components/PageTransition';
@@ -9,33 +10,27 @@ import { formatPrice } from '../../utils/helpers';
 
 const DeliveryDashboard = () => {
   const { deliveryBoy, updateStatus } = useDeliveryAuthStore();
+  const { stats, fetchStats, assignedOrders, fetchAssignedOrders } = useDeliveryStore();
   const navigate = useNavigate();
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    completedToday: 0,
-    pending: 0,
-    earnings: 0,
-  });
 
-  // Mock data - replace with actual API call
   useEffect(() => {
-    // Simulate loading stats
-    setTimeout(() => {
-      setStats({
-        totalOrders: 24,
-        completedToday: 8,
-        pending: 3,
-        earnings: 1250,
-      });
-    }, 500);
+    fetchStats();
+    fetchAssignedOrders(''); // Fetch all to show recent
   }, []);
+
+  const displayStats = stats || {
+    activeOrders: 0,
+    completedToday: 0,
+    totalDelivered: 0,
+    earnings: 0
+  };
 
   const statCards = [
     {
       icon: FiPackage,
       label: 'Total Orders',
-      value: stats.totalOrders,
+      value: (displayStats.activeOrders || 0) + (displayStats.totalDelivered || 0),
       color: 'bg-blue-500',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-700',
@@ -43,15 +38,15 @@ const DeliveryDashboard = () => {
     {
       icon: FiCheckCircle,
       label: 'Completed Today',
-      value: stats.completedToday,
+      value: displayStats.completedToday || 0,
       color: 'bg-green-500',
       bgColor: 'bg-green-50',
       textColor: 'text-green-700',
     },
     {
       icon: FiClock,
-      label: 'Pending',
-      value: stats.pending,
+      label: 'Active',
+      value: displayStats.activeOrders || 0,
       color: 'bg-yellow-500',
       bgColor: 'bg-yellow-50',
       textColor: 'text-yellow-700',
@@ -59,39 +54,14 @@ const DeliveryDashboard = () => {
     {
       icon: FiTrendingUp,
       label: 'Earnings',
-      value: formatPrice(stats.earnings),
+      value: formatPrice(displayStats.earnings || 0),
       color: 'bg-purple-500',
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-700',
     },
   ];
 
-  const recentOrders = [
-    {
-      id: 'ORD-001',
-      customer: 'John Doe',
-      address: '123 Main St, City',
-      amount: 45.99,
-      status: 'pending',
-      distance: '2.5 km',
-    },
-    {
-      id: 'ORD-002',
-      customer: 'Jane Smith',
-      address: '456 Oak Ave, City',
-      amount: 89.50,
-      status: 'in-transit',
-      distance: '5.1 km',
-    },
-    {
-      id: 'ORD-003',
-      customer: 'Bob Johnson',
-      address: '789 Pine Rd, City',
-      amount: 32.00,
-      status: 'pending',
-      distance: '1.8 km',
-    },
-  ];
+  const recentOrdersList = assignedOrders ? assignedOrders.slice(0, 3) : [];
 
   const handleStatusChange = (newStatus) => {
     updateStatus(newStatus);
@@ -101,11 +71,13 @@ const DeliveryDashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
+      case 'ready_to_ship':
+      case 'dispatched':
+      case 'shipped':
         return 'bg-yellow-100 text-yellow-800';
-      case 'in-transit':
+      case 'out_for_delivery':
         return 'bg-blue-100 text-blue-800';
-      case 'completed':
+      case 'delivered':
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -136,13 +108,13 @@ const DeliveryDashboard = () => {
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold mb-2">Welcome back, {deliveryBoy?.name || 'Delivery Boy'}!</h1>
+              <h1 className="text-2xl font-bold mb-2">Welcome back, {deliveryBoy?.firstName || 'Partner'}!</h1>
               <p className="text-primary-100 text-sm">
-                {deliveryBoy?.status === 'available' 
-                  ? 'You are available for new orders' 
+                {deliveryBoy?.status === 'available'
+                  ? 'You are available for new orders'
                   : deliveryBoy?.status === 'busy'
-                  ? 'You are currently busy'
-                  : 'You are offline'}
+                    ? 'You are currently busy'
+                    : 'You are offline'}
               </p>
             </div>
             <div className="relative">
@@ -240,34 +212,48 @@ const DeliveryDashboard = () => {
           </div>
 
           <div className="space-y-3">
-            {recentOrders.map((order, index) => (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                onClick={() => navigate(`/delivery/orders/${order.id}`)}
-                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-semibold text-gray-800">{order.id}</p>
-                    <p className="text-sm text-gray-600">{order.customer}</p>
+            {recentOrdersList.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No recent orders</p>
+            ) : (
+              recentOrdersList.map((order, index) => (
+                <motion.div
+                  key={order._id || order.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  onClick={() => navigate(`/delivery/orders/${order._id || order.id}`)}
+                  className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-800">{order.orderCode || order._id || order.id}</p>
+                      <p className="text-sm text-gray-600">{order.customerSnapshot?.name || 'Customer'}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                      {order.status?.replace(/_/g, ' ')}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                  <FiMapPin className="text-primary-600" />
-                  <span>{order.address}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Distance: {order.distance}</span>
-                  <span className="font-bold text-primary-600">{formatPrice(order.amount)}</span>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                    <FiMapPin className="text-primary-600" />
+                    <span className="truncate max-w-[200px]">
+                      {(() => {
+                        const shipAddr = order.shippingAddress;
+                        const vendorAddr = order.vendorBreakdown?.[0]?.vendorId?.address;
+                        if (shipAddr?.address) return `${shipAddr.address}, ${shipAddr.city}`;
+                        if (vendorAddr) {
+                          if (typeof vendorAddr === 'string') return vendorAddr;
+                          return `${vendorAddr.street || ''}, ${vendorAddr.city || ''}`.replace(/^, /, '') || 'Address available';
+                        }
+                        return 'Address not available';
+                      })()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Items: {order.items?.length || 0}</span>
+                    <span className="font-bold text-primary-600">{formatPrice(order.total || order.amount || 0)}</span>
+                  </div>
+                </motion.div>
+              )))}
           </div>
         </motion.div>
 
@@ -277,4 +263,3 @@ const DeliveryDashboard = () => {
 };
 
 export default DeliveryDashboard;
-

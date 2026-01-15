@@ -64,21 +64,19 @@ const Wishlist = () => {
                     <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
                       <button
                         onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'grid'
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
                             ? 'bg-white text-primary-600 shadow-sm'
                             : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                          }`}
                       >
                         <FiGrid className="text-lg" />
                       </button>
                       <button
                         onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'list'
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
                             ? 'bg-white text-primary-600 shadow-sm'
                             : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                          }`}
                       >
                         <FiList className="text-lg" />
                       </button>
@@ -158,7 +156,14 @@ const Wishlist = () => {
                               </h3>
                             </Link>
                             <p className="text-gray-600 mb-2">{item.unit || 'Unit'}</p>
-                            <p className="text-xl font-bold text-gray-800">{formatPrice(item.price)}</p>
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="text-xl font-bold text-gray-800">{formatPrice(item.price)}</p>
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <p className="text-sm text-gray-400 line-through font-medium">
+                                  {formatPrice(item.originalPrice)}
+                                </p>
+                              )}
+                            </div>
                           </div>
 
                           {/* Actions */}

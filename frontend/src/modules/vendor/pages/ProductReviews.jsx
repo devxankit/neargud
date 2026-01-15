@@ -8,108 +8,66 @@ import Badge from '../../../components/Badge';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
 import { useVendorStore } from '../store/vendorStore';
+import { useVendorReviewStore } from '../store/vendorReviewStore';
 import toast from 'react-hot-toast';
 
 const ProductReviews = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
   const { getVendorProducts } = useVendorStore();
-  const [reviews, setReviews] = useState([]);
+  const {
+    reviews,
+    fetchReviews,
+    respond,
+    moderate,
+    isLoading,
+    total
+  } = useVendorReviewStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRating, setSelectedRating] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState('all');
   const [selectedReview, setSelectedReview] = useState(null);
   const [responseText, setResponseText] = useState('');
 
-  const vendorId = vendor?.id;
+  const vendorId = vendor?.id || vendor?._id;
 
+  // Fetch reviews from API
   useEffect(() => {
-    if (!vendorId) return;
+    if (vendorId) {
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+      if (selectedRating !== 'all') params.rating = selectedRating;
+      if (selectedProduct !== 'all') params.productId = selectedProduct;
 
-    // Load reviews from localStorage
-    const savedReviews = localStorage.getItem('admin-reviews');
-    const allReviews = savedReviews ? JSON.parse(savedReviews) : [];
+      const debounceTimer = setTimeout(() => {
+        fetchReviews(params);
+      }, searchQuery ? 500 : 0);
 
-    // Get vendor products
-    const vendorProducts = getVendorProducts(vendorId);
-    const productIds = new Set(vendorProducts.map(p => p.id));
-
-    // Filter reviews for vendor's products
-    const vendorReviews = allReviews.filter((review) =>
-      productIds.has(review.productId)
-    );
-
-    setReviews(vendorReviews);
-  }, [vendorId, getVendorProducts]);
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [vendorId, searchQuery, selectedRating, selectedProduct, fetchReviews]);
 
   const vendorProducts = vendorId ? getVendorProducts(vendorId) : [];
 
-  const filteredReviews = useMemo(() => {
-    let filtered = reviews;
-
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (review) =>
-          review.productName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          review.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          review.comment?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const handleResponse = async (reviewId) => {
+    try {
+      if (!responseText.trim()) return;
+      await respond(reviewId, responseText);
+      setSelectedReview(null);
+      setResponseText('');
+    } catch (error) {
+      console.error('Error adding response:', error);
     }
-
-    if (selectedRating !== 'all') {
-      filtered = filtered.filter((review) => review.rating === parseInt(selectedRating));
-    }
-
-    if (selectedProduct !== 'all') {
-      filtered = filtered.filter((review) => review.productId === parseInt(selectedProduct));
-    }
-
-    return filtered;
-  }, [reviews, searchQuery, selectedRating, selectedProduct]);
-
-  const handleResponse = (reviewId) => {
-    const updatedReviews = reviews.map((review) => {
-      if (review.id === reviewId) {
-        return {
-          ...review,
-          vendorResponse: responseText,
-          responseDate: new Date().toISOString(),
-        };
-      }
-      return review;
-    });
-
-    setReviews(updatedReviews);
-    const savedReviews = localStorage.getItem('admin-reviews');
-    const allReviews = savedReviews ? JSON.parse(savedReviews) : [];
-    const updatedAllReviews = allReviews.map((r) =>
-      r.id === reviewId ? updatedReviews.find(ur => ur.id === reviewId) : r
-    );
-    localStorage.setItem('admin-reviews', JSON.stringify(updatedAllReviews));
-    setSelectedReview(null);
-    setResponseText('');
-    toast.success('Response added successfully');
   };
 
-  const handleModerate = (reviewId, action) => {
-    const updatedReviews = reviews.map((review) => {
-      if (review.id === reviewId) {
-        return {
-          ...review,
-          status: action === 'hide' ? 'hidden' : 'approved',
-        };
-      }
-      return review;
-    });
-
-    setReviews(updatedReviews);
-    const savedReviews = localStorage.getItem('admin-reviews');
-    const allReviews = savedReviews ? JSON.parse(savedReviews) : [];
-    const updatedAllReviews = allReviews.map((r) =>
-      r.id === reviewId ? updatedReviews.find(ur => ur.id === reviewId) : r
-    );
-    localStorage.setItem('admin-reviews', JSON.stringify(updatedAllReviews));
-    toast.success(action === 'hide' ? 'Review hidden' : 'Review approved');
+  const handleModerate = async (reviewId, action) => {
+    try {
+      if (!reviewId) return;
+      await moderate(reviewId, action);
+    } catch (error) {
+      console.error('Error moderating review:', error);
+    }
   };
 
   const renderStars = (rating) => {
@@ -132,9 +90,14 @@ const ProductReviews = () => {
       label: 'Product',
       sortable: true,
       render: (value, row) => (
-        <div>
-          <p className="font-medium text-gray-800">{value || 'Unknown Product'}</p>
-          <p className="text-xs text-gray-500">ID: {row.productId}</p>
+        <div className="flex items-center gap-3">
+          {row.productId?.image && (
+            <img src={row.productId.image} className="w-8 h-8 rounded object-cover" alt="" />
+          )}
+          <div>
+            <p className="font-medium text-gray-800">{row.productId?.name || value || 'Unknown Product'}</p>
+            <p className="text-[10px] text-gray-400">ID: {row.productId?._id || row.productId}</p>
+          </div>
         </div>
       ),
     },
@@ -144,9 +107,9 @@ const ProductReviews = () => {
       sortable: true,
       render: (value, row) => (
         <div>
-          <p className="font-semibold text-gray-800">{value}</p>
-          {row.customerEmail && (
-            <p className="text-xs text-gray-500">{row.customerEmail}</p>
+          <p className="font-semibold text-gray-800">{value || row.userId?.name || 'Customer'}</p>
+          {(row.customerEmail || row.userId?.email) && (
+            <p className="text-xs text-gray-500">{row.customerEmail || row.userId?.email}</p>
           )}
         </div>
       ),
@@ -161,8 +124,8 @@ const ProductReviews = () => {
       key: 'comment',
       label: 'Review',
       sortable: false,
-      render: (value) => (
-        <p className="max-w-xs truncate text-sm text-gray-600">{value || 'No comment'}</p>
+      render: (value, row) => (
+        <p className="max-w-xs truncate text-sm text-gray-600">{row.review || value || 'No comment'}</p>
       ),
     },
     {
@@ -195,7 +158,7 @@ const ProductReviews = () => {
           </button>
           {row.status !== 'hidden' && (
             <button
-              onClick={() => handleModerate(row.id, 'hide')}
+              onClick={() => handleModerate(row._id || row.id, 'hide')}
               className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
               title="Hide Review">
               <FiX />
@@ -278,7 +241,7 @@ const ProductReviews = () => {
             options={[
               { value: 'all', label: 'All Products' },
               ...vendorProducts.map((p) => ({
-                value: p.id.toString(),
+                value: (p._id || p.id).toString(),
                 label: p.name,
               })),
             ]}
@@ -287,12 +250,12 @@ const ProductReviews = () => {
 
           <div className="w-full sm:w-auto">
             <ExportButton
-              data={filteredReviews}
+              data={reviews}
               headers={[
-                { label: 'Product', accessor: (row) => row.productName },
-                { label: 'Customer', accessor: (row) => row.customerName },
+                { label: 'Product', accessor: (row) => row.productId?.name || row.productName },
+                { label: 'Customer', accessor: (row) => row.customerName || row.userId?.name },
                 { label: 'Rating', accessor: (row) => row.rating },
-                { label: 'Review', accessor: (row) => row.comment },
+                { label: 'Review', accessor: (row) => row.review || row.comment },
                 { label: 'Status', accessor: (row) => row.status },
                 { label: 'Date', accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
               ]}
@@ -303,11 +266,12 @@ const ProductReviews = () => {
       </div>
 
       {/* Reviews Table */}
-      {filteredReviews.length > 0 ? (
+      {reviews.length > 0 ? (
         <DataTable
-          data={filteredReviews}
+          data={reviews}
           columns={columns}
           pagination={true}
+          totalItems={total}
           itemsPerPage={10}
         />
       ) : (
@@ -382,7 +346,7 @@ const ProductReviews = () => {
                     rows="4"
                   />
                   <button
-                    onClick={() => handleResponse(selectedReview.id)}
+                    onClick={() => handleResponse(selectedReview._id || selectedReview.id)}
                     disabled={!responseText.trim()}
                     className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                     <FiMessageSquare className="inline mr-2" />

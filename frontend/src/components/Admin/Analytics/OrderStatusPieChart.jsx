@@ -3,12 +3,22 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { motion } from 'framer-motion';
 import { mockOrders } from '../../../data/adminMockData';
 
-const OrderStatusPieChart = () => {
+const OrderStatusPieChart = ({ data }) => {
   const statusData = useMemo(() => {
-    const statusCounts = mockOrders.reduce((acc, order) => {
-      acc[order.status] = (acc[order.status] || 0) + 1;
-      return acc;
-    }, {});
+    const dataSource = data || mockOrders;
+
+    // Check if data is already in the format we need (array of objects with status label)
+    // or if it's an array of orders that need to be counted
+    let counts = {};
+    if (Array.isArray(dataSource) && dataSource.length > 0 && dataSource[0].status) {
+      counts = dataSource.reduce((acc, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {});
+    } else if (!Array.isArray(dataSource) && typeof dataSource === 'object') {
+      // If it's already an object of counts
+      counts = dataSource;
+    }
 
     const colors = {
       pending: '#fbbf24',
@@ -26,12 +36,12 @@ const OrderStatusPieChart = () => {
       cancelled: 'Cancelled',
     };
 
-    return Object.entries(statusCounts).map(([status, count]) => ({
-      name: statusLabels[status] || status,
+    return Object.entries(counts).map(([status, count]) => ({
+      name: statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1),
       value: count,
       color: colors[status] || '#6b7280',
     }));
-  }, []);
+  }, [data]);
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {

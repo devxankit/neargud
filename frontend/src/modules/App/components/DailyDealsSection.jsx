@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiClock, FiZap } from 'react-icons/fi';
 import ProductCard from '../../../components/ProductCard';
-import { getDailyDeals } from '../../../data/products';
 
-const DailyDealsSection = () => {
-  const dailyDeals = getDailyDeals().slice(0, 4);
+
+const DailyDealsSection = ({ products = [], loading = false }) => {
+  const dailyDeals = products.slice(0, 4);
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
     minutes: 59,
@@ -48,13 +48,20 @@ const DailyDealsSection = () => {
   }
 
   return (
-    <div className="relative my-4 rounded-2xl overflow-hidden shadow-xl border-2 border-red-200 bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500">
+    <div
+      className="relative my-4 rounded-2xl overflow-hidden shadow-xl border-2 border-red-200 bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 cursor-pointer transition-transform active:scale-[0.98]"
+      onClick={(e) => {
+        // Prevent navigation if clicking on a product card or specific link
+        if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.product-card')) return;
+        window.location.href = '/app/daily-deals';
+      }}
+    >
       {/* Decorative Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full blur-2xl"></div>
       </div>
-      
+
       {/* Content */}
       <div className="relative px-3 py-5">
         {/* Header with Badge */}
@@ -112,17 +119,25 @@ const DailyDealsSection = () => {
 
         {/* Products Grid */}
         <div className="flex flex-wrap md:flex-nowrap md:overflow-x-visible gap-3">
-          {dailyDeals.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="w-[calc(50%-0.75rem)] md:w-0 md:flex-1 md:min-w-0"
-            >
-              <ProductCard product={product} />
-            </motion.div>
-          ))}
+          {loading ? (
+            [1, 2].map((i) => (
+              <div key={i} className="w-[calc(50%-0.75rem)] aspect-[3/4] bg-white/20 animate-pulse rounded-xl" />
+            ))
+          ) : (
+            dailyDeals.map((product, index) => (
+              <motion.div
+                key={product._id || product.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="w-[calc(50%-0.75rem)] md:w-0 md:flex-1 md:min-w-0 product-card"
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ProductCard product={product} />
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
     </div>

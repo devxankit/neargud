@@ -4,18 +4,17 @@ import { FiArrowRight } from 'react-icons/fi';
 import VendorShowcaseCard from './VendorShowcaseCard';
 import { getApprovedVendors } from '../../../modules/vendor/data/vendors';
 
-const FeaturedVendorsSection = () => {
+const FeaturedVendorsSection = ({ vendors = [], loading = false }) => {
   const location = useLocation();
   const isMobileApp = location.pathname.startsWith('/app');
   const vendorsLink = isMobileApp ? '/app/search' : '/search';
-  
-  const approvedVendors = getApprovedVendors();
-  const featuredVendors = approvedVendors
-    .filter(v => v.isVerified)
+
+  const featuredVendors = [...vendors]
+    .filter(v => v.isVerified || v.status === 'active')
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 10);
 
-  if (featuredVendors.length === 0) return null;
+  if (!loading && featuredVendors.length === 0) return null;
 
   return (
     <div className="px-4 py-4">
@@ -32,11 +31,17 @@ const FeaturedVendorsSection = () => {
           <FiArrowRight className="text-sm" />
         </Link>
       </div>
-      
+
       <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
-        {featuredVendors.map((vendor, index) => (
-          <VendorShowcaseCard key={vendor.id} vendor={vendor} index={index} />
-        ))}
+        {loading ? (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="flex-shrink-0 w-32 h-40 bg-gray-200 animate-pulse rounded-xl" />
+          ))
+        ) : (
+          featuredVendors.map((vendor, index) => (
+            <VendorShowcaseCard key={vendor._id || vendor.id} vendor={vendor} index={index} />
+          ))
+        )}
       </div>
     </div>
   );

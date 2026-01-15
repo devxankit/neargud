@@ -33,12 +33,10 @@ const MobileRegister = () => {
 
   const onSubmit = async (data) => {
     try {
-      // Combine first name and last name
-      const fullName = `${data.firstName} ${data.lastName}`;
       // Combine country code with phone number
       const phone = data.countryCode ? `${data.countryCode}${data.phone}` : data.phone;
-      
-      await registerUser(fullName, data.email, data.password, phone);
+
+      await registerUser(data.firstName, data.lastName, data.email, data.password, phone);
       toast.success('Registration successful!');
       // Navigate to verification page
       navigate('/app/verification', { state: { email: data.email } });
@@ -70,22 +68,20 @@ const MobileRegister = () => {
                   <button
                     type="button"
                     onClick={() => handleModeChange('signup')}
-                    className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                      formMode === 'signup'
+                    className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${formMode === 'signup'
                         ? 'bg-primary-500 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                      }`}
                   >
                     Sign Up
                   </button>
                   <button
                     type="button"
                     onClick={() => handleModeChange('login')}
-                    className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                      formMode === 'login'
+                    className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${formMode === 'login'
                         ? 'bg-primary-500 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                      }`}
                   >
                     Log In
                   </button>
@@ -110,11 +106,10 @@ const MobileRegister = () => {
                           message: 'First name must be at least 2 characters',
                         },
                       })}
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                        errors.firstName
+                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.firstName
                           ? 'border-red-300 focus:border-red-500'
                           : 'border-gray-200 focus:border-primary-500'
-                      } focus:outline-none transition-colors text-base`}
+                        } focus:outline-none transition-colors text-base`}
                       placeholder="Raj"
                     />
                   </div>
@@ -139,11 +134,10 @@ const MobileRegister = () => {
                           message: 'Last name must be at least 2 characters',
                         },
                       })}
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                        errors.lastName
+                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.lastName
                           ? 'border-red-300 focus:border-red-500'
                           : 'border-gray-200 focus:border-primary-500'
-                      } focus:outline-none transition-colors text-base`}
+                        } focus:outline-none transition-colors text-base`}
                       placeholder="Sarkar"
                     />
                   </div>
@@ -166,11 +160,10 @@ const MobileRegister = () => {
                         validate: (value) =>
                           isValidEmail(value) || 'Please enter a valid email',
                       })}
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                        errors.email
+                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.email
                           ? 'border-red-300 focus:border-red-500'
                           : 'border-gray-200 focus:border-primary-500'
-                      } focus:outline-none transition-colors text-base`}
+                        } focus:outline-none transition-colors text-base`}
                       placeholder="sarkarraj0766@gmail.com"
                     />
                   </div>
@@ -191,11 +184,10 @@ const MobileRegister = () => {
                       {...register('birthDate', {
                         required: 'Birth date is required',
                       })}
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                        errors.birthDate
+                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.birthDate
                           ? 'border-red-300 focus:border-red-500'
                           : 'border-gray-200 focus:border-primary-500'
-                      } focus:outline-none transition-colors text-base`}
+                        } focus:outline-none transition-colors text-base`}
                     />
                   </div>
                   {errors.birthDate && (
@@ -227,11 +219,10 @@ const MobileRegister = () => {
                           validate: (value) =>
                             isValidPhone(value) || 'Please enter a valid phone number',
                         })}
-                        className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                          errors.phone
+                        className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.phone
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-200 focus:border-primary-500'
-                        } focus:outline-none transition-colors text-base`}
+                          } focus:outline-none transition-colors text-base`}
                         placeholder="4547260592"
                       />
                     </div>
@@ -257,11 +248,10 @@ const MobileRegister = () => {
                           message: 'Password must be at least 6 characters',
                         },
                       })}
-                      className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${
-                        errors.password
+                      className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.password
                           ? 'border-red-300 focus:border-red-500'
                           : 'border-gray-200 focus:border-primary-500'
-                      } focus:outline-none transition-colors text-base`}
+                        } focus:outline-none transition-colors text-base`}
                       placeholder="Create a password"
                     />
                     <button

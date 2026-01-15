@@ -14,7 +14,7 @@ import Button from '../../components/Admin/Button';
 const Categories = () => {
   const {
     categories,
-    initialize,
+    fetchCategories,
     deleteCategory,
     bulkDeleteCategories,
     getCategories,
@@ -32,7 +32,7 @@ const Categories = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    initialize();
+    fetchCategories();
   }, []);
 
   // Filtered categories

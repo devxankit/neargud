@@ -1,97 +1,44 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import toast from 'react-hot-toast';
+import offerApi from '../services/offerApi';
 
-// Helper function to generate URL-friendly slug
-const generateSlug = (name, existingCampaigns = []) => {
-  let slug = name
+// Helper function to generate URL-friendly slug (kept for optimistic updates if needed or helper usage)
+const generateSlug = (name) => {
+  return name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .substring(0, 50); // Max length 50
-
-  // Ensure uniqueness
-  let uniqueSlug = slug;
-  let counter = 1;
-  while (existingCampaigns.some(c => c.slug === uniqueSlug)) {
-    uniqueSlug = `${slug}-${counter}`;
-    counter++;
-  }
-
-  return uniqueSlug;
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50);
 };
-
-// Default page config
-const getDefaultPageConfig = () => ({
-  showCountdown: true,
-  countdownType: 'campaign_end', // 'campaign_end' | 'daily_reset' | 'custom'
-  viewModes: ['grid', 'list'],
-  defaultViewMode: 'grid',
-  enableFilters: true,
-  enableSorting: true,
-  productsPerPage: 12,
-  showStats: true,
-});
 
 export const useCampaignStore = create(
   persist(
     (set, get) => ({
       campaigns: [],
       isLoading: false,
+      error: null,
 
-      // Initialize campaigns
-      initialize: () => {
-        const savedCampaigns = localStorage.getItem('admin-campaigns');
-        if (savedCampaigns) {
-          const campaigns = JSON.parse(savedCampaigns);
-          // Ensure all campaigns have slug and route (migration for existing campaigns)
-          const migratedCampaigns = campaigns.map(campaign => {
-            if (!campaign.slug) {
-              const slug = generateSlug(campaign.name, campaigns.filter(c => c.id !== campaign.id));
-              return {
-                ...campaign,
-                slug,
-                route: `/sale/${slug}`,
-                pageConfig: campaign.pageConfig || getDefaultPageConfig(),
-              };
-            }
-            if (!campaign.pageConfig) {
-              return {
-                ...campaign,
-                pageConfig: getDefaultPageConfig(),
-              };
-            }
-            return campaign;
-          });
-          set({ campaigns: migratedCampaigns });
-          if (migratedCampaigns.length !== campaigns.length || 
-              migratedCampaigns.some((c, i) => c.slug !== campaigns[i]?.slug)) {
-            localStorage.setItem('admin-campaigns', JSON.stringify(migratedCampaigns));
+      // Initialize campaigns (fetch from API)
+      initialize: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await offerApi.getAll();
+          if (response.success) {
+            set({ campaigns: response.data.campaigns || response.data });
           }
-        } else {
-          set({ campaigns: [] });
+          set({ isLoading: false });
+        } catch (error) {
+          set({ isLoading: false, error: error.message });
+          console.error("Failed to fetch campaigns", error);
         }
       },
 
       // Get all campaigns
       getCampaigns: () => {
-        const state = get();
-        if (state.campaigns.length === 0) {
-          state.initialize();
-        }
         return get().campaigns;
-      },
-
-      // Get campaign by ID
-      getCampaignById: (id) => {
-        return get().campaigns.find((campaign) => campaign.id === parseInt(id));
-      },
-
-      // Get campaign by slug
-      getCampaignBySlug: (slug) => {
-        return get().campaigns.find((campaign) => campaign.slug === slug);
       },
 
       // Get campaigns by type
@@ -99,120 +46,94 @@ export const useCampaignStore = create(
         return get().campaigns.filter((campaign) => campaign.type === type);
       },
 
-      // Get active campaigns
-      getActiveCampaigns: () => {
-        const now = new Date();
-        return get().campaigns.filter(
-          (campaign) =>
-            campaign.isActive &&
-            new Date(campaign.startDate) <= now &&
-            new Date(campaign.endDate) >= now
-        );
-      },
-
       // Create campaign
-      createCampaign: (campaignData) => {
-        set({ isLoading: true });
+      createCampaign: async (campaignData) => {
+        set({ isLoading: true, error: null });
         try {
-          const campaigns = get().campaigns;
-          const newId = campaigns.length > 0 
-            ? Math.max(...campaigns.map((c) => c.id)) + 1 
-            : 1;
-          
-          // Generate slug from name (or use provided slug)
-          const slug = campaignData.slug || generateSlug(campaignData.name, campaigns);
-          
-          // Merge page config with defaults
-          const pageConfig = {
-            ...getDefaultPageConfig(),
-            ...(campaignData.pageConfig || {}),
-          };
+          // Prepare data (handle FormData if image exists or JSON)
+          // The component usually sends a plain object or FormData.
+          // If it sends object, we might need to convert for file upload in the service or here.
+          // But our service handles FormData check. 
 
-          const newCampaign = {
-            id: newId,
-            name: campaignData.name,
-            slug,
-            route: `/sale/${slug}`,
-            type: campaignData.type, // 'flash_sale', 'daily_deal', 'special_offer', 'festival'
-            description: campaignData.description || '',
-            discountType: campaignData.discountType, // 'percentage', 'fixed', 'buy_x_get_y'
-            discountValue: campaignData.discountValue,
-            startDate: campaignData.startDate,
-            endDate: campaignData.endDate,
-            productIds: campaignData.productIds || [],
-            isActive: campaignData.isActive !== undefined ? campaignData.isActive : true,
-            pageConfig,
-            autoCreateBanner: campaignData.autoCreateBanner !== undefined ? campaignData.autoCreateBanner : true,
-            bannerConfig: campaignData.bannerConfig || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+          // Note: Backend expects 'productIds' as JSON string if sending via FormData
 
-          const updatedCampaigns = [...campaigns, newCampaign];
-          set({ campaigns: updatedCampaigns, isLoading: false });
-          localStorage.setItem('admin-campaigns', JSON.stringify(updatedCampaigns));
-          
-          // Auto-create banner if enabled (handled in component to avoid circular dependency)
-          // The banner will be created in CampaignForm component after campaign creation
-          
-          toast.success('Campaign created successfully');
-          return newCampaign;
+          const response = await offerApi.create(campaignData);
+
+          if (response.success) {
+            const newCampaign = response.data.campaign;
+            set(state => ({
+              campaigns: [...state.campaigns, newCampaign],
+              isLoading: false
+            }));
+            toast.success('Campaign created successfully');
+            return newCampaign;
+          }
         } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to create campaign');
+          set({ isLoading: false, error: error.message });
+          toast.error(error.message || 'Failed to create campaign');
           throw error;
         }
       },
 
       // Update campaign
-      updateCampaign: (id, campaignData) => {
-        set({ isLoading: true });
+      updateCampaign: async (id, campaignData) => {
+        set({ isLoading: true, error: null });
         try {
-          const campaigns = get().campaigns;
-          const updatedCampaigns = campaigns.map((campaign) =>
-            campaign.id === parseInt(id)
-              ? { ...campaign, ...campaignData, updatedAt: new Date().toISOString() }
-              : campaign
-          );
-          set({ campaigns: updatedCampaigns, isLoading: false });
-          localStorage.setItem('admin-campaigns', JSON.stringify(updatedCampaigns));
-          toast.success('Campaign updated successfully');
-          return updatedCampaigns.find((campaign) => campaign.id === parseInt(id));
+          const response = await offerApi.update(id, campaignData);
+
+          if (response.success) {
+            const updatedCampaign = response.data.campaign;
+            set(state => ({
+              campaigns: state.campaigns.map(c => c.id === updatedCampaign.id ? updatedCampaign : c),
+              isLoading: false
+            }));
+            toast.success('Campaign updated successfully');
+            return updatedCampaign;
+          }
         } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to update campaign');
+          set({ isLoading: false, error: error.message });
+          toast.error(error.message || 'Failed to update campaign');
           throw error;
         }
       },
 
       // Delete campaign
-      deleteCampaign: (id) => {
-        set({ isLoading: true });
+      deleteCampaign: async (id) => {
+        set({ isLoading: true, error: null });
         try {
-          const campaigns = get().campaigns;
-          const updatedCampaigns = campaigns.filter((campaign) => campaign.id !== parseInt(id));
-          set({ campaigns: updatedCampaigns, isLoading: false });
-          localStorage.setItem('admin-campaigns', JSON.stringify(updatedCampaigns));
+          await offerApi.delete(id);
+          set(state => ({
+            campaigns: state.campaigns.filter(c => c.id !== id && c._id !== id), // Check both ID types just in case
+            isLoading: false
+          }));
           toast.success('Campaign deleted successfully');
-          return true;
         } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to delete campaign');
+          set({ isLoading: false, error: error.message });
+          toast.error(error.message || 'Failed to delete campaign');
           throw error;
         }
       },
 
-      // Toggle campaign status
-      toggleCampaignStatus: (id) => {
-        const campaign = get().getCampaignById(id);
-        if (campaign) {
-          get().updateCampaign(id, { isActive: !campaign.isActive });
+      // Toggle campaign status (using specific endpoint if available, or update)
+      toggleCampaignStatus: async (id) => {
+        try {
+          const response = await offerApi.updateStatus(id);
+          if (response.success) {
+            const updatedCampaign = response.data.campaign;
+            set(state => ({
+              campaigns: state.campaigns.map(c => c.id === updatedCampaign.id ? updatedCampaign : c)
+            }));
+            toast.success(`Campaign ${updatedCampaign.status}`);
+          }
+        } catch (error) {
+          toast.error(error.message || "Failed to update status");
         }
       },
     }),
     {
       name: 'campaign-storage',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ campaigns: state.campaigns }), // Don't persist loading/error
     }
   )
 );

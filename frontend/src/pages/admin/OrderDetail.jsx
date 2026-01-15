@@ -1,67 +1,87 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { 
-  FiArrowLeft, 
-  FiEdit, 
-  FiCheck, 
-  FiX, 
-  FiPhone, 
-  FiMapPin, 
-  FiCreditCard, 
-  FiTruck, 
-  FiCalendar, 
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { adminOrderApi } from '../../services/adminOrderApi';
+import {
+  FiArrowLeft,
+  FiEdit,
+  FiCheck,
+  FiX,
+  FiPhone,
+  FiMapPin,
+  FiCreditCard,
+  FiTruck,
+  FiCalendar,
   FiTag,
   FiPackage,
   FiClock,
-  FiMail
+  FiMail,
+  FiRefreshCw
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Badge from '../../components/Badge';
 import AnimatedSelect from '../../components/Admin/AnimatedSelect';
 import { formatCurrency, formatDateTime } from '../../utils/adminHelpers';
-import { mockOrders } from '../../data/adminMockData';
-import { products, getProductById } from '../../data/products';
 import toast from 'react-hot-toast';
 
 const OrderDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState('');
 
-  useEffect(() => {
-    const savedOrders = localStorage.getItem('admin-orders');
-    const orders = savedOrders ? JSON.parse(savedOrders) : mockOrders;
-    const foundOrder = orders.find((o) => o.id === id);
-    
-    if (foundOrder) {
-      setOrder(foundOrder);
-      setStatus(foundOrder.status);
-    } else {
+  const fetchOrder = async () => {
+    setLoading(true);
+    try {
+      const response = await adminOrderApi.getOrder(id);
+      if (response?.success) {
+        const orderData = response.data.order;
+        setOrder(orderData);
+        setStatus(orderData.status);
+      }
+    } catch (error) {
+      console.error('Error fetching order details:', error);
       toast.error('Order not found');
       navigate('/admin/orders');
+    } finally {
+      setLoading(false);
     }
-  }, [id, navigate]);
-
-  const handleStatusUpdate = () => {
-    const savedOrders = localStorage.getItem('admin-orders');
-    const orders = savedOrders ? JSON.parse(savedOrders) : mockOrders;
-    
-    const updatedOrders = orders.map((o) =>
-      o.id === id ? { ...o, status } : o
-    );
-    
-    localStorage.setItem('admin-orders', JSON.stringify(updatedOrders));
-    setOrder({ ...order, status });
-    setIsEditing(false);
-    toast.success('Order status updated successfully');
   };
+
+  useEffect(() => {
+    fetchOrder();
+  }, [id]);
+
+  const handleStatusUpdate = async () => {
+    try {
+      const response = await adminOrderApi.updateStatus(id, {
+        status,
+        note: `Status updated by Admin`
+      });
+      if (response?.success) {
+        setOrder(response.data);
+        setIsEditing(false);
+        toast.success('Order status updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error(error.response?.data?.message || 'Failed to update status');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500">Order not found.</p>
       </div>
     );
   }
@@ -73,10 +93,10 @@ const OrderDetail = () => {
   const itemsArray = Array.isArray(order.items) ? order.items : [];
 
   // Calculate order breakdown
-  const subtotal = order.subtotal || (order.total * 0.95);
-  const shipping = order.shipping || (order.total * 0.05);
-  const tax = order.tax || 0;
-  const discount = order.discount || 0;
+  const subtotal = order.pricing?.subtotal || order.subtotal || 0;
+  const shipping = order.pricing?.shipping || order.shipping || 0;
+  const tax = order.pricing?.tax || order.tax || 0;
+  const discount = order.pricing?.discount || order.discount || 0;
 
   // Get payment method display name
   const getPaymentMethodName = (method) => {
@@ -96,7 +116,7 @@ const OrderDetail = () => {
     if (item.image) {
       return item.image;
     }
-    
+
     // Try to find product by ID
     if (item.productId || item.id) {
       const product = getProductById(item.productId || item.id);
@@ -104,17 +124,17 @@ const OrderDetail = () => {
         return product.image;
       }
     }
-    
+
     // Try to find product by name
     if (item.name) {
-      const product = products.find(p => 
+      const product = products.find(p =>
         p.name.toLowerCase() === item.name.toLowerCase()
       );
       if (product?.image) {
         return product.image;
       }
     }
-    
+
     // Return placeholder
     return 'https://via.placeholder.com/100x100?text=Product';
   };
@@ -135,8 +155,8 @@ const OrderDetail = () => {
             <FiArrowLeft className="text-lg text-gray-600" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{order.id}</h1>
-            <p className="text-xs text-gray-500">{formatDateTime(order.date)}</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{order.orderCode}</h1>
+            <p className="text-xs text-gray-500">{formatDateTime(order.createdAt)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -212,13 +232,48 @@ const OrderDetail = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 mb-0.5">Payment Status</p>
-                  <Badge variant={order.paymentStatus === 'paid' ? 'delivered' : order.paymentStatus === 'pending' ? 'pending' : 'cancelled'} className="text-xs">
-                    {order.paymentStatus || (order.paymentMethod === 'cash' ? 'Pending' : 'Paid')}
+                  <Badge variant={order.paymentStatus === 'completed' ? 'delivered' : order.paymentStatus === 'pending' ? 'pending' : 'cancelled'} className="text-xs">
+                    {order.paymentStatus === 'completed' ? 'Paid' : order.paymentStatus === 'pending' ? 'Pending' : order.paymentStatus}
                   </Badge>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Return Information (if exists) */}
+          {order.returnRequest && (
+            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-primary-500 border border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                  <FiRefreshCw className="text-primary-600" />
+                  Return Request Associated
+                </h2>
+                <Badge variant={order.returnRequest.status}>{order.returnRequest.status}</Badge>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <p className="text-gray-500">Return ID</p>
+                  <p className="font-semibold">{order.returnRequest.returnCode}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Reason</p>
+                  <p className="font-semibold capitalize">{order.returnRequest.reason.replace(/_/g, ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Refund Amount</p>
+                  <p className="font-bold text-sm">{formatCurrency(order.returnRequest.refundAmount)}</p>
+                </div>
+                <div className="flex items-end">
+                  <Link
+                    to={`/admin/return-requests/${order.returnRequest?._id || order.returnRequest?.id || order.returnRequest}`}
+                    className="text-primary-600 hover:text-primary-700 font-bold hover:underline"
+                  >
+                    View Details →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Order Items */}
           {itemsArray.length > 0 && (
@@ -265,11 +320,11 @@ const OrderDetail = () => {
                 <div className="space-y-2">
                   <div>
                     <p className="text-xs text-gray-500">Name</p>
-                    <p className="font-semibold text-sm text-gray-800">{order.customer?.name || order.shippingAddress?.name || 'N/A'}</p>
+                    <p className="font-semibold text-sm text-gray-800">{order.customer?.name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
-                    <p className="font-semibold text-xs text-gray-800 break-all">{order.customer?.email || order.shippingAddress?.email || 'N/A'}</p>
+                    <p className="font-semibold text-xs text-gray-800 break-all">{order.customer?.email || 'N/A'}</p>
                   </div>
                   {(order.customer?.phone || order.shippingAddress?.phone) && (
                     <div>
@@ -400,7 +455,7 @@ const OrderDetail = () => {
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-800">Order Placed</p>
-                  <p className="text-xs text-gray-500">{formatDateTime(order.date)}</p>
+                  <p className="text-xs text-gray-500">{formatDateTime(order.createdAt)}</p>
                 </div>
               </div>
               {order.status === 'processing' && (
@@ -454,7 +509,7 @@ const OrderDetail = () => {
             <div className="space-y-1.5">
               {order.trackingNumber && (
                 <button
-                  onClick={() => window.open(`/track-order/${order.id}`, '_blank')}
+                  onClick={() => window.open(`/track-order/${order._id || order.id}`, '_blank')}
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-semibold"
                 >
                   <FiTruck className="text-sm" />

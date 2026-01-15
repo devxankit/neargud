@@ -10,18 +10,24 @@ export const formatCurrency = (amount) => {
 
 // Format date for admin display
 export const formatDate = (date, options = {}) => {
+  if (!date) return 'N/A';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return 'N/A';
   const defaultOptions = {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     ...options,
   };
-  return new Date(date).toLocaleDateString('en-US', defaultOptions);
+  return d.toLocaleDateString('en-US', defaultOptions);
 };
 
 // Format date and time
 export const formatDateTime = (date) => {
-  return new Date(date).toLocaleString('en-US', {
+  if (!date) return 'N/A';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -57,7 +63,7 @@ export const getStatusColor = (status) => {
 export const generateCSV = (data, headers, filename) => {
   // Create header row
   const headerRow = headers.map((h) => `"${h.label}"`).join(',');
-  
+
   // Create data rows
   const dataRows = data.map((row) => {
     return headers.map((header) => {
@@ -74,11 +80,11 @@ export const generateCSV = (data, headers, filename) => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute('href', url);
   link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
   link.style.visibility = 'hidden';
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -97,11 +103,11 @@ export const getDateRange = (period) => {
       end: now,
     },
     month: {
-      start: new Date(now.getFullYear(), now.getMonth(), 1),
+      start: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
       end: now,
     },
     year: {
-      start: new Date(now.getFullYear(), 0, 1),
+      start: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
       end: now,
     },
   };

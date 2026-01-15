@@ -1,107 +1,135 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { mockCustomers } from '../data/adminMockData';
+import * as adminCustomerApi from '../services/adminCustomerApi';
 import toast from 'react-hot-toast';
 
-export const useCustomerStore = create(
-  persist(
-    (set, get) => ({
-      customers: [],
-      isLoading: false,
+export const useCustomerStore = create((set, get) => ({
+  customers: [],
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0
+  },
+  isLoading: false,
+  error: null,
 
-      // Initialize customers
-      initialize: () => {
-        const savedCustomers = localStorage.getItem('admin-customers');
-        if (savedCustomers) {
-          set({ customers: JSON.parse(savedCustomers) });
-        } else {
-          // Create mock customers with more details
-          const initialCustomers = mockCustomers.map((customer, index) => ({
-            ...customer,
-            phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-            status: 'active',
-            createdAt: new Date(Date.now() - (index * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-            lastOrderDate: new Date(Date.now() - (index * 3 * 24 * 60 * 60 * 1000)).toISOString(),
-            addresses: [],
-            wishlist: [],
-            activityHistory: [],
-          }));
-          set({ customers: initialCustomers });
-          localStorage.setItem('admin-customers', JSON.stringify(initialCustomers));
-        }
-      },
+  // Fetch all customers with filters
+  fetchCustomers: async (params = {}) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await adminCustomerApi.getAllCustomers({
+        page: params.page || 1,
+        limit: params.limit || 10,
+        search: params.search || '',
+        status: params.status || 'all',
+        sortBy: params.sortBy || 'createdAt',
+        sortOrder: params.sortOrder || 'desc'
+      });
 
-      // Get all customers
-      getCustomers: () => {
-        const state = get();
-        if (state.customers.length === 0) {
-          state.initialize();
-        }
-        return get().customers;
-      },
-
-      // Get customer by ID
-      getCustomerById: (id) => {
-        return get().customers.find((customer) => customer.id === parseInt(id));
-      },
-
-      // Update customer
-      updateCustomer: (id, customerData) => {
-        set({ isLoading: true });
-        try {
-          const customers = get().customers;
-          const updatedCustomers = customers.map((customer) =>
-            customer.id === parseInt(id)
-              ? { ...customer, ...customerData, updatedAt: new Date().toISOString() }
-              : customer
-          );
-          set({ customers: updatedCustomers, isLoading: false });
-          localStorage.setItem('admin-customers', JSON.stringify(updatedCustomers));
-          toast.success('Customer updated successfully');
-          return updatedCustomers.find((customer) => customer.id === parseInt(id));
-        } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to update customer');
-          throw error;
-        }
-      },
-
-      // Toggle customer status
-      toggleCustomerStatus: (id) => {
-        const customer = get().getCustomerById(id);
-        if (customer) {
-          const newStatus = customer.status === 'active' ? 'blocked' : 'active';
-          get().updateCustomer(id, { status: newStatus });
-        }
-      },
-
-      // Add activity to customer history
-      addActivity: (customerId, activity) => {
-        const customers = get().customers;
-        const updatedCustomers = customers.map((customer) =>
-          customer.id === parseInt(customerId)
-            ? {
-                ...customer,
-                activityHistory: [
-                  {
-                    id: Date.now(),
-                    type: activity.type,
-                    description: activity.description,
-                    date: new Date().toISOString(),
-                  },
-                  ...(customer.activityHistory || []),
-                ].slice(0, 50), // Keep last 50 activities
-              }
-            : customer
-        );
-        set({ customers: updatedCustomers });
-        localStorage.setItem('admin-customers', JSON.stringify(updatedCustomers));
-      },
-    }),
-    {
-      name: 'customer-storage',
-      storage: createJSONStorage(() => localStorage),
+      if (response.success) {
+        const { customers, total, page, limit, totalPages } = response.data;
+        set({
+          customers: customers || [],
+          pagination: {
+            total: total || 0,
+            page: page || 1,
+            limit: limit || 10,
+            pages: totalPages || 0
+          },
+          isLoading: false
+        });
+      } else {
+        throw new Error(response.message || 'Failed to fetch customers');
+      }
+    } catch (error) {
+      set({
+        isLoading: false,
+        error: error.message || 'Failed to fetch customers'
+      });
+      toast.error(error.message || 'Failed to fetch customers');
     }
-  )
-);
+  },
+
+  // Get customer by ID
+  fetchCustomerById: async (id) => {
+    set({ isLoading: true });
+    try {
+      const response = await adminCustomerApi.getCustomerById(id);
+      set({ isLoading: false });
+      if (response.success) {
+        return response.data.customer;
+      }
+      throw new Error(response.message || 'Failed to fetch customer');
+    } catch (error) {
+      set({ isLoading: false });
+      toast.error(error.message || 'Failed to fetch customer');
+      return null;
+    }
+  },
+
+  // Update customer
+  updateCustomer: async (id, customerData) => {
+    set({ isLoading: true });
+    try {
+      const response = await adminCustomerApi.updateCustomer(id, customerData);
+      set({ isLoading: false });
+      if (response.success) {
+        toast.success('Customer updated successfully');
+        // Refresh local list if necessary or update specific item
+        get().fetchCustomers({
+          page: get().pagination.page,
+          limit: get().pagination.limit
+        });
+        return response.data.customer;
+      }
+      throw new Error(response.message || 'Failed to update customer');
+    } catch (error) {
+      set({ isLoading: false });
+      toast.error(error.message || 'Failed to update customer');
+      throw error;
+    }
+  },
+
+  // Toggle customer status
+  toggleCustomerStatus: async (id) => {
+    set({ isLoading: true });
+    try {
+      const response = await adminCustomerApi.updateCustomerStatus(id);
+      set({ isLoading: false });
+      if (response.success) {
+        toast.success(response.message || 'Status updated');
+        get().fetchCustomers({
+          page: get().pagination.page,
+          limit: get().pagination.limit
+        });
+      } else {
+        throw new Error(response.message || 'Failed to update status');
+      }
+    } catch (error) {
+      set({ isLoading: false });
+      toast.error(error.message || 'Failed to update status');
+    }
+  },
+
+  // Activities, addresses, orders etc can be fetched on demand
+  fetchCustomerDetails: async (id) => {
+    try {
+      const [addresses, orders, transactions] = await Promise.all([
+        adminCustomerApi.getCustomerAddresses(id),
+        adminCustomerApi.getCustomerOrders(id),
+        adminCustomerApi.getCustomerTransactions(id)
+      ]);
+
+      return {
+        addresses: addresses.data?.addresses || [],
+        orders: orders.data?.orders || [],
+        transactions: transactions.data?.transactions || []
+      };
+    } catch (error) {
+      console.error('Failed to fetch customer details:', error);
+      return { addresses: [], orders: [], transactions: [] };
+    }
+  }
+}));
+
 

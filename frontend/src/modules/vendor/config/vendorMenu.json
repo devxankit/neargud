@@ -7,7 +7,7 @@
   {
     "title": "Products",
     "route": "/vendor/products",
-    "children": ["Manage Products", "Add Product", "Bulk Upload", "Product FAQs", "Tax & Pricing", "Product Attributes"]
+    "children": ["Manage Products", "Add Product", "Product FAQs"]
   },
   {
     "title": "Orders",
@@ -30,11 +30,6 @@
     "children": []
   },
   {
-    "title": "Wallet History",
-    "route": "/vendor/wallet-history",
-    "children": []
-  },
-  {
     "title": "Pickup Locations",
     "route": "/vendor/pickup-locations",
     "children": []
@@ -45,8 +40,8 @@
     "children": []
   },
   {
-    "title": "Promotions",
-    "route": "/vendor/promotions",
+    "title": "PromoCode",
+    "route": "/vendor/promocode",
     "children": []
   },
   {
@@ -85,11 +80,6 @@
     "children": []
   },
   {
-    "title": "Documents",
-    "route": "/vendor/documents",
-    "children": []
-  },
-  {
     "title": "Analytics",
     "route": "/vendor/analytics",
     "children": []
@@ -106,7 +96,7 @@
   {
     "title": "Settings",
     "route": "/vendor/settings",
-    "children": ["Store Settings", "Payment Settings", "Shipping Settings"]
+    "children": ["Store Identity", "Contact Info", "Social Media"]
   },
   {
     "title": "Social Profile",

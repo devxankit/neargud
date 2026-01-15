@@ -2,7 +2,8 @@
  * Format price with currency symbol
  */
 export const formatPrice = (price, currency = '₹') => {
-  return `${currency}${price.toLocaleString('en-IN')}`;
+  if (price === undefined || price === null || isNaN(price)) return `${currency}0`;
+  return `${currency}${Number(price).toLocaleString('en-IN')}`;
 };
 
 /**
@@ -51,9 +52,13 @@ export const isValidPhone = (phone) => {
   return phoneRegex.test(phone.replace(/\D/g, ''));
 };
 
-/**
- * Get image URL (with fallback)
- */
+export const formatDateTime = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+};
+
+
 export const getImageUrl = (image, fallback = '/placeholder.jpg') => {
   if (!image) return fallback;
   if (image.startsWith('http')) return image;

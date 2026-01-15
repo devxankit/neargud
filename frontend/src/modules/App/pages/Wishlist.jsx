@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { FiHeart, FiArrowLeft, FiGrid, FiList } from "react-icons/fi";
+import { useState, useEffect } from "react";
+import { FiHeart, FiArrowLeft, FiGrid, FiList, FiLoader } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import MobileLayout from "../../../components/Layout/Mobile/MobileLayout";
@@ -8,109 +8,120 @@ import WishlistGridItem from "../components/WishlistGridItem";
 import { useWishlistStore } from "../../../store/wishlistStore";
 import { useCartStore } from "../../../store/useStore";
 import toast from "react-hot-toast";
-import PageTransition from "../../../components/PageTransition";
-import ProtectedRoute from "../../../components/Auth/ProtectedRoute";
 
 const MobileWishlist = () => {
   const navigate = useNavigate();
-  const { items, removeItem, moveToCart, clearWishlist } = useWishlistStore();
+  const { items, fetchWishlist, removeItem, clearWishlist, isLoading } = useWishlistStore();
   const { addItem } = useCartStore();
-  const [viewMode, setViewMode] = useState("list"); // 'list' or 'grid'
+  const [viewMode, setViewMode] = useState("grid"); // Changed default to grid for better interactive UI
 
-  const handleMoveToCart = (item) => {
-    const wishlistItem = moveToCart(item.id);
-    if (wishlistItem) {
+  useEffect(() => {
+    fetchWishlist();
+  }, []);
+
+  const handleMoveToCart = async (item) => {
+    try {
       addItem({
-        ...wishlistItem,
+        ...item,
         quantity: 1,
       });
+      await removeItem(item._id || item.id);
       toast.success("Moved to cart!");
+    } catch (err) {
+      toast.error("Failed to move item to cart");
     }
   };
 
-  const handleRemove = (id) => {
-    removeItem(id);
-    toast.success("Removed from wishlist");
+  const handleRemove = async (id) => {
+    try {
+      await removeItem(id);
+      toast.success("Removed from wishlist");
+    } catch (err) {
+      toast.error("Failed to remove item");
+    }
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (window.confirm("Are you sure you want to clear your wishlist?")) {
-      clearWishlist();
-      toast.success("Wishlist cleared");
+      try {
+        await clearWishlist();
+        toast.success("Wishlist cleared");
+      } catch (err) {
+        toast.error("Failed to clear wishlist");
+      }
     }
   };
 
   return (
-    <ProtectedRoute>
-      <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true}>
-          <div className="w-full pb-24">
-            {/* Header */}
-            <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-40 shadow-sm">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
-                  <FiArrowLeft className="text-xl text-gray-700" />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-lg font-bold text-gray-800 truncate">
-                    My Wishlist
-                  </h1>
-                  <p className="text-xs text-gray-600">
-                    {items.length} {items.length === 1 ? "item" : "items"} saved
-                  </p>
+    <MobileLayout showBottomNav={true} showCartBar={true}>
+      <div className="w-full pb-24">
+        {/* Header */}
+        <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-40 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+              <FiArrowLeft className="text-xl text-gray-700" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold text-gray-800 truncate">
+                My Wishlist
+              </h1>
+              <p className="text-xs text-gray-600">
+                {items.length} {items.length === 1 ? "item" : "items"} saved
+              </p>
+            </div>
+            {items.length > 0 && (
+              <div className="flex items-center gap-2">
+                {/* View Toggle Buttons */}
+                <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-1.5 rounded transition-colors ${viewMode === "list"
+                      ? "bg-white text-primary-600 shadow-sm"
+                      : "text-gray-600"
+                      }`}>
+                    <FiList className="text-lg" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-1.5 rounded transition-colors ${viewMode === "grid"
+                      ? "bg-white text-primary-600 shadow-sm"
+                      : "text-gray-600"
+                      }`}>
+                    <FiGrid className="text-lg" />
+                  </button>
                 </div>
-                {items.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    {/* View Toggle Buttons */}
-                    <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                      <button
-                        onClick={() => setViewMode("list")}
-                        className={`p-1.5 rounded transition-colors ${
-                          viewMode === "list"
-                            ? "bg-white text-primary-600 shadow-sm"
-                            : "text-gray-600"
-                        }`}>
-                        <FiList className="text-lg" />
-                      </button>
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`p-1.5 rounded transition-colors ${
-                          viewMode === "grid"
-                            ? "bg-white text-primary-600 shadow-sm"
-                            : "text-gray-600"
-                        }`}>
-                        <FiGrid className="text-lg" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={handleClearAll}
-                      className="text-xs text-red-600 font-semibold px-2 py-1 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0">
-                      Clear All
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs text-red-600 font-semibold px-2 py-1 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0">
+                  Clear All
+                </button>
               </div>
-            </div>
-
-            {/* Content */}
-            <div className="px-4 py-4">
-              {items.length === 0 ? (
-                <EmptyWishlistState />
-              ) : (
-                <WishlistItems
-                  items={items}
-                  viewMode={viewMode}
-                  onMoveToCart={handleMoveToCart}
-                  onRemove={handleRemove}
-                />
-              )}
-            </div>
+            )}
           </div>
-        </MobileLayout>
-      </PageTransition>
-    </ProtectedRoute>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 py-4 min-h-[60vh]">
+          {isLoading && items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <FiLoader className="text-4xl text-primary-500 animate-spin mb-4" />
+              <p className="text-gray-500 font-medium">Loading your wishlist...</p>
+            </div>
+          ) : items.length === 0 ? (
+            <EmptyWishlistState />
+          ) : (
+            <WishlistItems
+              items={items}
+              viewMode={viewMode}
+              onMoveToCart={handleMoveToCart}
+              onRemove={handleRemove}
+            />
+          )}
+        </div>
+      </div>
+    </MobileLayout>
   );
 };
 
@@ -138,7 +149,7 @@ const WishlistItems = ({ items, viewMode, onMoveToCart, onRemove }) => {
         <div className="grid grid-cols-2 gap-3">
           {items.map((item, index) => (
             <WishlistGridItem
-              key={item.id}
+              key={item._id || item.id}
               item={item}
               index={index}
               onMoveToCart={onMoveToCart}
@@ -155,7 +166,7 @@ const WishlistItems = ({ items, viewMode, onMoveToCart, onRemove }) => {
       <div className="space-y-3">
         {items.map((item, index) => (
           <SwipeableWishlistItem
-            key={item.id}
+            key={item._id || item.id}
             item={item}
             index={index}
             onMoveToCart={onMoveToCart}

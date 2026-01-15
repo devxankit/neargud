@@ -1,48 +1,55 @@
 import { useState, useEffect } from 'react';
 import { FiSearch, FiMapPin, FiEdit, FiTrash2 } from 'react-icons/fi';
+import * as adminCustomerApi from '../../../services/adminCustomerApi';
 import { motion } from 'framer-motion';
 import DataTable from '../../../components/Admin/DataTable';
-import { useCustomerStore } from '../../../store/customerStore';
 import ConfirmModal from '../../../components/Admin/ConfirmModal';
 import toast from 'react-hot-toast';
 
 const Addresses = () => {
-  const { customers, initialize } = useCustomerStore();
+
   const [addresses, setAddresses] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, customerId: null });
+
+  const fetchAddresses = async () => {
+    setIsLoading(true);
+    try {
+      // Pass search query if backend supports it directly or handle filtering client side if needed
+      // Based on controller, it supports 'search' param
+      const response = await adminCustomerApi.getAllCustomerAddresses({ search: searchQuery });
+      if (response?.data?.addresses) {
+        setAddresses(response.data.addresses);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to fetch addresses');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    initialize();
+    fetchAddresses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchQuery]); // Re-fetch when search changes since backend handles it
 
-  useEffect(() => {
-    // Extract addresses from customers
-    const allAddresses = customers.flatMap((customer) =>
-      (customer.addresses || []).map((addr) => ({
-        ...addr,
-        customerId: customer.id,
-        customerName: customer.name,
-        customerEmail: customer.email,
-      }))
-    );
-    setAddresses(allAddresses);
-  }, [customers]);
+  // If backend handles search, we don't need client-side filtering unless for immediate feedback
+  const filteredAddresses = addresses;
 
-  const filteredAddresses = addresses.filter((addr) => {
-    return (
-      !searchQuery ||
-      addr.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      addr.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      addr.city.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  const handleDelete = async () => {
+    if (!deleteModal.id || !deleteModal.customerId) return;
 
-  const handleDelete = () => {
-    setAddresses(addresses.filter((a) => a.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Address deleted');
+    try {
+      await adminCustomerApi.deleteCustomerAddress(deleteModal.customerId, deleteModal.id);
+      toast.success('Address deleted');
+      setAddresses(addresses.filter(a => a._id !== deleteModal.id)); // Assuming _id
+      setDeleteModal({ isOpen: false, id: null, customerId: null });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete address');
+    }
   };
 
   const columns = [
@@ -88,9 +95,8 @@ const Addresses = () => {
       label: 'Default',
       sortable: true,
       render: (value) => (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-        }`}>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}>
           {value ? 'Yes' : 'No'}
         </span>
       ),
@@ -108,7 +114,7 @@ const Addresses = () => {
             <FiEdit />
           </button>
           <button
-            onClick={() => setDeleteModal({ isOpen: true, id: row.id })}
+            onClick={() => setDeleteModal({ isOpen: true, id: row._id, customerId: row.customerId })}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             title="Delete"
           >
@@ -154,7 +160,7 @@ const Addresses = () => {
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, id: null })}
+        onClose={() => setDeleteModal({ isOpen: false, id: null, customerId: null })}
         onConfirm={handleDelete}
         title="Delete Address?"
         message="Are you sure you want to delete this address? This action cannot be undone."

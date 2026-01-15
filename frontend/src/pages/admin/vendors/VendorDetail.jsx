@@ -17,93 +17,168 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
-import { useOrderStore } from '../../../store/orderStore';
-import { useCommissionStore } from '../../../store/commissionStore';
+import { 
+  fetchVendorById, 
+  fetchVendorOrders, 
+  fetchVendorAnalytics,
+  updateVendorStatusApi,
+  updateVendorCommissionApi 
+} from '../../../services/vendorApi';
 import Badge from '../../../components/Badge';
 import DataTable from '../../../components/Admin/DataTable';
 import { formatPrice } from '../../../utils/helpers';
-import { formatDateTime } from '../../../utils/adminHelpers';
 import toast from 'react-hot-toast';
 
 const VendorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { vendors, updateVendorStatus, updateCommissionRate } = useVendorStore();
-  const { orders } = useOrderStore();
-  const { getVendorCommissions, getVendorEarningsSummary, getVendorSettlements } = useCommissionStore();
 
   const [vendor, setVendor] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [vendorOrders, setVendorOrders] = useState([]);
   const [commissions, setCommissions] = useState([]);
+  const [orderPagination, setOrderPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
+  });
   const [earningsSummary, setEarningsSummary] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditingCommission, setIsEditingCommission] = useState(false);
   const [commissionRate, setCommissionRate] = useState('');
 
-  useEffect(() => {
-    const vendorData = vendors.find((v) => v.id === parseInt(id));
-    if (vendorData) {
-      setVendor(vendorData);
-      setCommissionRate(((vendorData.commissionRate || 0) * 100).toFixed(1));
-    } else {
-      toast.error('Vendor not found');
-      navigate('/admin/vendors');
-    }
-  }, [id, vendors, navigate]);
+  const loadVendorData = async () => {
+    setLoading(true);
+    try {
+      const [vendorRes, analyticsRes] = await Promise.all([
+        fetchVendorById(id),
+        fetchVendorAnalytics(id)
+      ]);
 
-  useEffect(() => {
-    if (!vendor) return;
-
-    // Get vendor orders
-    const filtered = orders.filter((order) => {
-      if (order.vendorItems && Array.isArray(order.vendorItems)) {
-        return order.vendorItems.some((vi) => vi.vendorId === vendor.id);
+      if (vendorRes?.vendor) {
+        const v = vendorRes.vendor;
+        setVendor({ 
+          ...v, 
+          id: v._id,
+          joinDate: v.createdAt 
+        });
+        setCommissionRate(((v.commissionRate || 0) * 100).toFixed(1));
       }
-      return false;
-    });
-    setVendorOrders(filtered);
 
-    // Get commissions
-    const vendorCommissions = getVendorCommissions(vendor.id);
-    setCommissions(vendorCommissions);
-
-    // Get earnings summary
-    const summary = getVendorEarningsSummary(vendor.id);
-    setEarningsSummary(summary);
-  }, [vendor, orders, getVendorCommissions, getVendorEarningsSummary]);
-
-  const handleStatusUpdate = (newStatus) => {
-    updateVendorStatus(vendor.id, newStatus);
-    setVendor({ ...vendor, status: newStatus });
-    toast.success(`Vendor status updated to ${newStatus}`);
+      if (analyticsRes) {
+        setEarningsSummary(analyticsRes.stats || analyticsRes);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load vendor details');
+      navigate('/admin/vendors');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCommissionUpdate = () => {
+  const loadOrders = async () => {
+    try {
+      const response = await fetchVendorOrders(id, {
+        page: orderPagination.page,
+        limit: orderPagination.limit
+      });
+
+      if (response?.orders) {
+        const formattedOrders = response.orders.map(o => ({
+          ...o,
+          id: o._id,
+          code: o.orderCode,
+          date: o.createdAt
+        }));
+        setVendorOrders(formattedOrders);
+        
+        // Derive commissions from orders
+        const commissionList = formattedOrders.map(o => {
+          const vb = o.vendorBreakdown?.find(vb => vb.vendorId === id || vb.vendorId?._id === id);
+          return {
+            id: o.id,
+            orderId: o.code,
+            createdAt: o.date,
+            subtotal: vb?.subtotal || 0,
+            commission: vb?.commission || 0,
+            vendorEarnings: (vb?.subtotal || 0) - (vb?.commission || 0),
+            status: o.status === 'delivered' ? 'paid' : (o.status === 'cancelled' ? 'failed' : 'pending')
+          };
+        });
+        setCommissions(commissionList);
+
+        setOrderPagination(prev => ({
+          ...prev,
+          total: response.total,
+          totalPages: response.totalPages
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    loadVendorData();
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'orders' || activeTab === 'overview') {
+      loadOrders();
+    }
+  }, [id, activeTab, orderPagination.page]);
+
+  const handleStatusUpdate = async (newStatus) => {
+    try {
+      await updateVendorStatusApi(id, newStatus);
+      toast.success(`Vendor status updated to ${newStatus}`);
+      loadVendorData();
+    } catch (error) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleCommissionUpdate = async () => {
     const rate = parseFloat(commissionRate) / 100;
     if (isNaN(rate) || rate < 0 || rate > 1) {
       toast.error('Please enter a valid commission rate (0-100%)');
       return;
     }
-    updateCommissionRate(vendor.id, rate);
-    setVendor({ ...vendor, commissionRate: rate });
-    setIsEditingCommission(false);
-    toast.success('Commission rate updated successfully');
+
+    try {
+      await updateVendorCommissionApi(id, rate);
+      toast.success('Commission rate updated successfully');
+      setIsEditingCommission(false);
+      loadVendorData();
+    } catch (error) {
+      toast.error('Failed to update commission rate');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   if (!vendor) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500">Vendor not found</p>
       </div>
     );
   }
 
   const orderColumns = [
     {
-      key: 'id',
+      key: 'code',
       label: 'Order ID',
       sortable: true,
+      render: (value) => <span className="font-semibold text-blue-600">#{value}</span>
     },
     {
       key: 'date',
@@ -135,8 +210,8 @@ const VendorDetail = () => {
       label: 'Amount',
       sortable: true,
       render: (_, row) => {
-        const vendorItem = row.vendorItems?.find((vi) => vi.vendorId === vendor.id);
-        return formatPrice(vendorItem?.subtotal || 0);
+        const vb = row.vendorBreakdown?.find((vi) => vi.vendorId === id || vi.vendorId?._id === id);
+        return formatPrice(vb?.subtotal || 0);
       },
     },
     {
@@ -257,7 +332,7 @@ const VendorDetail = () => {
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex border-b border-gray-200">
-          {['overview', 'orders', 'commissions', 'settings'].map((tab) => (
+          {['overview', 'documents', 'orders', 'commissions', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -265,7 +340,7 @@ const VendorDetail = () => {
                   ? 'text-primary-600 border-b-2 border-primary-600'
                   : 'text-gray-600 hover:text-gray-800'
                 }`}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'documents' ? 'Verification' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -358,6 +433,94 @@ const VendorDetail = () => {
             </div>
           )}
 
+          {/* Verification Tab */}
+          {activeTab === 'documents' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Verification Documents</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Business License */}
+                <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50 shadow-sm">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                        <FiFileText size={24} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">Business License</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">ID: {vendor.verificationDocs?.businessLicense?.id || 'NOT PROVIDED'}</p>
+                      </div>
+                    </div>
+                    {vendor.verificationDocs?.businessLicense?.url && (
+                      <a 
+                        href={vendor.verificationDocs.businessLicense.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-bold transition-all shadow-sm"
+                      >
+                        Open Original
+                      </a>
+                    )}
+                  </div>
+                  {vendor.verificationDocs?.businessLicense?.url ? (
+                    <div className="aspect-video w-full overflow-hidden rounded-xl bg-white border shadow-inner group relative">
+                      <img 
+                        src={vendor.verificationDocs.businessLicense.url} 
+                        alt="Business License" 
+                        className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="aspect-video w-full flex flex-col items-center justify-center text-gray-400 bg-white border-2 border-dashed rounded-xl">
+                      <FiXCircle size={40} className="mb-3 opacity-50" />
+                      <p className="font-medium">No Document Found</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* PAN Card */}
+                <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50 shadow-sm">
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-orange-100 text-orange-600 rounded-xl">
+                        <FiFileText size={24} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">PAN Card</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">ID: {vendor.verificationDocs?.panCard?.id || 'NOT PROVIDED'}</p>
+                      </div>
+                    </div>
+                    {vendor.verificationDocs?.panCard?.url && (
+                      <a 
+                        href={vendor.verificationDocs.panCard.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg text-sm font-bold transition-all shadow-sm"
+                      >
+                        Open Original
+                      </a>
+                    )}
+                  </div>
+                  {vendor.verificationDocs?.panCard?.url ? (
+                    <div className="aspect-video w-full overflow-hidden rounded-xl bg-white border shadow-inner group relative">
+                      <img 
+                        src={vendor.verificationDocs.panCard.url} 
+                        alt="PAN Card" 
+                        className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="aspect-video w-full flex flex-col items-center justify-center text-gray-400 bg-white border-2 border-dashed rounded-xl">
+                      <FiXCircle size={40} className="mb-3 opacity-50" />
+                      <p className="font-medium">No Document Found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Orders Tab */}
           {activeTab === 'orders' && (
             <div>
@@ -367,7 +530,10 @@ const VendorDetail = () => {
                   data={vendorOrders}
                   columns={orderColumns}
                   pagination={true}
-                  itemsPerPage={10}
+                  itemsPerPage={orderPagination.limit}
+                  currentPage={orderPagination.page}
+                  totalPages={orderPagination.totalPages}
+                  onPageChange={(page) => setOrderPagination(prev => ({ ...prev, page }))}
                 />
               ) : (
                 <p className="text-gray-500 text-center py-8">No orders found</p>

@@ -1,137 +1,160 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FiSearch, FiAlertTriangle, FiEdit, FiPackage, FiPlus, FiMinus, FiTrendingDown, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { products as initialProducts } from '../../../data/products';
 import DataTable from '../../../components/Admin/DataTable';
 import ExportButton from '../../../components/Admin/ExportButton';
 import Badge from '../../../components/Badge';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { formatPrice } from '../../../utils/helpers';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
-import { useVendorStore } from '../store/vendorStore';
+import { fetchStock, fetchStockStats, updateStock } from '../../../services/vendorStockApi';
 import toast from 'react-hot-toast';
+import { debounce } from 'lodash';
 
 const StockManagement = () => {
   const { vendor } = useVendorAuthStore();
-  const { getVendorProducts } = useVendorStore();
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [stockStats, setStockStats] = useState({
+    totalProducts: 0,
+    inStock: 0,
+    lowStock: 0,
+    outOfStock: 0,
+    totalValue: 0 // Note: Backend stats might not return totalValue currently, we should check or accept 0
+  });
+
+  // Filters & Pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
   const [stockModal, setStockModal] = useState({ isOpen: false, product: null });
 
   const vendorId = vendor?.id;
 
-  useEffect(() => {
+  const loadStockData = useCallback(async () => {
     if (!vendorId) return;
+    setLoading(true);
+    try {
+      const result = await fetchStock({
+        page,
+        limit,
+        search: searchQuery,
+        stock: stockFilter === 'all' ? undefined : stockFilter,
+        lowStockThreshold
+      });
 
-    const savedProducts = localStorage.getItem('admin-products');
-    const allProducts = savedProducts ? JSON.parse(savedProducts) : initialProducts;
+      if (result.success) {
+        setProducts(result.data.products);
+        setTotalPages(result.pagination.pages);
+        setTotalItems(result.pagination.total);
+      }
+    } catch (error) {
+      toast.error('Failed to load stock data');
+    } finally {
+      setLoading(false);
+    }
+  }, [vendorId, page, limit, searchQuery, stockFilter, lowStockThreshold]);
 
-    // Filter products for this vendor
-    const vendorProducts = allProducts.filter((p) => p.vendorId === parseInt(vendorId));
-    setProducts(vendorProducts);
+  const loadStats = useCallback(async () => {
+    if (!vendorId) return;
+    try {
+      const result = await fetchStockStats();
+      if (result.success && result.data.stats) {
+        setStockStats(result.data.stats);
+      }
+    } catch (error) {
+      console.error('Failed to load stock stats', error);
+    }
   }, [vendorId]);
 
-  // Filtered products
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
+  // Debounced search to avoid excessive API calls
+  const debouncedLoadStockData = useCallback(
+    debounce(() => {
+      loadStockData();
+    }, 500),
+    [loadStockData]
+  );
 
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter((product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  // Initial load and filter changes
+  useEffect(() => {
+    // For search, we use debounce. For other filters, we load immediately (or almost immediately)
+    // But since they are all dependencies of loadStockData, we need to be careful not to create loops or double calls.
+    // The straightforward way is to just call loadStockData in useEffect, 
+    // but for search we want to debounce.
+
+    // We can rely on loadStockData being called when dependencies change.
+    // BUT we want to debounce the search part.
+    // Let's split it? 
+    // Or just use one effect that calls the debounced function if search changed?
+    // Actually, simple usage:
+    loadStockData();
+  }, [page, stockFilter, lowStockThreshold]);
+
+  // Separate effect for search to debounce it. 
+  // Note: loadStockData already depends on searchQuery, so the above effect would trigger on search change too.
+  // To avoid double trigger, we should remove searchQuery from the above effect's dependency array if we want separate handling.
+  // OR, we keep it simple: just define debouncedLoadStockData as the ONE way to load.
+  // But updating immediately on pagination is better UI.
+
+  // Let's use a simpler approach:
+  // We'll trust the user isn't typing 1000 characters a second, or accept the API hits, 
+  // OR we implement local state for input and debounced stat update.
+  // Let's implement local search state separate from trigger state.
+
+  // Actually, let's keep it simple for now. 
+  // We will run loadStockData on mount and when pagination/filters (except search) change.
+  // For search, we use a separate useEffect that listens to searchQuery.
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadStockData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch stats on mount
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+
+  const handleStockUpdate = async (productId, newQuantity) => {
+    try {
+      await updateStock(productId, newQuantity);
+      toast.success('Stock updated successfully');
+      setStockModal({ isOpen: false, product: null });
+      loadStockData(); // Reload table
+      loadStats(); // Reload stats
+    } catch (error) {
+      toast.error('Failed to update stock');
     }
-
-    // Stock filter
-    if (stockFilter === 'low_stock') {
-      filtered = filtered.filter(
-        (product) => product.stockQuantity <= lowStockThreshold && product.stockQuantity > 0
-      );
-    } else if (stockFilter === 'out_of_stock') {
-      filtered = filtered.filter((product) => product.stockQuantity === 0);
-    } else if (stockFilter === 'in_stock') {
-      filtered = filtered.filter((product) => product.stockQuantity > lowStockThreshold);
-    }
-
-    return filtered;
-  }, [products, searchQuery, stockFilter, lowStockThreshold]);
-
-  // Stock statistics
-  const stockStats = useMemo(() => {
-    const totalProducts = products.length;
-    const inStock = products.filter((p) => p.stockQuantity > lowStockThreshold).length;
-    const lowStock = products.filter((p) => p.stockQuantity <= lowStockThreshold && p.stockQuantity > 0).length;
-    const outOfStock = products.filter((p) => p.stockQuantity === 0).length;
-    const totalValue = products.reduce((sum, p) => sum + (p.price * (p.stockQuantity || 0)), 0);
-
-    return { totalProducts, inStock, lowStock, outOfStock, totalValue };
-  }, [products, lowStockThreshold]);
-
-  const handleStockUpdate = (productId, newQuantity) => {
-    const savedProducts = localStorage.getItem('admin-products');
-    const allProducts = savedProducts ? JSON.parse(savedProducts) : initialProducts;
-
-    const updatedProducts = allProducts.map((p) => {
-      if (p.id === productId) {
-        const oldQuantity = p.stockQuantity || 0;
-        const newStockStatus =
-          newQuantity === 0
-            ? 'out_of_stock'
-            : newQuantity <= lowStockThreshold
-              ? 'low_stock'
-              : 'in_stock';
-        return {
-          ...p,
-          stockQuantity: parseInt(newQuantity),
-          stock: newStockStatus,
-          stockHistory: [
-            ...(p.stockHistory || []),
-            {
-              date: new Date().toISOString(),
-              oldQuantity,
-              newQuantity: parseInt(newQuantity),
-              change: parseInt(newQuantity) - oldQuantity,
-            },
-          ].slice(-50),
-        };
-      }
-      return p;
-    });
-
-    localStorage.setItem('admin-products', JSON.stringify(updatedProducts));
-
-    // Update local state
-    const vendorProducts = updatedProducts.filter((p) => p.vendorId === parseInt(vendorId));
-    setProducts(vendorProducts);
-
-    toast.success('Stock updated successfully');
-    setStockModal({ isOpen: false, product: null });
   };
 
   // Table columns
   const columns = [
     {
-      key: 'id',
-      label: 'ID',
+      key: 'code', // changed from 'id' to 'code' or 'orderCode' if available, but products usually have 'name'. Product ID is usually irrelevant to user, 'orderCode' is for orders. 'sku' might be better. API returns product object. Let's use 'name' and 'image' mostly.
+      label: 'Details',
       sortable: true,
-    },
-    {
-      key: 'name',
-      label: 'Product Name',
-      sortable: true,
-      render: (value, row) => (
+      render: (_, row) => (
         <div className="flex items-center gap-3">
           <img
             src={row.image}
-            alt={value}
+            alt={row.name}
             className="w-10 h-10 object-cover rounded-lg"
             onError={(e) => {
               e.target.src = 'https://via.placeholder.com/50x50?text=Product';
             }}
           />
-          <span className="font-medium">{value}</span>
+          <div>
+            <p className="font-medium text-gray-900">{row.name}</p>
+            <p className="text-xs text-gray-500">{row.sku || row._id?.substring(0, 6)}</p>
+          </div>
         </div>
       ),
     },
@@ -143,28 +166,34 @@ const StockManagement = () => {
     },
     {
       key: 'stockQuantity',
-      label: 'Current Stock',
+      label: 'Stock',
       sortable: true,
       render: (value) => (
         <span className="font-semibold">{value?.toLocaleString() || 0}</span>
       ),
     },
     {
-      key: 'stock',
+      key: 'status', // API might return computed status or we compute it
       label: 'Status',
-      sortable: true,
-      render: (value) => (
-        <Badge
-          variant={
-            value === 'in_stock'
-              ? 'success'
-              : value === 'low_stock'
-                ? 'warning'
-                : 'error'
-          }>
-          {value?.replace('_', ' ').toUpperCase() || 'N/A'}
-        </Badge>
-      ),
+      sortable: false,
+      render: (_, row) => {
+        let status = 'in_stock';
+        if (row.stockQuantity === 0) status = 'out_of_stock';
+        else if (row.stockQuantity <= lowStockThreshold) status = 'low_stock';
+
+        return (
+          <Badge
+            variant={
+              status === 'in_stock'
+                ? 'success'
+                : status === 'low_stock'
+                  ? 'warning'
+                  : 'error'
+            }>
+            {status.replace('_', ' ').toUpperCase()}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',
@@ -207,28 +236,28 @@ const StockManagement = () => {
             <p className="text-sm text-gray-600">Total Products</p>
             <FiPackage className="text-blue-500 text-xl" />
           </div>
-          <p className="text-2xl font-bold text-gray-800">{stockStats.totalProducts}</p>
+          <p className="text-2xl font-bold text-gray-800">{stockStats.totalProducts || 0}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-600">In Stock</p>
             <FiPackage className="text-green-500 text-xl" />
           </div>
-          <p className="text-2xl font-bold text-green-600">{stockStats.inStock}</p>
+          <p className="text-2xl font-bold text-green-600">{stockStats.inStock || 0}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-600">Low Stock</p>
             <FiAlertTriangle className="text-orange-500 text-xl" />
           </div>
-          <p className="text-2xl font-bold text-orange-600">{stockStats.lowStock}</p>
+          <p className="text-2xl font-bold text-orange-600">{stockStats.lowStock || 0}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-600">Out of Stock</p>
             <FiTrendingDown className="text-red-500 text-xl" />
           </div>
-          <p className="text-2xl font-bold text-red-600">{stockStats.outOfStock}</p>
+          <p className="text-2xl font-bold text-red-600">{stockStats.outOfStock || 0}</p>
         </div>
       </div>
 
@@ -247,7 +276,10 @@ const StockManagement = () => {
           </div>
           <AnimatedSelect
             value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
+            onChange={(e) => {
+              setStockFilter(e.target.value);
+              setPage(1); // Reset to page 1 on filter change
+            }}
             options={[
               { value: 'all', label: 'All Stock' },
               { value: 'in_stock', label: 'In Stock' },
@@ -269,26 +301,40 @@ const StockManagement = () => {
         </div>
 
         {/* DataTable */}
-        {filteredProducts.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : products.length > 0 ? (
           <>
             <div className="mb-4">
               <ExportButton
-                data={filteredProducts}
+                data={products}
                 headers={[
-                  { label: 'ID', accessor: (row) => row.id },
                   { label: 'Name', accessor: (row) => row.name },
                   { label: 'Price', accessor: (row) => formatPrice(row.price) },
                   { label: 'Stock', accessor: (row) => row.stockQuantity || 0 },
-                  { label: 'Status', accessor: (row) => row.stock || 'N/A' },
+                  {
+                    label: 'Status', accessor: (row) => {
+                      let status = 'in_stock';
+                      if (row.stockQuantity === 0) status = 'out_of_stock';
+                      else if (row.stockQuantity <= lowStockThreshold) status = 'low_stock';
+                      return status;
+                    }
+                  },
                 ]}
                 filename="vendor-stock"
               />
             </div>
             <DataTable
-              data={filteredProducts}
+              data={products}
               columns={columns}
               pagination={true}
-              itemsPerPage={10}
+              itemsPerPage={limit}
+              currentPage={page}
+              totalItems={totalItems}
+              onPageChange={(p) => setPage(p)}
+              totalPages={totalPages}
             />
           </>
         ) : (
@@ -306,7 +352,7 @@ const StockManagement = () => {
         onClose={() => setStockModal({ isOpen: false, product: null })}
         onUpdate={(newQuantity) => {
           if (stockModal.product) {
-            handleStockUpdate(stockModal.product.id, newQuantity);
+            handleStockUpdate(stockModal.product._id || stockModal.product.id, newQuantity);
           }
         }}
       />
@@ -314,7 +360,7 @@ const StockManagement = () => {
   );
 };
 
-// Stock Update Modal Component
+// Stock Update Modal Component (Unchanged mostly, just ensure it uses correct product fields)
 const StockUpdateModal = ({ isOpen, product, lowStockThreshold, onClose, onUpdate }) => {
   const [stockQuantity, setStockQuantity] = useState(0);
   const [stockAdjustment, setStockAdjustment] = useState('');
@@ -496,4 +542,3 @@ const StockUpdateModal = ({ isOpen, product, lowStockThreshold, onClose, onUpdat
 };
 
 export default StockManagement;
-

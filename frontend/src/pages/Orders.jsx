@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiClock, FiEye, FiRotateCw } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -14,10 +14,14 @@ import { useAuthStore } from '../store/authStore';
 import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 
 const Orders = () => {
-  const { getAllOrders } = useOrderStore();
+  const { getAllOrders, fetchOrders } = useOrderStore();
   const { user } = useAuthStore();
   const { responsivePadding } = useResponsiveHeaderPadding();
   const [selectedStatus, setSelectedStatus] = useState('all');
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const statusOptions = [
     { value: 'all', label: 'All Orders' },
@@ -91,11 +95,10 @@ const Orders = () => {
                     <button
                       key={option.value}
                       onClick={() => setSelectedStatus(option.value)}
-                      className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${
-                        selectedStatus === option.value
-                          ? 'gradient-green text-white shadow-glow-green'
-                          : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
-                      }`}
+                      className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 ${selectedStatus === option.value
+                        ? 'gradient-green text-white shadow-glow-green'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -125,7 +128,7 @@ const Orders = () => {
                               {getStatusIcon(order.status)}
                             </div>
                             <div>
-                              <h3 className="font-bold text-gray-800">Order {order.id}</h3>
+                              <h3 className="font-bold text-gray-800">Order {order.orderCode || order._id || order.id}</h3>
                               <p className="text-sm text-gray-600">
                                 Placed on {new Date(order.date).toLocaleDateString('en-US', {
                                   year: 'numeric',
@@ -163,9 +166,16 @@ const Orders = () => {
                                 />
                                 <div className="flex-1">
                                   <p className="font-semibold text-gray-800">{item.name}</p>
-                                  <p className="text-sm text-gray-600">
-                                    Quantity: {item.quantity} × {formatPrice(item.price)}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm text-gray-600">
+                                      Quantity: {item.quantity} × {formatPrice(item.price)}
+                                    </p>
+                                    {item.originalPrice && item.originalPrice > item.price && (
+                                      <p className="text-xs text-gray-400 line-through">
+                                        {formatPrice(item.originalPrice)}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                                 <p className="font-bold text-gray-800">
                                   {formatPrice(item.price * item.quantity)}
@@ -178,7 +188,7 @@ const Orders = () => {
                         {/* Order Actions */}
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Link
-                            to={`/orders/${order.id}`}
+                            to={`/orders/${order._id || order.id}`}
                             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                           >
                             <FiEye />
@@ -192,7 +202,7 @@ const Orders = () => {
                           )}
                           {order.trackingNumber && (
                             <Link
-                              to={`/track-order/${order.id}`}
+                              to={`/track-order/${order._id || order.id}`}
                               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 border-2 border-primary-600 text-primary-600 rounded-xl font-semibold hover:bg-primary-50 transition-colors"
                             >
                               <FiTruck />
@@ -209,11 +219,10 @@ const Orders = () => {
                               {getTrackingSteps(order.status).map((step, index) => (
                                 <div key={index} className="flex items-center gap-4 mb-4">
                                   <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                      step.completed
-                                        ? 'bg-primary-600 text-white'
-                                        : 'bg-gray-200 text-gray-400'
-                                    }`}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center ${step.completed
+                                      ? 'bg-primary-600 text-white'
+                                      : 'bg-gray-200 text-gray-400'
+                                      }`}
                                   >
                                     {step.completed ? (
                                       <FiCheckCircle className="text-sm" />
@@ -222,9 +231,8 @@ const Orders = () => {
                                     )}
                                   </div>
                                   <p
-                                    className={`font-medium ${
-                                      step.completed ? 'text-gray-800' : 'text-gray-400'
-                                    }`}
+                                    className={`font-medium ${step.completed ? 'text-gray-800' : 'text-gray-400'
+                                      }`}
                                   >
                                     {step.label}
                                   </p>

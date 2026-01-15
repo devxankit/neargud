@@ -1,18 +1,51 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { FiDollarSign, FiTrendingUp, FiCalendar } from "react-icons/fi";
 import { motion } from "framer-motion";
 import RevenueComparisonChart from "../../../components/Admin/Analytics/RevenueComparisonChart";
 import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
-import { generateRevenueData } from "../../../data/adminMockData";
 import { formatCurrency } from "../../../utils/adminHelpers";
+import { fetchFinanceSummary, fetchFinanceChartData } from "../../../services/adminFinanceApi";
+import { toast } from "react-hot-toast";
 
 const RevenueOverview = () => {
   const [period, setPeriod] = useState("month");
-  const revenueData = useMemo(() => generateRevenueData(30), []);
+  const [financeData, setFinanceData] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    averageOrderValue: 0
+  });
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalRevenue = revenueData.reduce((sum, day) => sum + day.revenue, 0);
-  const totalOrders = revenueData.reduce((sum, day) => sum + day.orders, 0);
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [summary, chart] = await Promise.all([
+          fetchFinanceSummary(period),
+          fetchFinanceChartData(period)
+        ]);
+
+        setFinanceData(summary);
+        setChartData(chart);
+      } catch (error) {
+        console.error("Failed to load revenue data:", error);
+        toast.error("Failed to load revenue data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [period]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -35,7 +68,7 @@ const RevenueOverview = () => {
             <FiDollarSign className="text-green-600" />
           </div>
           <p className="text-2xl font-bold text-gray-800">
-            {formatCurrency(totalRevenue)}
+            {formatCurrency(financeData.totalRevenue)}
           </p>
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -43,7 +76,7 @@ const RevenueOverview = () => {
             <p className="text-sm text-gray-600">Total Orders</p>
             <FiCalendar className="text-blue-600" />
           </div>
-          <p className="text-2xl font-bold text-gray-800">{totalOrders}</p>
+          <p className="text-2xl font-bold text-gray-800">{financeData.totalOrders}</p>
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
@@ -51,7 +84,7 @@ const RevenueOverview = () => {
             <FiTrendingUp className="text-purple-600" />
           </div>
           <p className="text-2xl font-bold text-gray-800">
-            {formatCurrency(averageOrderValue)}
+            {formatCurrency(financeData.averageOrderValue)}
           </p>
         </div>
       </div>
@@ -70,7 +103,7 @@ const RevenueOverview = () => {
             className="min-w-[140px]"
           />
         </div>
-        <RevenueComparisonChart data={revenueData} period={period} />
+        <RevenueComparisonChart data={chartData} period={period} />
       </div>
     </motion.div>
   );

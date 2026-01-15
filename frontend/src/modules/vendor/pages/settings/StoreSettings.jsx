@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { FiSave, FiImage, FiGlobe, FiShoppingBag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
-import { useVendorStore } from "../../store/vendorStore";
 import AnimatedSelect from "../../../../components/Admin/AnimatedSelect";
 import toast from 'react-hot-toast';
 
-const StoreSettings = () => {
-  const { vendor } = useVendorAuthStore();
-  const { updateVendorProfile } = useVendorStore();
+const StoreSettings = ({ section = 'identity' }) => {
+  const { vendor, updateProfile } = useVendorAuthStore();
   const [formData, setFormData] = useState({});
-  const [activeSection, setActiveSection] = useState('identity');
+  // const [activeSection, setActiveSection] = useState('identity'); // Removed
+  const activeSection = section; // Derived from prop
+  const [isSaving, setIsSaving] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
 
   useEffect(() => {
     if (vendor) {
@@ -31,6 +32,9 @@ const StoreSettings = () => {
           linkedin: '',
         },
       });
+      if (vendor.storeLogo) {
+        setLogoPreview(vendor.storeLogo);
+      }
     }
   }, [vendor]);
 
@@ -49,14 +53,31 @@ const StoreSettings = () => {
     });
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('File size should be less than 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+        setFormData({ ...formData, storeLogo: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!vendor) return;
 
+    setIsSaving(true);
     try {
-      // Parse address if provided
+      // Parse address if Provided
       let addressData = vendor.address || {};
-      if (formData.address) {
+      if (formData.address && typeof formData.address === 'string') {
         const addressParts = formData.address.split(',');
         if (addressParts.length >= 3) {
           addressData = {
@@ -64,12 +85,12 @@ const StoreSettings = () => {
             city: addressParts[1].trim(),
             state: addressParts[2].trim().split(' ')[0],
             zipCode: addressParts[2].trim().split(' ')[1] || '',
-            country: vendor.address?.country || 'USA',
+            country: vendor.address?.country || 'India',
           };
         }
       }
 
-      const updateData = {
+      await updateProfile({
         storeName: formData.storeName,
         storeLogo: formData.storeLogo,
         storeDescription: formData.storeDescription,
@@ -80,20 +101,17 @@ const StoreSettings = () => {
         timezone: formData.timezone,
         currency: formData.currency,
         socialMedia: formData.socialMedia,
-      };
-
-      updateVendorProfile(vendor.id, updateData);
+      });
       toast.success('Store settings saved successfully');
     } catch (error) {
-      toast.error('Failed to save settings');
+      console.error('Error saving settings:', error);
+      toast.error(error.response?.data?.message || 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const sections = [
-    { id: 'identity', label: 'Store Identity', icon: FiShoppingBag },
-    { id: 'contact', label: 'Contact Info', icon: FiGlobe },
-    { id: 'social', label: 'Social Media', icon: FiImage },
-  ];
+
 
   if (!vendor) {
     return (
@@ -114,28 +132,9 @@ const StoreSettings = () => {
         <p className="text-sm sm:text-base text-gray-600">Configure your store identity and information</p>
       </div>
 
-      {/* Section Tabs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-w-full overflow-x-hidden">
-        <div className="border-b border-gray-200 overflow-x-hidden">
-          <div className="flex overflow-x-auto scrollbar-hide -mx-1 px-1">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${activeSection === section.id
-                    ? 'border-purple-600 text-purple-600 font-semibold'
-                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                    }`}
-                >
-                  <Icon className="text-base sm:text-lg" />
-                  <span>{section.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Internal Tabs Removed */}
+
 
         <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6">
           {/* Store Identity Section */}
@@ -158,16 +157,39 @@ const StoreSettings = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Store Logo URL
+                    Store Logo
                   </label>
-                  <input
-                    type="text"
-                    name="storeLogo"
-                    value={formData.storeLogo || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="/images/logos/logo.png"
-                  />
+                  <div className="flex items-center gap-4">
+                    {logoPreview ? (
+                      <div className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                        <img src={logoPreview} alt="Store Logo" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <label className="cursor-pointer p-1 text-white">
+                            <FiImage />
+                            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all text-gray-400">
+                        <FiImage className="text-xl" />
+                        <span className="text-[10px] mt-1 font-medium">Upload</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                      </label>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500">Pick a professional logo for your brand. Recommended: 512x512px, Max 2MB.</p>
+                      {logoPreview && (
+                        <button
+                          type="button"
+                          onClick={() => { setLogoPreview(null); setFormData({ ...formData, storeLogo: '' }); }}
+                          className="text-xs text-red-600 font-medium mt-1 hover:underline"
+                        >
+                          Remove Logo
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">

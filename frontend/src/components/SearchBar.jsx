@@ -1,337 +1,431 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { FiSearch, FiClock, FiTrendingUp } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
-import { products } from '../data/products';
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { FiSearch, FiClock, FiTrendingUp, FiX } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 
-const RECENT_SEARCHES_KEY = 'recent-searches';
+const RECENT_SEARCHES_KEY = "recent-searches";
 const MAX_RECENT_SEARCHES = 5;
 const MAX_SUGGESTIONS = 5;
 
+const popularSearches = ["Fresh Milk", "Organic Veggies", "Daily Bread", "Baby Care", "Summer Fruits"];
+
+const placeholderTexts = [
+  "Search 'Milk' or 'Bread'...",
+  "Everything you need, in 20 mins",
+  "Find fresh groceries...",
+  "Search 50+ local stores...",
+  "What are you looking for?"
+];
+
 const SearchBar = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [suggestions, setSuggestions] = useState([]);
-  const [isFocused, setIsFocused] = useState(false);
-  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobileApp = location.pathname.startsWith("/app");
 
-  // Check if we're in the mobile app section
-  const isMobileApp = location.pathname.startsWith('/app');
-  const searchRef = useRef(null);
-  const suggestionsRef = useRef(null);
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+
   const inputRef = useRef(null);
+  const wrapperRef = useRef(null);
 
-  // Popular searches (can be made dynamic later)
-  const popularSearches = ['Diapers', 'Vegetables', 'Meat', 'Fruits', 'Baby Care'];
-
-  // Animated placeholder texts
-  const placeholderTexts = [
-    'Search for groceries...',
-    'Find fresh vegetables...',
-    'Looking for fruits?',
-    'Browse baby products...',
-    'Search daily deals...'
-  ];
-
-  // Get recent searches from localStorage
-  const getRecentSearches = () => {
+  // ============================
+  // Recent Searches Helpers
+  // ============================
+  const getRecentSearches = useCallback(() => {
     try {
-      const recent = localStorage.getItem(RECENT_SEARCHES_KEY);
-      return recent ? JSON.parse(recent) : [];
+      return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
     } catch {
       return [];
     }
-  };
-
-  // Save search to recent searches
-  const saveRecentSearch = (query) => {
-    if (!query.trim()) return;
-    const recent = getRecentSearches();
-    const updated = [query.trim(), ...recent.filter((s) => s !== query.trim())].slice(0, MAX_RECENT_SEARCHES);
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-  };
-
-  // Get product suggestions based on query
-  const getProductSuggestions = (query) => {
-    if (!query.trim()) return [];
-    const lowerQuery = query.toLowerCase();
-    return products
-      .filter((product) => product.name.toLowerCase().includes(lowerQuery))
-      .slice(0, MAX_SUGGESTIONS)
-      .map((product) => ({
-        type: 'product',
-        id: product.id,
-        name: product.name,
-        image: product.image,
-        price: product.price,
-      }));
-  };
-
-  // Update suggestions when query changes
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const productSuggestions = getProductSuggestions(searchQuery);
-      setSuggestions(productSuggestions);
-    } else {
-      setSuggestions([]);
-    }
-    setSelectedIndex(-1);
-  }, [searchQuery]);
-
-  // Handle outside click
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target) &&
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e) => {
-    if (!showSuggestions && (suggestions.length > 0 || getRecentSearches().length > 0)) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        setShowSuggestions(true);
-      }
+  const saveRecentSearch = useCallback((value) => {
+    if (!value.trim()) return;
+    const recent = getRecentSearches();
+    const updated = [
+      value.trim(),
+      ...recent.filter((s) => s !== value.trim())
+    ].slice(0, MAX_RECENT_SEARCHES);
+
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  }, [getRecentSearches]);
+
+  const recentSearches = useMemo(() => getRecentSearches(), [getRecentSearches, showDropdown]);
+
+  // ============================
+  // Animated Placeholder
+  // ============================
+  useEffect(() => {
+    if (!isFocused && !query.trim()) {
+      const interval = setInterval(() => {
+        setPlaceholderIndex((prev) => (prev + 1) % placeholderTexts.length);
+      }, 3500);
+
+      return () => clearInterval(interval);
+    }
+  }, [isFocused, query]);
+
+  // ============================
+  // Fetch Suggestions (Debounced)
+  // ============================
+  useEffect(() => {
+    if (!query.trim()) {
+      setSuggestions([]);
       return;
     }
 
-    const recentSearches = getRecentSearches();
-    const totalItems = suggestions.length + (searchQuery.trim() ? 0 : recentSearches.length) + (searchQuery.trim() ? 0 : popularSearches.length);
+    const timer = setTimeout(async () => {
+      try {
+        const { fetchPublicProducts } = await import("../services/publicApi");
+        const res = await fetchPublicProducts({
+          search: query.trim(),
+          limit: MAX_SUGGESTIONS
+        });
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (selectedIndex >= 0) {
-        handleSuggestionSelect(selectedIndex);
-      } else {
-        handleSubmit(e);
+        if (res.success) {
+          const data = (res.data.products || []).map((p) => ({
+            id: p._id || p.id,
+            name: p.name,
+            image: p.image,
+            price: p.price,
+            category: p.category?.name || "General"
+          }));
+          setSuggestions(data);
+        }
+      } catch (err) {
+        console.error("Suggestion Error:", err);
       }
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // ============================
+  // Outside Click Close
+  // ============================
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!wrapperRef.current?.contains(e.target)) {
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ============================
+  // Keyboard Navigation
+  // ============================
+  const totalItems = useMemo(() => {
+    if (query.trim()) return suggestions.length;
+    return recentSearches.length + popularSearches.length;
+  }, [query, suggestions, recentSearches]);
+
+  const handleKeyDown = (e) => {
+    if (!showDropdown && e.key === "ArrowDown") {
+      setShowDropdown(true);
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => Math.min(prev + 1, totalItems - 1));
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => Math.max(prev - 1, -1));
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedIndex >= 0) handleSelect(selectedIndex);
+      else handleSubmit();
+    }
+
+    if (e.key === "Escape") {
+      setShowDropdown(false);
       setSelectedIndex(-1);
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      saveRecentSearch(searchQuery);
-      const searchRoute = isMobileApp
-        ? `/app/search?q=${encodeURIComponent(searchQuery.trim())}`
-        : `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-      navigate(searchRoute);
-      setShowSuggestions(false);
-    }
+  // ============================
+  // Navigation Logic
+  // ============================
+  const goToSearch = (value) => {
+    const route = isMobileApp
+      ? `/app/search?q=${encodeURIComponent(value)}`
+      : `/search?q=${encodeURIComponent(value)}`;
+
+    navigate(route);
   };
 
-  const handleSuggestionSelect = (index) => {
-    const recentSearches = getRecentSearches();
-    let selectedItem;
+  const handleSubmit = () => {
+    if (!query.trim()) return;
+    saveRecentSearch(query);
+    goToSearch(query);
+    setShowDropdown(false);
+  };
 
-    if (searchQuery.trim()) {
-      // Product suggestions
-      if (index < suggestions.length) {
-        selectedItem = suggestions[index];
-        const productRoute = isMobileApp
-          ? `/app/product/${selectedItem.id}`
-          : `/product/${selectedItem.id}`;
-        navigate(productRoute);
-      }
+  const handleSelect = (index) => {
+    if (query.trim()) {
+      const item = suggestions[index];
+      if (!item) return;
+      const route = isMobileApp
+        ? `/app/product/${item.id}`
+        : `/product/${item.id}`;
+      navigate(route);
     } else {
-      // Recent searches or popular searches
       if (index < recentSearches.length) {
-        const query = recentSearches[index];
-        setSearchQuery(query);
-        saveRecentSearch(query);
-        const searchRoute = isMobileApp
-          ? `/app/search?q=${encodeURIComponent(query)}`
-          : `/search?q=${encodeURIComponent(query)}`;
-        navigate(searchRoute);
-      } else if (index < recentSearches.length + popularSearches.length) {
-        const query = popularSearches[index - recentSearches.length];
-        setSearchQuery(query);
-        saveRecentSearch(query);
-        const searchRoute = isMobileApp
-          ? `/app/search?q=${encodeURIComponent(query)}`
-          : `/search?q=${encodeURIComponent(query)}`;
-        navigate(searchRoute);
+        const value = recentSearches[index];
+        saveRecentSearch(value);
+        goToSearch(value);
+      } else {
+        const value = popularSearches[index - recentSearches.length];
+        saveRecentSearch(value);
+        goToSearch(value);
       }
     }
-    setShowSuggestions(false);
+
+    setShowDropdown(false);
     setSelectedIndex(-1);
   };
 
-  const handleInputChange = (e) => {
-    setSearchQuery(e.target.value);
-    setShowSuggestions(true);
-  };
-
-  const handleInputFocus = () => {
-    setIsFocused(true);
-    setShowSuggestions(true);
-  };
-
-  const handleInputBlur = (e) => {
-    // Delay blur to allow clicking on suggestions
-    setTimeout(() => {
-      if (!searchRef.current?.contains(document.activeElement)) {
-        setIsFocused(false);
-      }
-    }, 200);
-  };
-
-  // Rotate placeholders when not focused and input is empty
-  useEffect(() => {
-    if (!isFocused && !searchQuery.trim()) {
-      const interval = setInterval(() => {
-        setCurrentPlaceholderIndex((prev) => (prev + 1) % placeholderTexts.length);
-      }, 3000); // Change placeholder every 3 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [isFocused, searchQuery, placeholderTexts.length]);
-
-  const recentSearches = getRecentSearches();
-  const hasSuggestions = suggestions.length > 0 || recentSearches.length > 0 || popularSearches.length > 0;
-
+  // ============================
+  // Render
+  // ============================
   return (
-    <div className="w-full relative" ref={searchRef}>
-      <form onSubmit={handleSubmit} className="w-full">
-        <div className="relative group w-full glass-card rounded-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:shadow-glow bg-white/10 backdrop-blur-md">
-          <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors z-0" />
-
-          {!searchQuery.trim() && (
-            <div className="absolute left-12 top-1/2 transform -translate-y-1/2 pointer-events-none overflow-hidden z-10 h-6 flex items-center">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={currentPlaceholderIndex}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -20, opacity: 0 }}
-                  transition={{ duration: 0.4, ease: "easeInOut" }}
-                  className="text-gray-400 text-sm block whitespace-nowrap"
-                >
-                  {placeholderTexts[currentPlaceholderIndex]}
-                </motion.span>
-              </AnimatePresence>
-            </div>
-          )}
-
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchQuery}
-            onChange={handleInputChange}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            onKeyDown={handleKeyDown}
-            placeholder=""
-            className="w-full pl-12 pr-4 py-3 bg-transparent border-none rounded-xl focus:outline-none relative z-20 text-gray-700 placeholder:text-transparent"
+    <div ref={wrapperRef} className="relative w-full max-w-2xl lg:max-w-3xl mx-auto group">
+      {/* Animated Glow Backdrop */}
+      <AnimatePresence>
+        {isFocused && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="absolute -inset-1.5 bg-gradient-to-r from-purple-500/20 via-pink-500/10 to-blue-500/20 rounded-[22px] blur-xl z-0"
           />
-        </div>
-      </form>
+        )}
+      </AnimatePresence>
 
-      {/* Autocomplete Dropdown */}
-      {showSuggestions && hasSuggestions && (
-        <div
-          ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-96 overflow-y-auto"
-        >
-          {/* Product Suggestions */}
-          {searchQuery.trim() && suggestions.length > 0 && (
-            <div className="p-2">
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Products</div>
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={suggestion.id}
-                  onClick={() => handleSuggestionSelect(index)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors ${selectedIndex === index ? 'bg-primary-50' : ''
-                    }`}
-                >
-                  <img
-                    src={suggestion.image}
-                    alt={suggestion.name}
-                    className="w-10 h-10 rounded-lg object-cover"
-                  />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold text-gray-800">{suggestion.name}</p>
-                    <p className="text-xs text-gray-600">${suggestion.price.toFixed(2)}</p>
+      <div className="relative z-10">
+        <div className={`
+          relative flex items-center bg-white/95 backdrop-blur-xl border transition-all duration-300 rounded-2xl overflow-hidden
+          ${isFocused ? "border-purple-500/50 shadow-2xl shadow-purple-200/50 ring-4 ring-purple-500/5" : "border-gray-200 shadow-lg shadow-gray-200/20"}
+          h-14 lg:h-12
+        `}>
+          {/* Search Icon */}
+          <div className="pl-4 lg:pl-5 flex items-center justify-center pointer-events-none">
+            <FiSearch className={`text-xl lg:text-lg transition-colors duration-300 ${isFocused ? "text-purple-600" : "text-gray-400"}`} />
+          </div>
+
+          <div className="relative flex-1">
+            {!query && (
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none w-full">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={placeholderIndex}
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -10, opacity: 0 }}
+                    transition={{ duration: 0.5, ease: "circOut" }}
+                    className="text-gray-400 text-sm lg:text-xs font-medium whitespace-nowrap"
+                  >
+                    {placeholderTexts[placeholderIndex]}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+            )}
+
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => {
+                setIsFocused(true);
+                setShowDropdown(true);
+              }}
+              onBlur={() => setIsFocused(false)}
+              onKeyDown={handleKeyDown}
+              placeholder=""
+              className="w-full pl-4 pr-10 py-3 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 text-base lg:text-sm font-medium placeholder:text-transparent h-full"
+            />
+          </div>
+
+          {/* Action Area */}
+          <div className="flex items-center gap-1 pr-2">
+            {query && (
+              <button
+                onClick={() => {
+                  setQuery("");
+                  inputRef.current?.focus();
+                }}
+                className="p-1.5 lg:p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                title="Clear"
+              >
+                <FiX className="text-lg lg:text-base" />
+              </button>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              className={`
+                px-4 lg:px-6 py-2 lg:py-1.5 rounded-xl font-black text-[10px] lg:text-[11px] uppercase tracking-widest transition-all flex items-center gap-2
+                ${query.trim()
+                  ? "bg-purple-600 text-white shadow-lg shadow-purple-200 hover:bg-purple-700 hover:-translate-y-0.5 active:translate-y-0"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"}
+              `}
+            >
+              <span className="hidden sm:inline">Search</span>
+              <FiSearch className="sm:hidden text-base" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Dropdown */}
+      <AnimatePresence>
+        {showDropdown && (suggestions.length > 0 || recentSearches.length > 0 || !query.trim()) && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="absolute z-[100] mt-3 w-full bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden py-3"
+          >
+            {/* Results for query */}
+            {query.trim() && suggestions.length > 0 ? (
+              <div className="px-3">
+                <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+                  Products Found
+                </p>
+                <div className="space-y-1">
+                  {suggestions.map((item, index) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSelect(index)}
+                      className={`
+                        w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-200 group/item
+                        ${selectedIndex === index ? "bg-purple-50 ring-1 ring-purple-100" : "hover:bg-gray-50"}
+                      `}
+                    >
+                      <div className="relative h-12 w-12 rounded-xl border border-gray-100 overflow-hidden flex-shrink-0 bg-gray-50 shadow-sm">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110"
+                        />
+                      </div>
+                      <div className="text-left flex-1 min-w-0">
+                        <p className="font-bold text-gray-900 truncate text-sm mb-0.5 group-hover/item:text-purple-600 transition-colors">{item.name}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-gray-800">₹{item.price}</span>
+                          <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{item.category}</span>
+                        </div>
+                      </div>
+                      <div className="text-gray-300 group-hover/item:text-purple-400 group-hover/item:translate-x-1 transition-all">
+                        <FiTrendingUp className="rotate-45" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : query.trim() && !suggestions.length ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FiSearch className="text-gray-300 text-2xl" />
+                </div>
+                <p className="text-gray-900 font-bold mb-1">No products found</p>
+                <p className="text-xs text-gray-500">Try adjusting your keywords or browse popular categories</p>
+              </div>
+            ) : null}
+
+            {/* Recent & Popular (Shown when empty query) */}
+            {!query.trim() && (
+              <div className="space-y-6 lg:space-y-4">
+                <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
+                  {recentSearches.length > 0 && (
+                    <div className="px-3 flex-1">
+                      <p className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                        <FiClock className="text-xs" /> Recent Activity
+                      </p>
+                      <div className="grid grid-cols-1 gap-1">
+                        {recentSearches.map((item, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSelect(index)}
+                            className={`
+                              w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-left transition-all
+                              ${selectedIndex === index ? "bg-purple-50 text-purple-600 font-bold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
+                            `}
+                          >
+                            <FiClock className={`text-sm ${selectedIndex === index ? "text-purple-500" : "text-gray-300"}`} />
+                            <span className="text-sm truncate">{item}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="px-3 flex-[1.5]">
+                    <p className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                      <FiTrendingUp className="text-xs" /> Popular Right Now
+                    </p>
+                    <div className="flex flex-wrap gap-2 px-4 py-2">
+                      {popularSearches.map((item, index) => {
+                        const idx = recentSearches.length + index;
+                        const active = selectedIndex === idx;
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => handleSelect(idx)}
+                            className={`
+                              px-4 py-2 rounded-xl text-[11px] lg:text-[10px] font-bold transition-all border uppercase tracking-wider
+                              ${active
+                                ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-200 scale-105"
+                                : "bg-white border-gray-100 text-gray-600 hover:border-purple-200 hover:text-purple-600 hover:bg-purple-50/50 shadow-sm"}
+                            `}
+                          >
+                            {item}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Recent Searches */}
-          {!searchQuery.trim() && recentSearches.length > 0 && (
-            <div className="p-2 border-t border-gray-200">
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center gap-2">
-                <FiClock className="text-xs" />
-                Recent Searches
+                </div>
               </div>
-              {recentSearches.map((search, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSuggestionSelect(index)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left ${selectedIndex === index ? 'bg-primary-50' : ''
-                    }`}
-                >
-                  <FiClock className="text-gray-400" />
-                  <span className="text-sm text-gray-700">{search}</span>
-                </button>
-              ))}
-            </div>
-          )}
+            )}
 
-          {/* Popular Searches */}
-          {!searchQuery.trim() && popularSearches.length > 0 && (
-            <div className="p-2 border-t border-gray-200">
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center gap-2">
-                <FiTrendingUp className="text-xs" />
-                Popular Searches
+            {/* Quick Suggestions Footer */}
+            {!query.trim() && (
+              <div className="mt-4 px-6 py-4 lg:py-3 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between rounded-b-3xl">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <div className="absolute w-4 h-4 rounded-full bg-green-500/20 animate-ping"></div>
+                  </div>
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Live Inventory</span>
+                </div>
+                <button className="text-[10px] font-black text-purple-600 hover:text-purple-700 uppercase tracking-[0.2em] hover:translate-x-1 transition-transform">
+                  Explore Everything
+                </button>
               </div>
-              {popularSearches.map((search, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSuggestionSelect(recentSearches.length + index)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left ${selectedIndex === recentSearches.length + index ? 'bg-primary-50' : ''
-                    }`}
-                >
-                  <FiTrendingUp className="text-gray-400" />
-                  <span className="text-sm text-gray-700">{search}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* No Results */}
-          {searchQuery.trim() && suggestions.length === 0 && (
-            <div className="p-4 text-center text-gray-500 text-sm">
-              No products found for "{searchQuery}"
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 export default SearchBar;
-

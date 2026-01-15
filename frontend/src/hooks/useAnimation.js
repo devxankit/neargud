@@ -8,32 +8,21 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-/**
- * Custom hook for GSAP animations
- * @param {string} animationType - Type of animation (fadeInUp, fadeIn, slideInLeft, etc.)
- * @param {number} delay - Delay in seconds
- * @param {object} dependencies - Dependencies array for useEffect
- */
 export const useGSAPAnimation = (animationType, delay = 0, dependencies = []) => {
   const elementRef = useRef(null);
-  const animationRef = useRef(null);
 
   useEffect(() => {
-    if (elementRef.current && gsapAnimations[animationType]) {
-      // Kill any existing animation
-      if (animationRef.current) {
-        animationRef.current.kill();
-      }
-      
-      // Create new animation and store reference
-      animationRef.current = gsapAnimations[animationType](elementRef.current, delay);
-    }
+    if (!elementRef.current || !gsapAnimations[animationType]) return;
 
-    // Cleanup function
+    const ctx = gsap.context(() => {
+      gsapAnimations[animationType](elementRef.current, delay);
+    });
+
     return () => {
-      if (animationRef.current) {
-        animationRef.current.kill();
-        animationRef.current = null;
+      try {
+        ctx.revert();
+      } catch (e) {
+        // Safe catch for GSAP removeChild issues
       }
     };
   }, dependencies);
@@ -47,31 +36,22 @@ export const useGSAPAnimation = (animationType, delay = 0, dependencies = []) =>
  */
 export const useScrollAnimation = (options = {}) => {
   const elementRef = useRef(null);
-  const scrollTriggerRef = useRef(null);
 
   useEffect(() => {
-    if (elementRef.current) {
-      // Kill any existing ScrollTrigger
-      if (scrollTriggerRef.current) {
-        scrollTriggerRef.current.kill();
-      }
+    if (!elementRef.current) return;
 
-      // Create animation and get ScrollTrigger instance
-      const animation = gsapAnimations.scrollReveal(elementRef.current, options);
-      
-      // Get the ScrollTrigger instance from the animation
-      if (animation && animation.scrollTrigger) {
-        scrollTriggerRef.current = animation.scrollTrigger;
-      }
-    }
+    const ctx = gsap.context(() => {
+      gsapAnimations.scrollReveal(elementRef.current, options);
+    });
 
-    // Cleanup function
     return () => {
-      if (scrollTriggerRef.current) {
-        scrollTriggerRef.current.kill();
-        scrollTriggerRef.current = null;
+      try {
+        ctx.revert();
+      } catch (e) {
+        // Safe catch for GSAP removeChild issues during cleanup
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return elementRef;

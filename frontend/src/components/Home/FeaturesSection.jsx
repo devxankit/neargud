@@ -1,16 +1,9 @@
-import { useRef, useEffect } from 'react';
 import { FiHeart, FiTruck, FiShield, FiHeadphones } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { gsapAnimations } from '../../utils/animations';
+import { useScrollAnimation } from '../../hooks/useAnimation';
 
 const FeaturesSection = () => {
-  const sectionRef = useRef(null);
-
-  useEffect(() => {
-    if (sectionRef.current) {
-      gsapAnimations.scrollReveal(sectionRef.current);
-    }
-  }, []);
+  const sectionRef = useScrollAnimation();
 
   const features = [
     {
@@ -101,4 +94,3 @@ const FeaturesSection = () => {
 };
 
 export default FeaturesSection;
-

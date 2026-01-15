@@ -1,15 +1,16 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FiSearch, 
-  FiEye, 
-  FiChevronDown, 
-  FiChevronUp, 
-  FiClock, 
-  FiCheckCircle, 
-  FiPackage, 
-  FiTruck, 
-  FiXCircle, 
+import { adminOrderApi } from '../../../services/adminOrderApi';
+import {
+  FiSearch,
+  FiEye,
+  FiChevronDown,
+  FiChevronUp,
+  FiClock,
+  FiCheckCircle,
+  FiPackage,
+  FiTruck,
+  FiXCircle,
   FiRotateCw,
   FiShoppingBag,
   FiFileText,
@@ -62,7 +63,7 @@ const OrderItemsDropdown = ({ items, orderTotal }) => {
       const spaceBelow = windowHeight - buttonRect.bottom;
       const spaceAbove = buttonRect.top;
       const dropdownHeight = 400; // max-h-[400px]
-      
+
       // Open upward if not enough space below but enough space above
       setOpenUpward(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
     }
@@ -121,31 +122,30 @@ const OrderItemsDropdown = ({ items, orderTotal }) => {
         {isOpen && (
           <motion.div
             ref={dropdownRef}
-            initial={{ 
-              opacity: 0, 
-              y: openUpward ? 10 : -10, 
-              scale: 0.95 
+            initial={{
+              opacity: 0,
+              y: openUpward ? 10 : -10,
+              scale: 0.95
             }}
-            animate={{ 
-              opacity: 1, 
-              y: 0, 
-              scale: 1 
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1
             }}
-            exit={{ 
-              opacity: 0, 
-              y: openUpward ? 10 : -10, 
-              scale: 0.95 
+            exit={{
+              opacity: 0,
+              y: openUpward ? 10 : -10,
+              scale: 0.95
             }}
-            transition={{ 
-              duration: 0.25, 
+            transition={{
+              duration: 0.25,
               ease: [0.4, 0, 0.2, 1],
               type: "spring",
               stiffness: 300,
               damping: 30
             }}
-            className={`absolute left-0 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-[85vw] sm:w-[500px] max-w-[600px] max-h-[400px] overflow-hidden ${
-              openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-            }`}
+            className={`absolute left-0 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-[85vw] sm:w-[500px] max-w-[600px] max-h-[400px] overflow-hidden ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+              }`}
             style={{ transformOrigin: openUpward ? 'bottom left' : 'top left' }}
           >
             <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -207,11 +207,11 @@ const OrderItemsDropdown = ({ items, orderTotal }) => {
 };
 
 // OrderActionsDropdown component
-const OrderActionsDropdown = ({ 
-  order, 
-  onOrderDetails, 
-  onGenerateInvoice, 
-  onOrderTracking, 
+const OrderActionsDropdown = ({
+  order,
+  onOrderDetails,
+  onGenerateInvoice,
+  onOrderTracking,
   onDeleteOrder,
   isOpen,
   onToggle,
@@ -229,7 +229,7 @@ const OrderActionsDropdown = ({
       const spaceBelow = windowHeight - buttonRect.bottom;
       const spaceAbove = buttonRect.top;
       const dropdownHeight = 200; // Estimated dropdown height
-      
+
       // Open upward if not enough space below but enough space above
       setOpenUpward(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
     }
@@ -321,25 +321,24 @@ const OrderActionsDropdown = ({
         {isOpen && (
           <motion.div
             ref={dropdownRef}
-            initial={{ 
-              opacity: 0, 
-              y: openUpward ? 10 : -10, 
-              scale: 0.95 
+            initial={{
+              opacity: 0,
+              y: openUpward ? 10 : -10,
+              scale: 0.95
             }}
-            animate={{ 
-              opacity: 1, 
-              y: 0, 
-              scale: 1 
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1
             }}
-            exit={{ 
-              opacity: 0, 
-              y: openUpward ? 10 : -10, 
-              scale: 0.95 
+            exit={{
+              opacity: 0,
+              y: openUpward ? 10 : -10,
+              scale: 0.95
             }}
             transition={{ duration: 0.2 }}
-            className={`absolute right-0 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[180px] overflow-hidden ${
-              openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-            }`}
+            className={`absolute right-0 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[180px] overflow-hidden ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+              }`}
             style={{ transformOrigin: openUpward ? 'bottom right' : 'top right' }}
           >
             <div className="py-1">
@@ -370,30 +369,59 @@ const OrderActionsDropdown = ({
 const AllOrders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [dateRange, setDateRange] = useState({
     startDate: '',
     endDate: '',
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     orderId: null,
   });
 
-  useEffect(() => {
-    const savedOrders = localStorage.getItem('admin-orders');
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    } else {
-      setOrders(mockOrders);
-      localStorage.setItem('admin-orders', JSON.stringify(mockOrders));
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: currentPage,
+        limit: limit,
+        status: selectedStatus !== 'all' ? selectedStatus : undefined,
+        search: searchQuery || undefined,
+        startDate: dateRange.startDate || undefined,
+        endDate: dateRange.endDate || undefined,
+      };
+      const response = await adminOrderApi.getOrders(params);
+      if (response?.success) {
+        setOrders(response.data.orders || []);
+        setTotalOrders(response.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to fetch orders');
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [currentPage, limit, selectedStatus, dateRange]);
+
+  // Handle search with debounce or manual trigger
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchOrders();
+  };
 
   // Calculate order status counts
   const orderStats = useMemo(() => {
+    // Note: Ideally these counts come from the stats API
     const stats = {
       awaiting: 0,
       received: 0,
@@ -402,32 +430,23 @@ const AllOrders = () => {
       delivered: 0,
       cancelled: 0,
       returned: 0,
-      total: orders.length,
+      total: totalOrders,
     };
 
     orders.forEach((order) => {
       const status = order.status?.toLowerCase() || '';
-      
-      // Map statuses to our categories
-      if (status === 'pending' || status === 'awaiting') {
-        stats.awaiting++;
-      } else if (status === 'received') {
-        stats.received++;
-      } else if (status === 'processing' || status === 'processed') {
-        stats.processed++;
-      } else if (status === 'shipped') {
-        stats.shipped++;
-      } else if (status === 'delivered') {
-        stats.delivered++;
-      } else if (status === 'cancelled' || status === 'canceled') {
-        stats.cancelled++;
-      } else if (status === 'returned') {
-        stats.returned++;
-      }
+
+      if (status === 'pending') stats.awaiting++;
+      else if (status === 'processing') stats.received++;
+      else if (status === 'ready_to_ship') stats.processed++;
+      else if (['shipped', 'dispatched'].includes(status)) stats.shipped++;
+      else if (status === 'delivered') stats.delivered++;
+      else if (status === 'cancelled') stats.cancelled++;
+      else if (status === 'returned') stats.returned++;
     });
 
     return stats;
-  }, [orders]);
+  }, [orders, totalOrders]);
 
   const filteredOrders = useMemo(() => {
     let filtered = orders;
@@ -435,9 +454,11 @@ const AllOrders = () => {
     if (searchQuery) {
       filtered = filtered.filter(
         (order) =>
-          order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+          (order.orderCode && order.orderCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (order._id && order._id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (order.customerSnapshot?.name && order.customerSnapshot.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (order.customerSnapshot?.email && order.customerSnapshot.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (order.customerId?.email && order.customerId.email.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -448,9 +469,9 @@ const AllOrders = () => {
     // Filter by date range
     if (dateRange.startDate || dateRange.endDate) {
       filtered = filtered.filter((order) => {
-        const orderDate = new Date(order.date);
+        const orderDate = new Date(order.createdAt || order.orderDate);
         orderDate.setHours(0, 0, 0, 0);
-        
+
         if (dateRange.startDate && dateRange.endDate) {
           const startDate = new Date(dateRange.startDate);
           startDate.setHours(0, 0, 0, 0);
@@ -532,21 +553,36 @@ const AllOrders = () => {
 
   const columns = [
     {
-      key: 'id',
+      key: 'orderCode',
       label: 'Order ID',
       sortable: true,
       render: (value) => <span className="font-semibold">{value}</span>,
     },
     {
-      key: 'customer',
+      key: 'customerId',
       label: 'Customer',
       sortable: true,
-      render: (value) => (
+      render: (value, row) => (
         <div>
-          <p className="font-medium text-gray-800">{value.name}</p>
-          <p className="text-xs text-gray-500">{value.email}</p>
+          <p className="font-medium text-gray-800">{row.customer?.name || 'N/A'}</p>
+          <p className="text-xs text-gray-500">{row.customer?.email || 'N/A'}</p>
         </div>
       ),
+    },
+    {
+      key: 'vendorBreakdown',
+      label: 'Vendor',
+      sortable: false,
+      render: (value, row) => {
+        const vendorName = value?.[0]?.vendorName || value?.[0]?.vendorId?.storeName || row.items?.[0]?.productId?.vendorName || 'N/A';
+        const vendorCount = value?.length || 0;
+        return (
+          <div>
+            <p className="font-medium text-gray-800">{vendorName}</p>
+            {vendorCount > 1 && <p className="text-xs text-blue-600">+{vendorCount - 1} more vendors</p>}
+          </div>
+        );
+      },
     },
     {
       key: 'items',
@@ -558,22 +594,11 @@ const AllOrders = () => {
     },
     {
       key: 'total',
-      label: 'Total ($)',
+      label: 'Total',
       sortable: true,
       render: (value) => (
         <span className="font-bold text-gray-800">{formatCurrency(value)}</span>
       ),
-    },
-    {
-      key: 'finalTotal',
-      label: 'Final Total ($)',
-      sortable: true,
-      render: (value, row) => {
-        const finalTotal = calculateFinalTotal(row);
-        return (
-          <span className="font-bold text-gray-800">{formatCurrency(finalTotal)}</span>
-        );
-      },
     },
     {
       key: 'paymentMethod',
@@ -586,7 +611,13 @@ const AllOrders = () => {
       ),
     },
     {
-      key: 'date',
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (value) => <Badge variant={value}>{value}</Badge>,
+    },
+    {
+      key: 'createdAt',
       label: 'Order Date',
       sortable: true,
       render: (value) => formatDateTime(value),
@@ -596,16 +627,25 @@ const AllOrders = () => {
       label: 'Actions',
       sortable: false,
       render: (_, row) => (
-        <OrderActionsDropdown
-          order={row}
-          onOrderDetails={handleOrderDetails}
-          onGenerateInvoice={handleGenerateInvoice}
-          onOrderTracking={handleOrderTracking}
-          onDeleteOrder={handleDeleteOrder}
-          isOpen={openDropdownId === row.id}
-          onToggle={() => handleDropdownToggle(row.id)}
-          onClose={handleDropdownClose}
-        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/admin/orders/${row._id}`)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="View Details"
+          >
+            <FiEye className="text-lg" />
+          </button>
+          <OrderActionsDropdown
+            order={row}
+            onOrderDetails={() => navigate(`/admin/orders/${row._id}`)}
+            onGenerateInvoice={() => navigate(`/admin/orders/${row._id}/invoice`)}
+            onOrderTracking={() => navigate(`/admin/orders/order-tracking?orderId=${row._id}`)}
+            onDeleteOrder={() => handleDeleteOrder(row._id)}
+            isOpen={openDropdownId === row._id}
+            onToggle={() => handleDropdownToggle(row._id)}
+            onClose={handleDropdownClose}
+          />
+        </div>
       ),
     },
   ];
@@ -697,7 +737,7 @@ const AllOrders = () => {
             >
               {/* Decorative gradient overlay */}
               <div className={`absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 ${card.bgColor} opacity-10 rounded-full -mr-12 -mt-12 sm:-mr-16 sm:-mt-16`}></div>
-              
+
               <div className="flex items-center justify-between mb-2 sm:mb-3 relative z-10">
                 <div className={`${card.bgColor} bg-white/20 p-2 sm:p-2.5 rounded-lg shadow-md`}>
                   <Icon className="text-white text-base sm:text-lg" />
@@ -780,9 +820,9 @@ const AllOrders = () => {
             <ExportButton
               data={filteredOrders}
               headers={[
-                { label: 'Order ID', accessor: (row) => row.id },
-                { label: 'Customer', accessor: (row) => row.customer.name },
-                { label: 'Email', accessor: (row) => row.customer.email },
+                { label: 'Order ID', accessor: (row) => row.orderCode || row._id },
+                { label: 'Customer', accessor: (row) => row.customer?.name || 'N/A' },
+                { label: 'Email', accessor: (row) => row.customer?.email || 'N/A' },
                 {
                   label: 'Items',
                   accessor: (row) => {

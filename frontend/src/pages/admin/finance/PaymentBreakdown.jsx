@@ -1,35 +1,41 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { FiCreditCard, FiDollarSign, FiSmartphone } from "react-icons/fi";
 import { motion } from "framer-motion";
 import PaymentBreakdownPieChart from "../../../components/Admin/Analytics/PaymentBreakdownPieChart";
-import { mockOrders } from "../../../data/adminMockData";
 import { formatCurrency } from "../../../utils/adminHelpers";
+import { fetchPaymentBreakdown } from "../../../services/adminFinanceApi";
+import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
+import { toast } from "react-hot-toast";
 
 const PaymentBreakdown = () => {
-  const [orders] = useState(mockOrders);
+  const [period, setPeriod] = useState("month");
+  const [paymentData, setPaymentData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const paymentBreakdown = useMemo(() => {
-    const breakdown = {
-      creditCard: { count: 0, total: 0 },
-      debitCard: { count: 0, total: 0 },
-      cash: { count: 0, total: 0 },
-      wallet: { count: 0, total: 0 },
-      upi: { count: 0, total: 0 },
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchPaymentBreakdown(period);
+        setPaymentData(data);
+      } catch (error) {
+        console.error("Failed to load payment breakdown:", error);
+        toast.error("Failed to load payment breakdown");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    orders.forEach((order) => {
-      const method = order.paymentMethod || "creditCard";
-      if (breakdown[method]) {
-        breakdown[method].count++;
-        breakdown[method].total += order.total;
-      }
-    });
+    loadData();
+  }, [period]);
 
-    return breakdown;
-  }, [orders]);
+  const transformedPaymentData = paymentData.reduce((acc, item) => {
+    acc[item.method] = { count: item.count, total: item.amount };
+    return acc;
+  }, {});
 
-  const totalAmount = Object.values(paymentBreakdown).reduce(
-    (sum, method) => sum + method.total,
+  const totalAmount = paymentData.reduce(
+    (sum, item) => sum + item.amount,
     0
   );
 
@@ -37,6 +43,7 @@ const PaymentBreakdown = () => {
     const icons = {
       creditCard: FiCreditCard,
       debitCard: FiCreditCard,
+      cod: FiDollarSign, // cash -> cod as per typical backend enum
       cash: FiDollarSign,
       wallet: FiSmartphone,
       upi: FiSmartphone,
@@ -48,12 +55,21 @@ const PaymentBreakdown = () => {
     const labels = {
       creditCard: "Credit Card",
       debitCard: "Debit Card",
+      cod: "Cash on Delivery",
       cash: "Cash",
       wallet: "Digital Wallet",
       upi: "UPI",
     };
     return labels[method] || method;
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -69,11 +85,24 @@ const PaymentBreakdown = () => {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">
+      <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+        <h3 className="text-lg font-bold text-gray-800">
           Total Payments: {formatCurrency(totalAmount)}
         </h3>
-        <PaymentBreakdownPieChart paymentData={paymentBreakdown} />
+        <AnimatedSelect
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          options={[
+            { value: "week", label: "Last 7 Days" },
+            { value: "month", label: "Last 30 Days" },
+            { value: "year", label: "Last Year" },
+          ]}
+          className="min-w-[140px]"
+        />
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <PaymentBreakdownPieChart paymentData={transformedPaymentData} />
       </div>
     </motion.div>
   );

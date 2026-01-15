@@ -6,53 +6,69 @@ import { formatCurrency, formatDateTime } from '../../../utils/adminHelpers';
 import { mockOrders } from '../../../data/adminMockData';
 import { useSettingsStore } from '../../../store/settingsStore';
 import toast from 'react-hot-toast';
+import { adminOrderApi } from '../../../services/adminOrderApi';
 
 const Invoice = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { settings } = useSettingsStore();
   const storeLogo = settings?.general?.storeLogo || '/images/logos/logo.png';
   const storeName = settings?.general?.storeName || 'Appzeto E-commerce';
 
   useEffect(() => {
-    const savedOrders = localStorage.getItem('admin-orders');
-    const orders = savedOrders ? JSON.parse(savedOrders) : mockOrders;
-    const foundOrder = orders.find((o) => o.id === id);
-    
-    if (foundOrder) {
-      setOrder(foundOrder);
-    } else {
-      toast.error('Order not found');
-      navigate('/admin/orders/all-orders');
-    }
+    const fetchOrder = async () => {
+      setLoading(true);
+      try {
+        const response = await adminOrderApi.getOrder(id);
+        if (response?.success) {
+          setOrder(response.data.order);
+        }
+      } catch (error) {
+        console.error('Error fetching order for invoice:', error);
+        toast.error('Order not found');
+        navigate('/admin/orders/all-orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrder();
   }, [id, navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500">Order not found.</p>
       </div>
     );
   }
 
   // Get order items - handle both array and number formats
-  const items = Array.isArray(order.items) 
-    ? order.items 
+  const items = Array.isArray(order.items)
+    ? order.items
     : Array.from({ length: order.items || 1 }, (_, i) => ({
-        id: i + 1,
-        name: `Item ${i + 1}`,
-        quantity: 1,
-        price: (order.total || 0) / (order.items || 1),
-      }));
+      id: i + 1,
+      name: `Item ${i + 1}`,
+      quantity: 1,
+      price: (order.total || 0) / (order.items || 1),
+    }));
 
   // Calculate totals
   const subtotal = order.subtotal || order.total || 0;
   const tax = order.tax || 0;
   const discount = order.discount || 0;
   const shipping = order.shipping || 0;
-  const finalTotal = order.finalTotal !== undefined 
-    ? order.finalTotal 
+  const finalTotal = order.finalTotal !== undefined
+    ? order.finalTotal
     : subtotal + tax + shipping - discount;
 
   // Format payment method
@@ -71,8 +87,8 @@ const Invoice = () => {
   const handleDownload = () => {
     const invoiceText = `
 INVOICE
-Order #${order.id}
-Date: ${formatDateTime(order.date)}
+Order #${order.orderCode || order._id}
+Date: ${formatDateTime(order.createdAt || order.orderDate)}
 
 Customer Information:
 ${order.customer?.name || 'N/A'}
@@ -134,7 +150,7 @@ ${order.trackingNumber ? `Tracking Number: ${order.trackingNumber}` : ''}
               </button>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Invoice</h1>
-                <p className="text-xs text-gray-500">Order #{order.id}</p>
+                <p className="text-xs text-gray-500">Order #{order.orderCode || order._id}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -180,12 +196,12 @@ ${order.trackingNumber ? `Tracking Number: ${order.trackingNumber}` : ''}
               </span>
             </div>
           </div>
-          
+
           {/* Invoice Title */}
           <div className="mt-6">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">INVOICE</h2>
-            <p className="text-gray-600">Order #<span className="font-semibold">{order.id}</span></p>
-            <p className="text-sm text-gray-500 mt-1">Date: {formatDateTime(order.date)}</p>
+            <p className="text-gray-600">Order #<span className="font-semibold">{order.orderCode || order._id}</span></p>
+            <p className="text-sm text-gray-500 mt-1">Date: {formatDateTime(order.createdAt || order.orderDate)}</p>
           </div>
         </div>
 

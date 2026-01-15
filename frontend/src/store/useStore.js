@@ -9,26 +9,31 @@ export const useCartStore = create(
     (set, get) => ({
       items: [],
       addItem: (item) => {
-        const product = getProductById(item.id);
-        if (!product) {
-          toast.error('Product not found');
+        // If the item itself has the necessary product details (stock info), use it
+        // This is crucial for dynamic products from backend that aren't in the static data
+        const productData = item.stockQuantity !== undefined ? item : getProductById(item.id);
+
+        if (!productData && !item.name) {
+          toast.error('Product details missing');
           return;
         }
 
-        if (product.stock === 'out_of_stock') {
+        const isOutOfStock = productData ? (productData.stock === 'out_of_stock' || productData.stockQuantity <= 0) : false;
+
+        if (isOutOfStock) {
           toast.error('Product is out of stock');
           return;
         }
 
-        const existingItem = get().items.find((i) => i.id === item.id);
+        const existingItem = get().items.find((i) => i.id === (item._id || item.id));
         const quantityToAdd = item.quantity || 1;
-        const newQuantity = existingItem 
+        const newQuantity = existingItem
           ? existingItem.quantity + quantityToAdd
           : quantityToAdd;
 
-        // Check stock limit
-        if (newQuantity > product.stockQuantity) {
-          toast.error(`Only ${product.stockQuantity} items available in stock`);
+        // Check stock limit if possible
+        if (productData && productData.stockQuantity !== undefined && newQuantity > productData.stockQuantity) {
+          toast.error(`Only ${productData.stockQuantity} items available in stock`);
           return;
         }
 
@@ -36,32 +41,33 @@ export const useCartStore = create(
           return;
         }
 
-        // Include vendor information from product
-        const itemWithVendor = {
+        // Ensure ID is consistent and include vendor info
+        const itemWithConsistentId = {
           ...item,
-          vendorId: product.vendorId || item.vendorId || 1,
-          vendorName: product.vendorName || item.vendorName || 'Unknown Vendor',
+          id: item._id || item.id,
+          vendorId: item.vendorId || (productData?.vendorId) || 1,
+          vendorName: item.name || (productData?.vendorName) || productData?.name,
         };
 
         set((state) => {
           if (existingItem) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id
-                  ? { ...i, ...itemWithVendor, quantity: Math.min(newQuantity, product.stockQuantity) }
+                i.id === (item._id || item.id)
+                  ? { ...i, ...itemWithConsistentId, quantity: newQuantity }
                   : i
               ),
             };
           }
           return {
-            items: [...state.items, { ...itemWithVendor, quantity: Math.min(quantityToAdd, product.stockQuantity) }],
+            items: [...state.items, { ...itemWithConsistentId, quantity: quantityToAdd }],
           };
         });
 
-        if (product.stock === 'low_stock' && newQuantity >= product.stockQuantity * 0.8) {
-          toast.warning(`Only ${product.stockQuantity} left in stock!`);
+        if (productData && productData.stock === 'low_stock' && newQuantity >= (productData.stockQuantity || 0) * 0.8) {
+          toast.warning(`Only ${productData.stockQuantity} left in stock!`);
         }
-        
+
         // Trigger cart animation
         const { triggerCartAnimation } = useUIStore.getState();
         triggerCartAnimation();
@@ -104,11 +110,11 @@ export const useCartStore = create(
       getItemsByVendor: () => {
         const state = useCartStore.getState();
         const vendorGroups = {};
-        
+
         state.items.forEach((item) => {
-          const vendorId = item.vendorId || 1;
-          const vendorName = item.vendorName || 'Unknown Vendor';
-          
+          const vendorId = item.vendorId || item.id || item._id; 
+          const vendorName = item.vendorName || item.name;
+
           if (!vendorGroups[vendorId]) {
             vendorGroups[vendorId] = {
               vendorId,
@@ -117,12 +123,12 @@ export const useCartStore = create(
               subtotal: 0,
             };
           }
-          
+
           const itemSubtotal = item.price * item.quantity;
           vendorGroups[vendorId].items.push(item);
           vendorGroups[vendorId].subtotal += itemSubtotal;
         });
-        
+
         return Object.values(vendorGroups);
       },
     }),

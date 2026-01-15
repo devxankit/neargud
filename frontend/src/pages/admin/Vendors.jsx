@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -8,9 +9,42 @@ import {
   FiDollarSign,
   FiBarChart2,
 } from "react-icons/fi";
+import { fetchVendorAnalytics, fetchPendingVendors } from "../../services/vendorApi";
+import { formatPrice } from "../../utils/helpers";
 
 const Vendors = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    revenue: 0,
+    avgCommission: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  const loadStats = async () => {
+    try {
+      const [analytics, pendingData] = await Promise.all([
+        fetchVendorAnalytics(),
+        fetchPendingVendors({ limit: 1 })
+      ]);
+
+      setStats({
+        total: analytics?.overall?.totalVendors || 0,
+        pending: pendingData?.total || 0,
+        revenue: analytics?.overall?.totalRevenue || 0,
+        avgCommission: 0.1 // Default or calculate from analytics if available
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const menuItems = [
     {
@@ -21,7 +55,7 @@ const Vendors = () => {
       lightGradient: "from-blue-50 via-blue-100/80 to-blue-50",
       shadowColor: "shadow-blue-500/20",
       hoverShadow: "hover:shadow-blue-500/30",
-      description: "View and manage all vendors",
+      description: `${stats.total} total vendors registered`,
     },
     {
       path: "/admin/vendors/pending-approvals",
@@ -31,7 +65,7 @@ const Vendors = () => {
       lightGradient: "from-yellow-50 via-yellow-100/80 to-yellow-50",
       shadowColor: "shadow-yellow-500/20",
       hoverShadow: "hover:shadow-yellow-500/30",
-      description: "Review pending vendor registrations",
+      description: `${stats.pending} vendors awaiting review`,
     },
     {
       path: "/admin/vendors/commission-rates",
@@ -41,7 +75,7 @@ const Vendors = () => {
       lightGradient: "from-green-50 via-green-100/80 to-green-50",
       shadowColor: "shadow-green-500/20",
       hoverShadow: "hover:shadow-green-500/30",
-      description: "Manage vendor commission rates",
+      description: `Default rate: 10.0%`,
     },
     {
       path: "/admin/vendors/vendor-analytics",
@@ -51,7 +85,7 @@ const Vendors = () => {
       lightGradient: "from-purple-50 via-purple-100/80 to-purple-50",
       shadowColor: "shadow-purple-500/20",
       hoverShadow: "hover:shadow-purple-500/30",
-      description: "View vendor performance analytics",
+      description: `Total platform revenue: ${formatPrice(stats.revenue)}`,
     },
   ];
 

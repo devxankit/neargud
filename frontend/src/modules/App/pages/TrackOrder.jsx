@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiCheckCircle, FiClock, FiPackage, FiTruck, FiMapPin, FiArrowLeft } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -13,16 +13,37 @@ import LazyImage from '../../../components/LazyImage';
 const MobileTrackOrder = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { getOrder } = useOrderStore();
+  const { getOrder, fetchOrder } = useOrderStore();
   const order = getOrder(orderId);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
+    const loadOrder = async () => {
+      setFetching(true);
+      try {
+        await fetchOrder(orderId);
+      } catch (error) {
+        console.error("Error fetching order tracking:", error);
+      } finally {
+        setFetching(false);
+      }
+    };
     if (!order) {
-      navigate('/app/orders');
+      loadOrder();
     }
-  }, [order, navigate]);
+  }, [orderId, fetchOrder, order]);
 
-  if (!order) {
+  if (!order && fetching) {
+    return (
+      <MobileLayout showBottomNav={false} showCartBar={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (!order && !fetching) {
     return (
       <PageTransition>
         <MobileLayout showBottomNav={false} showCartBar={false}>
@@ -57,20 +78,22 @@ const MobileTrackOrder = () => {
       {
         label: 'Order Placed',
         completed: true,
-        date: order.date,
+        date: order.date || order.createdAt,
         icon: FiCheckCircle,
       },
       {
         label: 'Processing',
         completed: ['processing', 'shipped', 'delivered'].includes(order.status),
-        date: order.status !== 'pending' ? new Date(new Date(order.date).getTime() + 24 * 60 * 60 * 1000).toISOString() : null,
+        date: (order.date || order.createdAt) && order.status !== 'pending'
+          ? new Date(new Date(order.date || order.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
+          : null,
         icon: FiPackage,
       },
       {
         label: 'Shipped',
         completed: ['shipped', 'delivered'].includes(order.status),
-        date: order.status === 'shipped' || order.status === 'delivered' 
-          ? new Date(new Date(order.date).getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
+        date: (order.date || order.createdAt) && (order.status === 'shipped' || order.status === 'delivered')
+          ? new Date(new Date(order.date || order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
           : null,
         icon: FiTruck,
       },
@@ -102,7 +125,7 @@ const MobileTrackOrder = () => {
                 </button>
                 <div className="flex-1">
                   <h1 className="text-xl font-bold text-gray-800">Track Order</h1>
-                  <p className="text-sm text-gray-600">Order #{order.id}</p>
+                  <p className="text-sm text-gray-600">Order #{order.orderCode || order._id || order.id}</p>
                 </div>
                 <Badge variant={order.status}>{order.status.toUpperCase()}</Badge>
               </div>
@@ -117,17 +140,15 @@ const MobileTrackOrder = () => {
                     const Icon = step.icon;
                     return (
                       <div key={index} className="flex items-start gap-4">
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                          step.completed
-                            ? 'gradient-green text-white'
-                            : 'bg-gray-200 text-gray-500'
-                        }`}>
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${step.completed
+                          ? 'gradient-green text-white'
+                          : 'bg-gray-200 text-gray-500'
+                          }`}>
                           <Icon className="text-lg" />
                         </div>
                         <div className="flex-1">
-                          <h3 className={`font-semibold text-sm mb-1 ${
-                            step.completed ? 'text-gray-800' : 'text-gray-500'
-                          }`}>
+                          <h3 className={`font-semibold text-sm mb-1 ${step.completed ? 'text-gray-800' : 'text-gray-500'
+                            }`}>
                             {step.label}
                           </h3>
                           <p className="text-xs text-gray-500">{formatDate(step.date)}</p>
@@ -201,7 +222,7 @@ const MobileTrackOrder = () => {
 
               {/* Actions */}
               <button
-                onClick={() => navigate(`/app/orders/${order.id}`)}
+                onClick={() => navigate(`/app/orders/${order._id || order.id}`)}
                 className="w-full py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all"
               >
                 View Order Details

@@ -22,23 +22,10 @@
     "title": "Products",
     "route": "/admin/products",
     "children": [
-      "Manage Products",
-      "Add Product",
-      "Bulk Upload",
-      "Tax & Pricing",
-      "Product Ratings",
-      "Product FAQs"
+      "Manage Products"
     ]
   },
-  {
-    "title": "Attribute Management",
-    "route": "/admin/attributes",
-    "children": [
-      "Attribute Sets",
-      "Attributes",
-      "Attribute Values"
-    ]
-  },
+
   {
     "title": "Categories",
     "route": "/admin/categories",
@@ -59,7 +46,6 @@
     "route": "/admin/customers",
     "children": [
       "View Customers",
-      "Addresses",
       "Transactions"
     ]
   },
@@ -80,10 +66,7 @@
     "title": "Vendors",
     "route": "/admin/vendors",
     "children": [
-      "Manage Vendors",
-      "Pending Approvals",
-      "Commission Rates",
-      "Vendor Analytics"
+      "Manage Vendors"
     ]
   },
   {
@@ -98,9 +81,7 @@
     "title": "Offers & Sliders",
     "route": "/admin/offers",
     "children": [
-      "Home Sliders",
-      "Festival Offers"
-    ]
+      "Home Sliders"    ]
   },
   {
     "title": "Promo Codes",
@@ -111,8 +92,7 @@
     "title": "Notifications",
     "route": "/admin/notifications",
     "children": [
-      "Push Notifications",
-      "Custom Messages"
+      "Send Notification"
     ]
   },
   {
@@ -149,18 +129,7 @@
     "route": "/admin/content",
     "children": []
   },
-  {
-    "title": "Settings",
-    "route": "/admin/settings",
-    "children": [
-      "General",
-      "Payment & Shipping",
-      "Orders & Customers",
-      "Products & Inventory",
-      "Content & Features",
-      "Notifications & SEO"
-    ]
-  },
+ 
   {
     "title": "Policies",
     "route": "/admin/policies",
@@ -170,12 +139,12 @@
       "Terms & Conditions"
     ]
   },
-  {
-    "title": "Firebase",
-    "route": "/admin/firebase",
+   {
+    "title": "Settings",
+    "route": "/admin/settings",
     "children": [
-      "Push Config",
-      "Authentication"
+      "Store",
+      "Contact"
     ]
   }
 ]

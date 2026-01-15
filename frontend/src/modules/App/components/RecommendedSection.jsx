@@ -3,12 +3,10 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FiThumbsUp, FiArrowRight } from "react-icons/fi";
 import ProductCard from "../../../components/ProductCard";
-import { getRecommendedProducts } from "../../../data/products";
 
-const RecommendedSection = () => {
-  const recommended = useMemo(() => getRecommendedProducts(6), []);
 
-  if (recommended.length === 0) {
+const RecommendedSection = ({ products = [], loading = false }) => {
+  if (!loading && products.length === 0) {
     return null;
   }
 
@@ -33,19 +31,25 @@ const RecommendedSection = () => {
           <FiArrowRight className="text-sm" />
         </Link>
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
-        {recommended.map((product, index) => (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className="flex-shrink-0 w-36"
-            style={{ minWidth: "144px" }}
-          >
-            <ProductCard product={product} />
-          </motion.div>
-        ))}
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 text-xs font-semibold">
+        {loading ? (
+          [1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex-shrink-0 w-36 aspect-[3/4] bg-gray-200 animate-pulse rounded-xl" />
+          ))
+        ) : (
+          products.map((product, index) => (
+            <motion.div
+              key={product._id || product.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex-shrink-0 w-36"
+              style={{ minWidth: "144px" }}
+            >
+              <ProductCard product={product} />
+            </motion.div>
+          ))
+        )}
       </div>
     </div>
   );

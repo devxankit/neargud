@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUsers, FiSearch, FiEye, FiMail, FiPhone } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -6,61 +6,85 @@ import DataTable from '../../../components/Admin/DataTable';
 import ExportButton from '../../../components/Admin/ExportButton';
 import { formatPrice } from '../../../utils/helpers';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
-import { useOrderStore } from '../../../store/orderStore';
+import { fetchVendorCustomers } from '../../../services/vendorCustomersApi';
+import { debounce } from 'lodash';
+import toast from 'react-hot-toast';
 
 const Customers = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { getVendorOrders } = useOrderStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [stats, setStats] = useState({
+    totalCustomers: 0,
+    totalRevenue: 0,
+    averageOrderValue: 0,
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  });
 
   const vendorId = vendor?.id;
-  const orders = vendorId ? getVendorOrders(vendorId) : [];
 
-  const customers = useMemo(() => {
-    const customerMap = {};
-
-    orders.forEach((order) => {
-      const vendorItem = order.vendorItems?.find((vi) => vi.vendorId === vendorId);
-      if (!vendorItem) return;
-
-      const customerId = order.userId || `guest-${order.id}`;
-      const customerName = order.customer?.name || 'Guest Customer';
-      const customerEmail = order.customer?.email || '';
-      const customerPhone = order.customer?.phone || '';
-
-      if (!customerMap[customerId]) {
-        customerMap[customerId] = {
-          id: customerId,
-          name: customerName,
-          email: customerEmail,
-          phone: customerPhone,
-          orders: 0,
-          totalSpent: 0,
-          lastOrderDate: null,
-        };
+  const loadCustomers = useCallback(async (params = {}) => {
+    if (!vendorId) return;
+    setLoading(true);
+    try {
+      const response = await fetchVendorCustomers({
+        search: params.search ?? searchQuery,
+        page: params.page ?? pagination.page,
+        limit: params.limit ?? pagination.limit,
+      });
+      if (response) {
+        setCustomers(response.customers || []);
+        setStats(response.stats || {
+          totalCustomers: 0,
+          totalRevenue: 0,
+          averageOrderValue: 0,
+        });
+        setPagination({
+          page: response.meta?.page || 1,
+          limit: response.meta?.limit || 10,
+          total: response.meta?.total || 0,
+          pages: response.meta?.pages || 0,
+        });
       }
+    } catch (error) {
+      console.error('Failed to load customers:', error);
+      // toast is already handled by api utility usually, but adding for extra safety
+      // toast.error('Failed to load customers');
+    } finally {
+      setLoading(false);
+    }
+  }, [vendorId, searchQuery, pagination.page, pagination.limit]);
 
-      customerMap[customerId].orders += 1;
-      customerMap[customerId].totalSpent += vendorItem.vendorEarnings || 0;
+  // Debounced search
+  const debouncedSearch = useCallback(
+    debounce((query) => {
+      loadCustomers({ search: query, page: 1 });
+    }, 500),
+    [loadCustomers]
+  );
 
-      const orderDate = new Date(order.date);
-      if (!customerMap[customerId].lastOrderDate || orderDate > new Date(customerMap[customerId].lastOrderDate)) {
-        customerMap[customerId].lastOrderDate = order.date;
-      }
-    });
+  useEffect(() => {
+    if (vendorId) {
+      loadCustomers();
+    }
+  }, [vendorId]);
 
-    return Object.values(customerMap);
-  }, [orders, vendorId]);
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    debouncedSearch(query);
+  };
 
-  const filteredCustomers = useMemo(() => {
-    if (!searchQuery) return customers;
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [customers, searchQuery]);
+  const handlePageChange = (newPage) => {
+    loadCustomers({ page: newPage });
+  };
 
   const columns = [
     {
@@ -122,7 +146,7 @@ const Customers = () => {
     },
   ];
 
-  if (!vendorId) {
+  if (!vendorId && !loading) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to view customers</p>
@@ -147,22 +171,20 @@ const Customers = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-2">Total Customers</p>
-          <p className="text-2xl font-bold text-gray-800">{customers.length}</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {loading ? '...' : stats.totalCustomers}
+          </p>
         </div>
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-2">Total Revenue</p>
           <p className="text-2xl font-bold text-gray-800">
-            {formatPrice(customers.reduce((sum, c) => sum + c.totalSpent, 0))}
+            {loading ? '...' : formatPrice(stats.totalRevenue)}
           </p>
         </div>
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-2">Average Order Value</p>
           <p className="text-2xl font-bold text-gray-800">
-            {formatPrice(
-              customers.length > 0
-                ? customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.length
-                : 0
-            )}
+            {loading ? '...' : formatPrice(stats.averageOrderValue)}
           </p>
         </div>
       </div>
@@ -175,14 +197,14 @@ const Customers = () => {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="Search customers..."
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm sm:text-base"
             />
           </div>
 
           <ExportButton
-            data={filteredCustomers}
+            data={customers}
             headers={[
               { label: 'Name', accessor: (row) => row.name },
               { label: 'Email', accessor: (row) => row.email },
@@ -197,12 +219,19 @@ const Customers = () => {
       </div>
 
       {/* Customers Table */}
-      {filteredCustomers.length > 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      ) : customers.length > 0 ? (
         <DataTable
-          data={filteredCustomers}
+          data={customers}
           columns={columns}
           pagination={true}
-          itemsPerPage={10}
+          currentPage={pagination.page}
+          totalPages={pagination.pages}
+          totalItems={pagination.total}
+          onPageChange={handlePageChange}
         />
       ) : (
         <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-200 text-center">
@@ -214,4 +243,3 @@ const Customers = () => {
 };
 
 export default Customers;
-

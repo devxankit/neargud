@@ -1,12 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { FiFilter, FiArrowLeft, FiGrid, FiList, FiX } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import MobileLayout from "../../../components/Layout/Mobile/MobileLayout";
 import ProductCard from "../../../components/ProductCard";
 import ProductListItem from "../components/ProductListItem";
-import { products } from "../../../data/products";
-import { categories as fallbackCategories } from "../../../data/categories";
+import { fetchPublicCategories, fetchPublicProducts, fetchActiveBanners, fetchPublicVendors, fetchRecommendedProducts } from "../../../services/publicApi";
 import { useCategoryStore } from "../../../store/categoryStore";
 import PageTransition from "../../../components/PageTransition";
 import useInfiniteScroll from "../../../hooks/useInfiniteScroll";
@@ -21,26 +20,21 @@ import RecommendedSection from "../components/RecommendedSection";
 const MobileCategory = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const categoryId = parseInt(id);
-  const { categories, initialize, getCategoryById, getCategoriesByParent } = useCategoryStore();
-  
-  // Initialize store on mount
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
+  // We use the string id for API calls, and a normalized version for themes if needed
+  const categoryId = id;
+  const { categories, getCategoryById, getCategoriesByParent } = useCategoryStore();
 
-  // Get category from store or fallback
-  const category = useMemo(() => {
-    const cat = getCategoryById(categoryId);
-    return cat || fallbackCategories.find((cat) => cat.id === categoryId);
-  }, [categoryId, categories, getCategoryById]);
-
-  // Get subcategories for this category
-  const subcategories = useMemo(() => {
-    if (!categoryId) return [];
-    return getCategoriesByParent(categoryId).filter(cat => cat.isActive !== false);
-  }, [categoryId, categories, getCategoriesByParent]);
-
+  const [category, setCategory] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
+  const [categoryProducts, setCategoryProducts] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [vendors, setVendors] = useState([]);
+  const [newArrivals, setNewArrivals] = useState([]);
+  const [recommended, setRecommended] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
   const [filters, setFilters] = useState({
@@ -49,13 +43,75 @@ const MobileCategory = () => {
     maxPrice: "",
     minRating: "",
   });
-  
+
   // Hero banner carousel state
   const [currentSlide, setCurrentSlide] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [autoSlidePaused, setAutoSlidePaused] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [catsRes, bannersRes, vendorsRes, arrivalsRes, recommendedRes] = await Promise.all([
+        fetchPublicCategories(),
+        fetchActiveBanners(), // We could also filter banners by category if backend supports it
+        fetchPublicVendors(),
+        fetchPublicProducts({ categoryId: id, limit: 6, sort: '-createdAt' }),
+        fetchPublicProducts({ categoryId: id, limit: 10, sort: '-popularity' }) // Category specific popular products
+      ]);
+      if (catsRes) {
+        const allCats = catsRes.data.categories || [];
+        const currentCat = allCats.find(c => (c._id) === id);
+        setCategory(currentCat);
+        setSubcategories(allCats.filter(c => c.parentId === id));
+      }
+
+      if (bannersRes.success) setBanners(bannersRes.data.banners || []);
+      if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
+      if (arrivalsRes.success) setNewArrivals(arrivalsRes.data.products || []);
+      if (recommendedRes.success) setRecommended(recommendedRes.data.products || []);
+
+    } catch (error) {
+      console.error("Error fetching category page data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProducts = async (pageNum = 1, append = false) => {
+    try {
+      setProductsLoading(true);
+      const params = {
+        categoryId: id,
+        page: pageNum,
+        limit: 10,
+        ...filters
+      };
+      const res = await fetchPublicProducts(params);
+      if (res.success) {
+        const newProducts = res.data.products;
+        setCategoryProducts(prev => append ? [...prev, ...newProducts] : newProducts);
+        setHasMore(newProducts.length === 10);
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchProducts(1, false);
+  }, [id]);
+
+  useEffect(() => {
+    fetchProducts(1, false);
+  }, [filters]);
+
 
   const slides = [
     { image: "/images/hero/slide1.png" },
@@ -66,13 +122,14 @@ const MobileCategory = () => {
 
   // Map category ID to theme tab - each category has a unique color theme
   const getThemeTab = (catId) => {
+    // If it's a numeric ID (legacy) or we can map common Mongo IDs
     const themeMap = {
-      1: 'fashion', // Clothing - Purple theme
-      2: 'footwear', // Footwear - Brown/leather theme
-      3: 'leather', // Bags - Leather theme
-      4: 'jewelry', // Jewelry - Golden theme
-      5: 'winter', // Accessories - Blue theme
-      6: 'sports', // Athletic - Blue theme
+      1: 'fashion',
+      2: 'footwear',
+      3: 'leather',
+      4: 'jewelry',
+      5: 'winter',
+      6: 'sports',
     };
     return themeMap[catId] || 'all';
   };
@@ -110,7 +167,7 @@ const MobileCategory = () => {
 
   const onTouchEnd = (e) => {
     if (e) e.stopPropagation();
-    
+
     if (touchStart === null) {
       setAutoSlidePaused(false);
       return;
@@ -154,36 +211,11 @@ const MobileCategory = () => {
     6: ["athletic", "running", "track", "sporty"],
   };
 
-  const categoryProducts = useMemo(() => {
-    if (!category) return [];
-
-    const keywords = categoryMap[categoryId] || [];
-    let result = products.filter((product) => {
-      const productName = product.name.toLowerCase();
-      return keywords.some((keyword) => productName.includes(keyword));
-    });
-
-    if (filters.minPrice) {
-      result = result.filter(
-        (product) => product.price >= parseFloat(filters.minPrice)
-      );
+  const loadMore = () => {
+    if (!productsLoading && hasMore) {
+      fetchProducts(page + 1, true);
     }
-    if (filters.maxPrice) {
-      result = result.filter(
-        (product) => product.price <= parseFloat(filters.maxPrice)
-      );
-    }
-    if (filters.minRating) {
-      result = result.filter(
-        (product) => product.rating >= parseFloat(filters.minRating)
-      );
-    }
-
-    return result;
-  }, [categoryId, category, filters]);
-
-  const { displayedItems, hasMore, isLoading, loadMore, loadMoreRef } =
-    useInfiniteScroll(categoryProducts, 10, 10);
+  };
 
   const filterButtonRef = useRef(null);
 
@@ -226,20 +258,16 @@ const MobileCategory = () => {
     };
   }, [showFilters]);
 
-  if (!category) {
+  if (loading) {
     return (
       <PageTransition>
-        <MobileLayout showBottomNav={false} showCartBar={false}>
-          <div className="flex items-center justify-center min-h-[60vh] px-4">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
-                Category Not Found
-              </h2>
-              <button
-                onClick={() => navigate("/app")}
-                className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
-                Go Back Home
-              </button>
+        <MobileLayout showBottomNav={false} showHeader={false}>
+          <div className="animate-pulse p-4">
+            <div className="w-full h-40 bg-gray-200 rounded-2xl mb-6"></div>
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="aspect-[3/4] bg-gray-200 rounded-xl"></div>
+              ))}
             </div>
           </div>
         </MobileLayout>
@@ -248,122 +276,166 @@ const MobileCategory = () => {
   }
 
   return (
-    <PageTransition>
-      <MobileLayout showBottomNav={true} showCartBar={true}>
-        <div className="w-full pb-24 overflow-x-hidden">
-          {/* PromoStrip - HOUSEFULL SALE Section with Hero Banner inside */}
-          <PromoStrip 
-            activeTab={activeTab} 
-            categoryName={category?.name}
-            categoryId={categoryId}
-            heroBanner={
-              <div className="py-2">
-                <div className="flex gap-4 overflow-x-auto scrollbar-hide" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', paddingLeft: '1.5rem' }}>
-                  {slides.map((slide, index) => (
-                    <div
-                      key={index}
-                      className="flex-shrink-0 rounded-2xl overflow-hidden"
-                      style={{
-                        width: '75%',
-                        maxWidth: '280px',
-                        height: '320px',
-                        scrollSnapAlign: 'start'
-                      }}>
-                      <LazyImage
-                        src={slide.image}
-                        alt={`Banner ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        draggable={false}
-                        onError={(e) => {
-                          e.target.src = `https://via.placeholder.com/400x200?text=Banner+${index + 1}`;
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
+    <MobileLayout showBottomNav={true} showCartBar={true}>
+      <div className="w-full pb-24 overflow-x-hidden">
+        {/* PromoStrip - HOUSEFULL SALE Section with Hero Banner inside */}
+        <PromoStrip
+          activeTab={activeTab}
+          categoryName={category?.name}
+          categoryId={id}
+          heroBanner={
+            <div className="py-2">
+              <div className="flex gap-4 overflow-x-auto scrollbar-hide" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', paddingLeft: '1.5rem' }}>
+                {banners.map((slide, index) => (
+                  <div
+                    key={index}
+                    className="flex-shrink-0 rounded-2xl overflow-hidden"
+                    style={{
+                      width: '75%',
+                      maxWidth: '280px',
+                      height: '240px',
+                      scrollSnapAlign: 'start'
+                    }}>
+                    <LazyImage
+                      src={slide.image}
+                      alt={slide.title || `Banner ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      draggable={false}
+                      onError={(e) => {
+                        e.target.src = `https://via.placeholder.com/400x200?text=Banner+${index + 1}`;
+                      }}
+                    />
+                  </div>
+                ))}
+                {banners.length === 0 && slides.map((slide, index) => (
+                  <div
+                    key={index}
+                    className="flex-shrink-0 rounded-2xl overflow-hidden"
+                    style={{
+                      width: '75%',
+                      maxWidth: '280px',
+                      height: '240px',
+                      scrollSnapAlign: 'start'
+                    }}>
+                    <LazyImage
+                      src={slide.image}
+                      alt={`Banner ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      draggable={false}
+                      onError={(e) => {
+                        e.target.src = `https://via.placeholder.com/400x200?text=Banner+${index + 1}`;
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-            }
-          />
+            </div>
+          }
+        />
 
-          {/* LowestPricesEver Section */}
-          <LowestPricesEver activeTab={activeTab} />
+        {/* LowestPricesEver Section */}
+        <LowestPricesEver activeTab={activeTab} />
 
-          {/* Brand Logos Scroll */}
-          <div className="mt-6">
-            <BrandLogosScroll />
+        {/* Brand Logos Scroll */}
+        <div className="mt-6">
+          <BrandLogosScroll />
+        </div>
+
+        {/* Featured Vendors Section */}
+        <FeaturedVendorsSection vendors={vendors} loading={loading} />
+
+        {/* New Arrivals */}
+        <NewArrivalsSection products={newArrivals} loading={loading} />
+
+        {/* Recommended for You */}
+        <RecommendedSection products={recommended} loading={loading} />
+
+        {/* Subcategories Grid */}
+        {subcategories.length > 0 && (
+          <div className="px-4 py-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 px-1">Shop by Subcategory</h2>
+            <div className="grid grid-cols-4 gap-3">
+              {subcategories.map((sub) => (
+                <Link
+                  key={sub._id || sub.id}
+                  to={`/app/category/${sub._id || sub.id}`}
+                  className="flex flex-col items-center gap-2 group"
+                >
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-md border border-gray-100 group-hover:scale-105 transition-transform duration-300">
+                    <LazyImage
+                      src={sub.image}
+                      alt={sub.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => e.target.src = 'https://via.placeholder.com/100?text=Cat'}
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tighter leading-tight">
+                    {sub.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* Featured Vendors Section */}
-          <FeaturedVendorsSection />
-
-          {/* New Arrivals */}
-          <NewArrivalsSection />
-
-          {/* Recommended for You */}
-          <RecommendedSection />
-
-          {/* Header */}
-          <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-0 z-30">
-            <div className="flex items-center gap-3 mb-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <FiArrowLeft className="text-xl text-gray-700" />
-              </button>
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                <LazyImage
-                  src={category.image}
-                  alt={category.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src =
-                      "https://via.placeholder.com/48x48?text=Category";
-                  }}
-                />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-xl font-bold text-gray-800">
-                  {category.name}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {categoryProducts.length} product
-                  {categoryProducts.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* View Toggle Buttons */}
-                <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`p-1.5 rounded transition-colors ${
-                      viewMode === "list"
-                        ? "bg-white text-primary-600 shadow-sm"
-                        : "text-gray-600"
+        {/* Header */}
+        <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-0 z-30">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <FiArrowLeft className="text-xl text-gray-700" />
+            </button>
+            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+              <LazyImage
+                src={category.image}
+                alt={category.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src =
+                    "https://via.placeholder.com/48x48?text=Category";
+                }}
+              />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-gray-800">
+                {category.name}
+              </h1>
+              <p className="text-sm text-gray-600">
+                {categoryProducts.length} product
+                {categoryProducts.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* View Toggle Buttons */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded transition-colors ${viewMode === "list"
+                    ? "bg-white text-primary-600 shadow-sm"
+                    : "text-gray-600"
                     }`}
-                  >
-                    <FiList className="text-lg" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={`p-1.5 rounded transition-colors ${
-                      viewMode === "grid"
-                        ? "bg-white text-primary-600 shadow-sm"
-                        : "text-gray-600"
+                >
+                  <FiList className="text-lg" />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded transition-colors ${viewMode === "grid"
+                    ? "bg-white text-primary-600 shadow-sm"
+                    : "text-gray-600"
                     }`}
-                  >
-                    <FiGrid className="text-lg" />
-                  </button>
+                >
+                  <FiGrid className="text-lg" />
+                </button>
               </div>
               <div ref={filterButtonRef} className="relative">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`p-2.5 glass-card rounded-xl hover:bg-white/80 transition-colors ${
-                    showFilters ? "bg-white/80" : ""
-                  }`}>
+                  className={`p-2.5 glass-card rounded-xl hover:bg-white/80 transition-colors ${showFilters ? "bg-white/80" : ""
+                    }`}>
                   <FiFilter
-                    className={`text-lg transition-colors ${
-                      hasActiveFilters ? "text-blue-600" : "text-gray-600"
-                    }`}
+                    className={`text-lg transition-colors ${hasActiveFilters ? "text-green-600" : "text-gray-600"
+                      }`}
                   />
                 </button>
 
@@ -479,12 +551,30 @@ const MobileCategory = () => {
                         {/* Footer */}
                         <div className="border-t border-gray-200 p-2 bg-gray-50 space-y-1.5">
                           <button
-                            onClick={clearFilters}
+                            onClick={() => {
+                              clearFilters();
+                              // We might want to auto-apply on clear, or wait for user to click Apply
+                              // Let's auto-apply for better UX
+                              setFilters({
+                                category: "",
+                                minPrice: "",
+                                maxPrice: "",
+                                minRating: "",
+                              });
+                              // Since state update is async, we can either use a separate effect or just close for now
+                              // But better to let user verify.
+                            }}
                             className="w-full py-1.5 bg-gray-200 text-gray-700 rounded-md font-semibold text-xs hover:bg-gray-300 transition-colors">
                             Clear All
                           </button>
                           <button
-                            onClick={() => setShowFilters(false)}
+                            onClick={() => {
+                              setShowFilters(false);
+                              // The useEffect listening to [filters] will trigger the fetch
+                              // But if filters state hasn't changed (e.g. valid input same value), it won't trigger
+                              // So we can force fetch if needed, but dependency array handles it if state changed.
+                              // If they just opened and closed without changing, no fetch needed.
+                            }}
                             className="w-full py-1.5 gradient-green text-white rounded-md font-semibold text-xs hover:shadow-glow-green transition-all">
                             Apply Filters
                           </button>
@@ -494,94 +584,103 @@ const MobileCategory = () => {
                   )}
                 </AnimatePresence>
               </div>
-              </div>
             </div>
           </div>
-
-          {/* Products List */}
-          <div className="px-4 py-4">
-            {categoryProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl text-gray-300 mx-auto mb-4">📦</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  No products found
-                </h3>
-                <p className="text-gray-600">
-                  There are no products available in this category at the
-                  moment.
-                </p>
-              </div>
-            ) : viewMode === "grid" ? (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  {displayedItems.map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}>
-                      <ProductCard product={product} />
-                    </motion.div>
-                  ))}
-                </div>
-
-                {hasMore && (
-                  <div
-                    ref={loadMoreRef}
-                    className="mt-6 flex flex-col items-center gap-4">
-                    {isLoading && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="text-sm">
-                          Loading more products...
-                        </span>
-                      </div>
-                    )}
-                    <button
-                      onClick={loadMore}
-                      disabled={isLoading}
-                      className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                      {isLoading ? "Loading..." : "Load More"}
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  {displayedItems.map((product, index) => (
-                    <ProductListItem
-                      key={product.id}
-                      product={product}
-                      index={index}
-                    />
-                  ))}
-                </div>
-
-                {hasMore && (
-                  <div
-                    ref={loadMoreRef}
-                    className="mt-6 flex flex-col items-center gap-4">
-                    {isLoading && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="text-sm">
-                          Loading more products...
-                        </span>
-                      </div>
-                    )}
-                    <button
-                      onClick={loadMore}
-                      disabled={isLoading}
-                      className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                      {isLoading ? "Loading..." : "Load More"}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
         </div>
-      </MobileLayout>
-    </PageTransition>
+
+        {/* Products List */}
+        <div className="px-4 py-4">
+          {productsLoading && categoryProducts.length === 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-2 space-y-3 shadow-sm animate-pulse">
+                  <div className="w-full aspect-square bg-slate-50 rounded-xl" />
+                  <div className="px-1 space-y-2">
+                    <div className="h-3 bg-slate-50 rounded w-5/6" />
+                    <div className="h-3 bg-slate-50 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : categoryProducts.length === 0 && !productsLoading && !loading ? (
+            <div className="text-center py-12">
+              <div className="text-6xl text-gray-300 mx-auto mb-4">📦</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                No products found
+              </h3>
+              <p className="text-gray-600">
+                There are no products available in this category at the
+                moment.
+              </p>
+            </div>
+          ) : (
+            <>
+              {viewMode === "grid" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    {categoryProducts.map((product, index) => (
+                      <motion.div
+                        key={product._id || product.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}>
+                        <ProductCard product={product} />
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <div className="mt-6 flex flex-col items-center gap-4">
+                      {productsLoading && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <FiLoader className="animate-spin text-xl" />
+                          <span>Loading more...</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={loadMore}
+                        disabled={productsLoading}
+                        className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {productsLoading ? "Loading..." : "Load More"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {categoryProducts.map((product, index) => (
+                      <ProductListItem
+                        key={product._id || product.id}
+                        product={product}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <div className="mt-6 flex flex-col items-center gap-4">
+                      {productsLoading && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <FiLoader className="animate-spin text-xl" />
+                          <span>Loading more...</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={loadMore}
+                        disabled={productsLoading}
+                        className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {productsLoading ? "Loading..." : "Load More"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </MobileLayout>
   );
 };
 

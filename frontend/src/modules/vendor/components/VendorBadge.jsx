@@ -7,7 +7,8 @@ const VendorBadge = ({ vendor, showVerified = true, size = 'sm', showLogo = true
   const location = useLocation();
   const navigate = useNavigate();
   const isMobileApp = location.pathname.startsWith('/app');
-  const vendorLink = isMobileApp ? `/app/vendor/${vendor?.id}` : `/vendor/${vendor?.id}`;
+  const vendorId = vendor?._id || vendor?.id;
+  const vendorLink = isMobileApp ? `/app/vendor/${vendorId}` : `/vendor/${vendorId}`;
 
   if (!vendor) return null;
 

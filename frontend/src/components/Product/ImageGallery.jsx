@@ -91,11 +91,10 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
               <button
                 key={index}
                 onClick={() => handleThumbnailClick(index)}
-                className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                  selectedIndex === index
-                    ? 'border-primary-600 scale-105'
-                    : 'border-gray-200'
-                }`}
+                className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${selectedIndex === index
+                  ? 'border-primary-600 scale-105'
+                  : 'border-gray-200'
+                  }`}
               >
                 <LazyImage
                   src={image}
@@ -118,7 +117,7 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center backdrop-blur-sm"
             onClick={() => setIsLightboxOpen(false)}
           >
             <button
@@ -133,15 +132,14 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative max-w-7xl max-h-[90vh] w-full"
+              className="relative flex items-center justify-center w-full h-full"
             >
               <img
                 src={imageArray[selectedIndex]}
                 alt={`${productName} - Full view`}
-                className="w-full h-full object-contain max-h-[90vh] rounded-lg"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/800x800?text=Product+Image';
-                }}
+                className="w-full h-full object-contain rounded-lg select-none shadow-2xl"
+                draggable={false}
+              style={{paddingTop:"10px" , marginTop:"20px"}}
               />
 
               {/* Navigation in Lightbox */}

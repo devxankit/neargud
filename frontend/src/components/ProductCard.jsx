@@ -15,11 +15,13 @@ import { getVendorById } from "../modules/vendor/data/vendors";
 
 const ProductCard = React.memo(({ product, hideRating = false }) => {
   const location = useLocation();
+  const productId = product._id || product.id;
+
   // Check if we're in the mobile app section
   const isMobileApp = location.pathname.startsWith("/app");
   const productLink = isMobileApp
-    ? `/app/product/${product.id}`
-    : `/product/${product.id}`;
+    ? `/app/product/${productId}`
+    : `/product/${productId}`;
 
   const cartItems = useCartStore((state) => state.items);
   const addItem = useCartStore((state) => state.addItem);
@@ -31,13 +33,15 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
 
   const wishlistAddItem = useWishlistStore((state) => state.addItem);
   const wishlistRemoveItem = useWishlistStore((state) => state.removeItem);
-  const isInWishlist = useWishlistStore((state) => state.isInWishlist);
 
-  const isFavorite = isInWishlist(product.id);
+  // Directly subscribe to state changes to trigger re-render
+  const isFavorite = useWishlistStore((state) =>
+    state.items.some((item) => (item._id || item.id) === productId)
+  );
   const [isAdding, setIsAdding] = useState(false);
 
-  // Find current cart item - Memoized to prevent finding on every render if items haven't changed
-  const cartItem = useMemo(() => cartItems.find((item) => item.id === product.id), [cartItems, product.id]);
+  // Find current cart item
+  const cartItem = useMemo(() => cartItems.find((item) => item.id === productId), [cartItems, productId]);
   const inCartQty = cartItem?.quantity || 0;
 
   const [showLongPressMenu, setShowLongPressMenu] = useState(false);
@@ -49,8 +53,13 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
   });
   const buttonRef = useRef(null);
 
-  // Memoize vendor to avoid repeated lookups
-  const vendor = useMemo(() => product.vendorId ? getVendorById(product.vendorId) : null, [product.vendorId]);
+  // Memoize vendor to support both populated object and static lookup
+  const vendor = useMemo(() => {
+    if (product.vendorId && typeof product.vendorId === 'object') {
+      return product.vendorId;
+    }
+    return product.vendorId ? getVendorById(product.vendorId) : null;
+  }, [product.vendorId]);
 
   const handleAddToCart = (e) => {
     if (e) {
@@ -65,7 +74,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
     const startX = buttonRect ? buttonRect.left + buttonRect.width / 2 : 0;
     const startY = buttonRect ? buttonRect.top + buttonRect.height / 2 : 0;
 
-    // Get cart bar position (prefer cart bar over header icon)
+    // Get cart bar position
     setTimeout(() => {
       const cartBar = document.querySelector("[data-cart-bar]");
       let endX = window.innerWidth / 2;
@@ -76,7 +85,6 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
         endX = cartRect.left + cartRect.width / 2;
         endY = cartRect.top + cartRect.height / 2;
       } else {
-        // Fallback to cart icon in header
         const cartIcon = document.querySelector("[data-cart-icon]");
         if (cartIcon) {
           const cartRect = cartIcon.getBoundingClientRect();
@@ -93,11 +101,14 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
     }, 50);
 
     addItem({
-      id: product.id,
+      id: productId,
       name: product.name,
       price: product.price,
+      originalPrice: product.originalPrice,
       image: product.image,
       quantity: 1,
+      applicableCoupons: product.applicableCoupons,
+      isCouponEligible: product.isCouponEligible,
     });
     triggerCartAnimation();
     toast.success("Added to cart!");
@@ -128,19 +139,19 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
 
   const longPressHandlers = useLongPress(handleLongPress, 500);
 
-  const handleFavorite = (e) => {
+  const toggleWishlist = useWishlistStore((state) => state.toggleWishlist);
+
+  const handleFavorite = async (e) => {
     e.stopPropagation();
-    if (isFavorite) {
-      wishlistRemoveItem(product.id);
-      toast.success("Removed from wishlist");
-    } else {
-      wishlistAddItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-      });
-      toast.success("Added to wishlist");
+    try {
+      await toggleWishlist(product);
+      if (!isFavorite) {
+        toast.success("Added to wishlist");
+      } else {
+        toast.success("Removed from wishlist");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to update wishlist");
     }
   };
 
@@ -151,37 +162,30 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
         className="rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-white"
         {...longPressHandlers}>
         <div className="relative">
-          {/* Favorite Icon */}
           <div className="absolute top-1.5 right-1.5 z-10">
             <button
               onClick={handleFavorite}
               className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
                 className={`text-xs transition-all duration-300 ${isFavorite
-                    ? "text-primary-700 fill-primary-700 scale-110"
-                    : "text-gray-400 group-hover:text-primary-500"
+                  ? "text-primary-700 fill-primary-700 scale-110"
+                  : "text-gray-400 group-hover:text-primary-500"
                   }`}
               />
             </button>
           </div>
 
-          {/* Product Image */}
           <Link to={productLink} className="block w-full">
             <div className="w-full aspect-square bg-neutral-50 flex items-center justify-center overflow-hidden relative">
               <LazyImage
                 src={product.image}
                 alt={product.name}
                 className="w-full h-full object-contain p-4 mix-blend-multiply"
-                onError={(e) => {
-                  e.target.src =
-                    "https://via.placeholder.com/300x300?text=Product+Image";
-                }}
               />
             </div>
           </Link>
         </div>
 
-        {/* Product Info */}
         <div className="p-2.5 flex-1 flex flex-col bg-white">
           <Link to={productLink}>
             <h3 className="font-bold text-gray-800 mb-1 line-clamp-2 text-xs transition-colors leading-tight min-h-[2.5em]">
@@ -192,7 +196,6 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
             {product.unit}
           </p>
 
-          {/* Vendor Badge */}
           {vendor && (
             <div className="mb-2">
               <VendorBadge
@@ -204,7 +207,6 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
             </div>
           )}
 
-          {/* Rating */}
           {!hideRating && (
             <div className="flex items-center gap-1 mb-1.5">
               <div className="flex items-center bg-green-50 px-1 py-0.5 rounded border border-green-100">
@@ -219,17 +221,16 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
             </div>
           )}
 
-          {/* Price */}
           <div className="flex items-center gap-1.5 mt-auto">
             <span className="text-sm font-bold text-gray-900">
               {formatPrice(product.price)}
             </span>
-            {product.originalPrice && (
+            {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-[10px] text-gray-400 line-through font-medium">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
-            {product.originalPrice && (
+            {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-[9px] font-bold text-green-600">
                 {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
               </span>
@@ -260,4 +261,5 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
   );
 });
 
+ProductCard.displayName = "ProductCard";
 export default ProductCard;

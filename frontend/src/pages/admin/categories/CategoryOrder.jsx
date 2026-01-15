@@ -5,16 +5,18 @@ import { useCategoryStore } from '../../../store/categoryStore';
 import toast from 'react-hot-toast';
 
 const CategoryOrder = () => {
-  const { categories, initialize } = useCategoryStore();
+  const { categories, fetchCategories, reorderCategories } = useCategoryStore();
   const [orderedCategories, setOrderedCategories] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    initialize();
-  }, []);
+    fetchCategories();
+  }, []); // Remove dependency on fetchCategories to avoid infinite loop if reference changes
 
   useEffect(() => {
     // Filter out subcategories (only show root categories)
     const rootCategories = categories.filter((cat) => !cat.parentId);
+    // Sort by displayOrder
     setOrderedCategories([...rootCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)));
   }, [categories]);
 
@@ -32,15 +34,19 @@ const CategoryOrder = () => {
     setOrderedCategories(newOrder);
   };
 
-  const handleSave = () => {
-    const updatedCategories = orderedCategories.map((cat, index) => ({
-      ...cat,
-      displayOrder: index + 1,
-    }));
-    
-    // In a real app, you would save this to the backend
-    localStorage.setItem('categories', JSON.stringify(updatedCategories));
-    toast.success('Category order saved successfully');
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Create array of IDs in new order
+      const categoryIds = orderedCategories.map(cat => cat.id);
+      await reorderCategories(categoryIds);
+      // Store already handles success toast
+    } catch (error) {
+      console.error('Failed to save order:', error);
+      // Store handles error toast
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -56,10 +62,11 @@ const CategoryOrder = () => {
         </div>
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 gradient-green text-white rounded-lg hover:shadow-glow-green transition-all font-semibold text-sm"
+          disabled={isSaving}
+          className="flex items-center gap-2 px-4 py-2 gradient-green text-white rounded-lg hover:shadow-glow-green transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FiSave />
-          <span>Save Order</span>
+          <span>{isSaving ? 'Saving...' : 'Save Order'}</span>
         </button>
       </div>
 

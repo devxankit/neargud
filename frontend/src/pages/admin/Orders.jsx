@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminOrderApi } from '../../services/adminOrderApi';
 import {
   FiShoppingBag,
   FiClock,
@@ -16,54 +17,50 @@ import { mockOrders } from '../../data/adminMockData';
 
 const Orders = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-
-  // Load orders from localStorage or use mock data
-  useEffect(() => {
-    const savedOrders = localStorage.getItem('admin-orders');
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    } else {
-      setOrders(mockOrders);
-      localStorage.setItem('admin-orders', JSON.stringify(mockOrders));
-    }
-  }, []);
-
-  // Calculate order statistics
-  const orderStats = useMemo(() => {
-    const stats = {
+  const [stats, setStats] = useState({
+    status: {
+      total: 0,
       pending: 0,
       processing: 0,
+      ready_to_ship: 0,
+      dispatched: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 0,
-      total: orders.length,
-      totalRevenue: 0,
+    },
+    payment: {},
+    revenue: { total: 0, orderCount: 0 }
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await adminOrderApi.getStats();
+        if (response?.success) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching order stats:', error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchStats();
+  }, []);
 
-    orders.forEach((order) => {
-      const status = order.status?.toLowerCase() || '';
-      
-      if (status === 'pending') {
-        stats.pending++;
-      } else if (status === 'processing') {
-        stats.processing++;
-      } else if (status === 'shipped') {
-        stats.shipped++;
-      } else if (status === 'delivered') {
-        stats.delivered++;
-      } else if (status === 'cancelled' || status === 'canceled') {
-        stats.cancelled++;
-      }
-
-      // Calculate total revenue from delivered orders
-      if (status === 'delivered') {
-        stats.totalRevenue += order.total || 0;
-      }
-    });
-
-    return stats;
-  }, [orders]);
+  // Use the stats from API
+  const orderStats = useMemo(() => {
+    return {
+      pending: stats.status.pending || 0,
+      processing: stats.status.processing || 0,
+      shipped: (stats.status.shipped || 0) + (stats.status.dispatched || 0) + (stats.status.shipped_seller || 0),
+      delivered: stats.status.delivered || 0,
+      cancelled: stats.status.cancelled || 0,
+      total: stats.status.total || 0,
+      totalRevenue: stats.revenue.total || 0,
+    };
+  }, [stats]);
 
   // Analytics cards configuration
   const analyticsCards = [
@@ -175,7 +172,7 @@ const Orders = () => {
             >
               {/* Decorative gradient overlay */}
               <div className={`absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 ${card.bgColor} opacity-10 rounded-full -mr-12 -mt-12 sm:-mr-16 sm:-mt-16`}></div>
-              
+
               <div className="flex items-center justify-between mb-2 sm:mb-3 relative z-10">
                 <div className={`${card.bgColor} bg-white/20 p-2 sm:p-2.5 rounded-lg shadow-md`}>
                   <Icon className="text-white text-base sm:text-lg" />

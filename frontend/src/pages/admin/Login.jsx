@@ -137,11 +137,11 @@ const AdminLogin = () => {
         </form>
 
         {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-primary-50 rounded-xl">
+        {/* <div className="mt-6 p-4 bg-primary-50 rounded-xl">
           <p className="text-sm text-gray-700 font-semibold mb-2">Demo Credentials:</p>
           <p className="text-xs text-gray-600">Email: admin@admin.com</p>
           <p className="text-xs text-gray-600">Password: admin123</p>
-        </div>
+        </div> */}
       </motion.div>
     </div>
   );

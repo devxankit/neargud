@@ -14,8 +14,13 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
 
   // Get root categories (parent categories)
   const rootCategories = useMemo(() => {
-    return getRootCategories().filter(cat => cat.isActive !== false);
-  }, [categories, getRootCategories]);
+    const activeRoots = getRootCategories().filter(cat => cat.isActive !== false);
+    // Filter out categories that don't have subcategories (as requested)
+    return activeRoots.filter(root => {
+      const subcats = getCategoriesByParent(root.id).filter(sub => sub.isActive !== false);
+      return subcats.length > 0;
+    });
+  }, [categories, getRootCategories, getCategoriesByParent]);
 
   // Get selected category and subcategory info
   const selectedCategory = value ? getCategoryById(value) : null;
@@ -71,37 +76,37 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
       const containerRect = containerRef.current.getBoundingClientRect();
       const parentDropdownRect = parentDropdownRef.current.getBoundingClientRect();
       const hoveredElement = parentDropdownRef.current.querySelector(`[data-category-id="${hoveredCategoryId}"]`);
-      
+
       if (hoveredElement) {
         const elementRect = hoveredElement.getBoundingClientRect();
         const dropdown = subcategoryDropdownRef.current;
         const viewportWidth = window.innerWidth;
         const dropdownWidth = 200; // min-w-[200px]
-        
+
         // Position to the right of the parent dropdown container
         // Calculate left position relative to container
         let left = parentDropdownRect.right - containerRect.left + 8; // Right edge of parent dropdown + gap
         // Calculate top position to align with hovered item, relative to container
         let top = elementRect.top - containerRect.top;
-        
+
         // Check if dropdown would overflow viewport, adjust if needed
         const rightEdge = parentDropdownRect.right + dropdownWidth + 8;
         if (rightEdge > viewportWidth - 20) {
           // Position to the left of parent dropdown instead
           left = parentDropdownRect.left - containerRect.left - dropdownWidth - 8;
         }
-        
+
         // Ensure dropdown doesn't go above or below viewport
         if (top < 0) {
           top = 0;
         }
-        
+
         // Ensure dropdown doesn't go below the parent dropdown
         const maxTop = parentDropdownRect.height - 40; // Leave some space
         if (top > maxTop) {
           top = maxTop;
         }
-        
+
         dropdown.style.top = `${top}px`;
         dropdown.style.left = `${left}px`;
       }
@@ -159,20 +164,19 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
       {/* Selected Value Display */}
       <button
         type="button"
-              onClick={() => {
-                setIsOpen(!isOpen);
-                // Clear any pending timeout when toggling
-                if (closeTimeoutRef.current) {
-                  clearTimeout(closeTimeoutRef.current);
-                  closeTimeoutRef.current = null;
-                }
-                if (!isOpen) {
-                  setHoveredCategoryId(null);
-                }
-              }}
-              className={`w-full px-4 py-2.5 text-left border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white flex items-center justify-between transition-all duration-200 hover:border-primary-400 ${
-                !value ? 'text-gray-500' : 'text-gray-900'
-              }`}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          // Clear any pending timeout when toggling
+          if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+          }
+          if (!isOpen) {
+            setHoveredCategoryId(null);
+          }
+        }}
+        className={`w-full px-4 py-2.5 text-left border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white flex items-center justify-between transition-all duration-200 hover:border-primary-400 ${!value ? 'text-gray-500' : 'text-gray-900'
+          }`}
       >
         <span className="truncate">{displayText}</span>
         <FiChevronDown
@@ -196,7 +200,7 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
               }}
               className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 sm:hidden"
             />
-            
+
             {/* Categories Dropdown */}
             <motion.div
               ref={parentDropdownRef}
@@ -225,15 +229,19 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
                       >
                         <motion.div
                           whileHover={{ backgroundColor: isSelected ? 'rgba(40, 116, 240, 0.1)' : 'rgba(249, 250, 251, 1)' }}
-                          className={`px-4 py-2 cursor-pointer flex items-center justify-between transition-colors duration-150 ${
-                            isSelected
-                              ? 'bg-primary-50 text-primary-600'
-                              : 'text-gray-900'
-                          }`}
-                          onClick={() => {
-                            if (!hasSubcategories) {
-                              handleCategorySelect(category.id);
+                          className={`px-4 py-2 cursor-pointer flex items-center justify-between transition-colors duration-150 ${isSelected
+                            ? 'bg-primary-50 text-primary-600'
+                            : 'text-gray-900'
+                            }`}
+                          onClick={(e) => {
+                            if (hasSubcategories) {
+                              if (window.innerWidth < 640) {
+                                setHoveredCategoryId(hoveredCategoryId === category.id ? null : category.id);
+                              }
+                              // Do not select parent category if it has subcategories
+                              return;
                             }
+                            handleCategorySelect(category.id);
                           }}
                           onMouseEnter={() => {
                             if (hasSubcategories) {
@@ -256,7 +264,7 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
                                 const rect = subcategoryDropdownRef.current.getBoundingClientRect();
                                 const x = e.clientX;
                                 const y = e.clientY;
-                                const isHoveringSub = 
+                                const isHoveringSub =
                                   x >= rect.left && x <= rect.right &&
                                   y >= rect.top && y <= rect.bottom;
                                 if (!isHoveringSub) {
@@ -317,11 +325,10 @@ const CategorySelector = ({ value, subcategoryId, onChange, required = false, cl
                         key={subcategory.id}
                         onClick={() => handleSubcategorySelect(subcategory.id, hoveredCategoryId)}
                         whileHover={{ backgroundColor: isSubSelected ? 'rgba(40, 116, 240, 0.1)' : 'rgba(249, 250, 251, 1)' }}
-                        className={`px-4 py-2 cursor-pointer transition-colors duration-150 ${
-                          isSubSelected
-                            ? 'bg-primary-50 text-primary-600'
-                            : 'text-gray-900'
-                        }`}
+                        className={`px-4 py-2 cursor-pointer transition-colors duration-150 ${isSubSelected
+                          ? 'bg-primary-50 text-primary-600'
+                          : 'text-gray-900'
+                          }`}
                       >
                         {subcategory.name}
                       </motion.div>

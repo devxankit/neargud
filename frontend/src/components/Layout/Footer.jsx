@@ -1,20 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FiShoppingBag, FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import { FaFacebook, FaTwitter, FaInstagram, FaYoutube } from 'react-icons/fa';
+import { useSettingsStore } from '../../store/settingsStore';
 import toast from 'react-hot-toast';
 
 const Footer = () => {
   const location = useLocation();
   const [email, setEmail] = useState('');
-  
+  const { settings, initialize } = useSettingsStore();
+
+  useEffect(() => {
+    initialize();
+  }, []);
+
   // Hide footer on mobile app routes and checkout-related routes
-  const isCheckoutRoute = 
-    location.pathname.startsWith('/checkout') || 
+  const isCheckoutRoute =
+    location.pathname.startsWith('/checkout') ||
     location.pathname.startsWith('/app/checkout') ||
-    location.pathname.startsWith('/order-confirmation') || 
+    location.pathname.startsWith('/order-confirmation') ||
     location.pathname.startsWith('/app/order-confirmation') ||
-    location.pathname.startsWith('/track-order') || 
+    location.pathname.startsWith('/track-order') ||
     location.pathname.startsWith('/app/track-order');
 
   if (location.pathname.startsWith('/app') || isCheckoutRoute) {
@@ -44,11 +50,11 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { icon: FaFacebook, href: '#' },
-    { icon: FaTwitter, href: '#' },
-    { icon: FaInstagram, href: '#' },
-    { icon: FaYoutube, href: '#' },
-  ];
+    { icon: FaFacebook, href: settings?.general?.socialMedia?.facebook || '#' },
+    { icon: FaTwitter, href: settings?.general?.socialMedia?.twitter || '#' },
+    { icon: FaInstagram, href: settings?.general?.socialMedia?.instagram || '#' },
+    { icon: FaYoutube, href: settings?.general?.socialMedia?.youtube || '#' },
+  ].filter(link => link.href !== '#');
 
   return (
     <footer className="text-white mt-20 relative overflow-hidden" style={{ background: '#000000' }}>
@@ -64,11 +70,17 @@ const Footer = () => {
           <div className="space-y-6">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 cursor-pointer group">
-              <div className="w-12 h-12 gradient-accent rounded-xl flex items-center justify-center shadow-glow-accent group-hover:scale-110 transition-all duration-300">
-                <FiShoppingBag className="text-white text-xl" />
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-glow-accent group-hover:scale-110 transition-all duration-300 overflow-hidden">
+                {settings?.general?.storeLogo ? (
+                  <img src={settings.general.storeLogo} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <FiShoppingBag className="text-primary-600 text-xl" />
+                )}
               </div>
               <span className="text-2xl font-extrabold">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-300 to-accent-500">Appzeto E-commerce</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-300 to-accent-500">
+                  {settings?.general?.storeName || 'Appzeto E-commerce'}
+                </span>
               </span>
             </Link>
 
@@ -143,32 +155,31 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contact Information */}
           <div>
             <h3 className="text-xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-accent-300 to-accent-500">Contact</h3>
             <ul className="space-y-4">
               <li className="flex items-start gap-3 group">
                 <FiMapPin className="text-accent-400 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="text-primary-100 text-sm font-medium group-hover:text-accent-300 transition-colors">
-                  House : 25, Road No: 2, Block A, Mirpur-1, Dhaka 1216
+                  {settings?.general?.address || 'House : 25, Road No: 2, Block A, Mirpur-1, Dhaka 1216'}
                 </span>
               </li>
               <li className="flex items-center gap-3 group">
                 <FiMail className="text-accent-400 flex-shrink-0 group-hover:scale-110 transition-transform" />
                 <a
-                  href="mailto:info@inilabs.net"
+                  href={`mailto:${settings?.general?.contactEmail || 'info@inilabs.net'}`}
                   className="text-primary-100 hover:text-accent-300 transition-all duration-300 text-sm font-medium"
                 >
-                  info@inilabs.net
+                  {settings?.general?.contactEmail || 'info@inilabs.net'}
                 </a>
               </li>
               <li className="flex items-center gap-3 group">
                 <FiPhone className="text-accent-400 flex-shrink-0 group-hover:scale-110 transition-transform" />
                 <a
-                  href="tel:+8801333384628"
+                  href={`tel:${settings?.general?.contactPhone || '+8801333384628'}`}
                   className="text-primary-100 hover:text-accent-300 transition-all duration-300 text-sm font-medium"
                 >
-                  +8801333384628
+                  {settings?.general?.contactPhone || '+8801333384628'}
                 </a>
               </li>
             </ul>

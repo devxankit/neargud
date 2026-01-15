@@ -1,21 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { FiPackage, FiShoppingBag, FiDollarSign, FiTrendingUp, FiArrowRight } from 'react-icons/fi';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
-import { useVendorStore } from '../store/vendorStore';
-import { useOrderStore } from '../../../store/orderStore';
-import { useCommissionStore } from '../../../store/commissionStore';
 import { formatPrice } from '../../../utils/helpers';
-import { initializeFashionHubData } from '../../../utils/initializeFashionHubData';
+import { fetchPerformanceMetrics, fetchOrderStats } from '../../../services/vendorDashboardApi';
+import { fetchStockStats } from '../../../services/vendorStockApi';
+import toast from 'react-hot-toast';
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { getVendorProducts, getVendorStats } = useVendorStore();
-  const { getVendorOrders } = useOrderStore();
-  const { getVendorEarningsSummary } = useCommissionStore();
 
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProducts: 0,
     inStockProducts: 0,
@@ -25,57 +22,72 @@ const VendorDashboard = () => {
     pendingEarnings: 0,
   });
 
-  const vendorId = vendor?.id;
-
-  // Initialize dummy data for Fashion Hub vendor (id: 1) on first load
-  useEffect(() => {
-    if (vendorId === 1) {
-      // Check if data has already been initialized
-      const hasInitialized = localStorage.getItem('fashionhub-data-initialized');
-      if (!hasInitialized) {
-        initializeFashionHubData();
-        localStorage.setItem('fashionhub-data-initialized', 'true');
-      }
-    }
-  }, [vendorId]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
 
   useEffect(() => {
-    if (vendorId) {
-      // Get vendor statistics
-      const vendorStats = getVendorStats(vendorId);
-      if (vendorStats) {
-        setStats((prev) => ({
-          ...prev,
-          totalProducts: vendorStats.totalProducts,
-          inStockProducts: vendorStats.inStockProducts,
-        }));
-      }
+    const loadDashboardData = async () => {
+      setLoading(true);
+      try {
+        // Run all fetch requests in parallel
+        const [performanceRes, orderStatsRes, stockStatsRes] = await Promise.all([
+          fetchPerformanceMetrics('all'),
+          fetchOrderStats(),
+          fetchStockStats()
+        ]);
+console.log(performanceRes,"JBJBIJB");
+        // Process Performance Metrics
+        if (performanceRes) {
+          const { metrics, earnings, recentOrders: apiRecentOrders, topProducts: apiTopProducts } = performanceRes;
 
-      // Get vendor orders
-      const orders = getVendorOrders(vendorId);
-      setStats((prev) => ({
-        ...prev,
-        totalOrders: orders.length,
-        pendingOrders: orders.filter((o) => o.status === 'pending' || o.status === 'processing').length,
-      }));
+          setStats(prev => ({
+            ...prev,
+            totalEarnings: earnings.totalEarnings || 0,
+            pendingEarnings: earnings.pendingEarnings || 0,
+            totalProducts: metrics.totalProducts || 0, // Fallback if stockStats fails
+          }));
 
-      // Get earnings summary
-      const earningsSummary = getVendorEarningsSummary(vendorId);
-      if (earningsSummary) {
-        setStats((prev) => ({
-          ...prev,
-          totalEarnings: earningsSummary.totalEarnings,
-          pendingEarnings: earningsSummary.pendingEarnings,
-        }));
+          setRecentOrders(apiRecentOrders || []);
+          setTopProducts(apiTopProducts || []);
+        }
+
+        // Process Order Stats
+        if ( orderStatsRes) {
+          setStats(prev => ({
+            ...prev,
+            totalOrders: orderStatsRes.total || 0,
+            pendingOrders: (orderStatsRes.pending || 0) + (orderStatsRes.processing || 0), // Pending typically includes processing
+          }));
+        }
+
+        // Process Stock Stats
+        if (stockStatsRes.success && stockStatsRes && stockStatsRes.stats) {
+          setStats(prev => ({
+            ...prev,
+            totalProducts: stockStatsRes.stats.totalProducts || prev.totalProducts,
+            inStockProducts: stockStatsRes.stats.inStock || 0,
+          }));
+        }
+
+      } catch (error) {
+        console.error('Failed to load dashboard data', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (vendor?.id) {
+      loadDashboardData();
     }
-  }, [vendorId, getVendorStats, getVendorOrders, getVendorEarningsSummary]);
+  }, [vendor]);
 
   const statCards = [
     {
       icon: FiPackage,
       label: 'Total Products',
       value: stats.totalProducts,
+      subValue: `${stats.inStockProducts} In Stock`,
       color: 'bg-blue-500',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-700',
@@ -85,24 +97,27 @@ const VendorDashboard = () => {
       icon: FiShoppingBag,
       label: 'Total Orders',
       value: stats.totalOrders,
+      subValue: 'Lifetime',
       color: 'bg-green-500',
       bgColor: 'bg-green-50',
       textColor: 'text-green-700',
-      link: '/vendor/orders',
+      link: '/vendor/orders/all-orders',
     },
     {
       icon: FiTrendingUp,
       label: 'Pending Orders',
       value: stats.pendingOrders,
+      subValue: 'Needs Attention',
       color: 'bg-orange-500',
       bgColor: 'bg-orange-50',
       textColor: 'text-orange-700',
-      link: '/vendor/orders',
+      link: '/vendor/orders/pending-orders',
     },
     {
       icon: FiDollarSign,
       label: 'Total Earnings',
       value: formatPrice(stats.totalEarnings || 0),
+      subValue: `Pending: ${formatPrice(stats.pendingEarnings || 0)}`,
       color: 'bg-purple-500',
       bgColor: 'bg-purple-50',
       textColor: 'text-purple-700',
@@ -110,16 +125,17 @@ const VendorDashboard = () => {
     },
   ];
 
-  const recentOrders = useMemo(() => {
-    if (!vendorId) return [];
-    const orders = getVendorOrders(vendorId);
-    return orders.slice(0, 5);
-  }, [vendorId, getVendorOrders]);
+  if (!vendor) {
+    return <div className="p-8 text-center text-gray-500">Please log in to view dashboard.</div>;
+  }
 
-  const vendorProducts = useMemo(() => {
-    if (!vendorId) return [];
-    return getVendorProducts(vendorId).slice(0, 5);
-  }, [vendorId, getVendorProducts]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -146,16 +162,19 @@ const VendorDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             onClick={() => stat.link && navigate(stat.link)}
-            className={`${stat.bgColor} rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow`}
+            className={`${stat.bgColor} rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow border border-transparent hover:border-${stat.textColor.split('-')[1]}-200`}
           >
             <div className="flex items-center justify-between mb-2">
-              <div className={`${stat.color} p-3 rounded-lg`}>
+              <div className={`${stat.color} p-3 rounded-lg shadow-sm`}>
                 <stat.icon className="text-white text-xl" />
               </div>
-              <FiArrowRight className={`${stat.textColor} text-lg`} />
+              <FiArrowRight className={`${stat.textColor} text-lg opacity-60`} />
             </div>
             <h3 className={`${stat.textColor} text-sm font-medium mb-1`}>{stat.label}</h3>
             <p className={`${stat.textColor} text-2xl font-bold`}>{stat.value}</p>
+            {stat.subValue && (
+              <p className={`text-xs ${stat.textColor} opacity-80 mt-1`}>{stat.subValue}</p>
+            )}
           </motion.div>
         ))}
       </div>
@@ -166,9 +185,9 @@ const VendorDashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <button
             onClick={() => navigate('/vendor/products/add-product')}
-            className="flex items-center gap-3 p-4 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors text-left border border-primary-100"
           >
-            <div className="bg-primary-500 p-2 rounded-lg">
+            <div className="bg-primary-500 p-2 rounded-lg shadow-sm">
               <FiPackage className="text-white text-xl" />
             </div>
             <div>
@@ -178,10 +197,10 @@ const VendorDashboard = () => {
           </button>
 
           <button
-            onClick={() => navigate('/vendor/orders')}
-            className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
+            onClick={() => navigate('/vendor/orders/all-orders')}
+            className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left border border-green-100"
           >
-            <div className="bg-green-500 p-2 rounded-lg">
+            <div className="bg-green-500 p-2 rounded-lg shadow-sm">
               <FiShoppingBag className="text-white text-xl" />
             </div>
             <div>
@@ -192,9 +211,9 @@ const VendorDashboard = () => {
 
           <button
             onClick={() => navigate('/vendor/earnings')}
-            className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
+            className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left border border-purple-100"
           >
-            <div className="bg-purple-500 p-2 rounded-lg">
+            <div className="bg-purple-500 p-2 rounded-lg shadow-sm">
               <FiDollarSign className="text-white text-xl" />
             </div>
             <div>
@@ -224,40 +243,41 @@ const VendorDashboard = () => {
                 <div
                   key={order.id}
                   onClick={() => navigate(`/vendor/orders/${order.id}`)}
-                  className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-gray-200"
                 >
                   <div>
-                    <p className="font-semibold text-gray-800">{order.id}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-semibold text-gray-800 text-sm">{order.id}</p>
+                    <p className="text-xs text-gray-500">
                       {new Date(order.date).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-800">{formatPrice(order.total || 0)}</p>
+                    <p className="font-semibold text-gray-800 text-sm">{formatPrice(order.total || 0)}</p>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        order.status === 'delivered'
+                      className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${order.status === 'delivered'
                           ? 'bg-green-100 text-green-700'
-                          : order.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}
+                          : order.status === 'pending' || order.status === 'processing'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}
                     >
-                      {order.status}
+                      {(order.status || 'unknown').replace('_', ' ')}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No orders yet</p>
+            <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+              <p className="text-gray-500 text-sm">No orders yet</p>
+            </div>
           )}
         </div>
 
         {/* Top Products */}
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Your Products</h2>
+            <h2 className="text-lg font-bold text-gray-800">Top Products</h2>
             <button
               onClick={() => navigate('/vendor/products')}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -265,43 +285,33 @@ const VendorDashboard = () => {
               View All
             </button>
           </div>
-          {vendorProducts.length > 0 ? (
+          {topProducts.length > 0 ? (
             <div className="space-y-3">
-              {vendorProducts.map((product) => (
+              {topProducts.map((product) => (
                 <div
                   key={product.id}
                   onClick={() => navigate(`/vendor/products/${product.id}`)}
-                  className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+                  className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-gray-200"
                 >
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-12 h-12 object-cover rounded-lg"
+                    className="w-10 h-10 object-cover rounded-lg bg-white"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/40?text=Prod';
+                    }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                    <p className="text-sm text-gray-600">{formatPrice(product.price || 0)}</p>
+                    <p className="font-semibold text-gray-800 truncate text-sm">{product.name}</p>
+                    <p className="text-xs text-gray-500">{product.sales} sold • {formatPrice(product.revenue || 0)} Revenue</p>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      product.stock === 'in_stock'
-                        ? 'bg-green-100 text-green-700'
-                        : product.stock === 'low_stock'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {product.stock === 'in_stock'
-                      ? 'In Stock'
-                      : product.stock === 'low_stock'
-                      ? 'Low Stock'
-                      : 'Out of Stock'}
-                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No products yet</p>
+            <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+              <p className="text-gray-500 text-sm">No products data available</p>
+            </div>
           )}
         </div>
       </div>
@@ -310,4 +320,3 @@ const VendorDashboard = () => {
 };
 
 export default VendorDashboard;
-

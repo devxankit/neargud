@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiSearch,
@@ -17,59 +18,39 @@ import Badge from "../../../../components/Badge";
 import AnimatedSelect from "../../../../components/Admin/AnimatedSelect";
 import { formatPrice } from "../../../../utils/helpers";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
-import { useOrderStore } from "../../../../store/orderStore";
+import { useVendorOrderStore } from "../../store/vendorOrderStore";
 import toast from 'react-hot-toast';
 
 const AllOrders = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { orders } = useOrderStore();
-  const [vendorOrders, setVendorOrders] = useState([]);
+  const {
+    orders,
+    fetchOrders,
+    isLoading
+  } = useVendorOrderStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const vendorId = vendor?.id;
+  const vendorId = vendor?.id || vendor?._id;
 
-  // Filter orders to only show those containing vendor's products
+  // Fetch orders from API
   useEffect(() => {
-    if (!vendorId || !orders) {
-      setVendorOrders([]);
-      return;
+    if (vendorId) {
+      const params = {};
+      if (selectedStatus !== 'all') params.status = selectedStatus;
+      if (searchQuery) params.search = searchQuery;
+
+      const debounceTimer = setTimeout(() => {
+        fetchOrders(params);
+      }, searchQuery ? 500 : 0);
+
+      return () => clearTimeout(debounceTimer);
     }
+  }, [vendorId, selectedStatus, searchQuery, fetchOrders]);
 
-    const filtered = orders.filter((order) => {
-      // Check if order has vendorItems array
-      if (order.vendorItems && Array.isArray(order.vendorItems)) {
-        return order.vendorItems.some((vi) => vi.vendorId === vendorId);
-      }
-      // Fallback: check if items have vendorId
-      if (order.items && Array.isArray(order.items)) {
-        return order.items.some((item) => item.vendorId === vendorId);
-      }
-      return false;
-    });
-
-    setVendorOrders(filtered);
-  }, [vendorId, orders]);
-
-  const filteredOrders = useMemo(() => {
-    let filtered = vendorOrders;
-
-    if (searchQuery) {
-      filtered = filtered.filter((order) =>
-        order.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.trackingNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter((order) =>
-        order.status?.toLowerCase() === selectedStatus.toLowerCase()
-      );
-    }
-
-    return filtered;
-  }, [vendorOrders, searchQuery, selectedStatus]);
+  const filteredOrders = orders; // Now filtered by backend
 
   // Get vendor-specific order data
   const getVendorOrderData = (order) => {
@@ -80,6 +61,7 @@ const AllOrders = () => {
           itemCount: vendorItem.items?.length || 0,
           subtotal: vendorItem.subtotal || 0,
           commission: vendorItem.commission || 0,
+          firstItem: vendorItem.items?.[0] || null,
         };
       }
     }
@@ -89,6 +71,7 @@ const AllOrders = () => {
       itemCount: vendorItems.length,
       subtotal: vendorItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       commission: 0,
+      firstItem: vendorItems[0] || null,
     };
   };
 
@@ -97,9 +80,47 @@ const AllOrders = () => {
       key: 'id',
       label: 'Order ID',
       sortable: true,
-      render: (value) => (
-        <span className="font-semibold text-gray-800">{value}</span>
+      render: (value, row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-800">{row.orderCode || value}</span>
+          <span className="text-[10px] text-gray-400">#{value}</span>
+        </div>
       ),
+    },
+    {
+      key: 'items',
+      label: 'Products',
+      sortable: false,
+      render: (_, row) => {
+        const vendorData = getVendorOrderData(row);
+        const item = vendorData.firstItem;
+        return (
+          <div className="flex items-center gap-3">
+            {item?.image ? (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-10 h-10 rounded-lg object-cover border border-gray-100"
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/40x40?text=P'; }}
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <FiPackage className="text-gray-400" />
+              </div>
+            )}
+            <div className="flex flex-col max-w-[150px]">
+              <span className="text-sm font-medium text-gray-800 truncate" title={item?.name}>
+                {item?.name || 'Unknown Product'}
+              </span>
+              {vendorData.itemCount > 1 && (
+                <span className="text-xs text-gray-400">
+                  +{vendorData.itemCount - 1} more items
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'date',
@@ -110,19 +131,6 @@ const AllOrders = () => {
           {new Date(value).toLocaleDateString()}
         </span>
       ),
-    },
-    {
-      key: 'items',
-      label: 'Items',
-      sortable: false,
-      render: (_, row) => {
-        const vendorData = getVendorOrderData(row);
-        return (
-          <span className="text-sm text-gray-700">
-            {vendorData.itemCount} item(s)
-          </span>
-        );
-      },
     },
     {
       key: 'subtotal',

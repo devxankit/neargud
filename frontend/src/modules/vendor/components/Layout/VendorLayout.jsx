@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import VendorSidebar from './VendorSidebar';
 import VendorHeader from './VendorHeader';
 import VendorBottomNav from './VendorBottomNav';
 import useAdminHeaderHeight from '../../../../hooks/useAdminHeaderHeight';
+import { useVendorAuthStore } from '../../store/vendorAuthStore';
 
 const VendorLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const headerHeight = useAdminHeaderHeight();
+  const { initialize } = useVendorAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   // Bottom nav height is 64px (h-16)
   const bottomNavHeight = 64;

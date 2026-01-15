@@ -1,81 +1,104 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiSearch, FiEdit, FiTrash2, FiFilter } from "react-icons/fi";
+import { FiSearch, FiEdit, FiTrash2, FiFilter, FiEye } from "react-icons/fi";
 import { motion } from "framer-motion";
 import DataTable from "../../../components/Admin/DataTable";
 import ExportButton from "../../../components/Admin/ExportButton";
 import Badge from "../../../components/Badge";
 import ConfirmModal from "../../../components/Admin/ConfirmModal";
 import ProductFormModal from "../../../components/Admin/ProductFormModal";
+import ViewProductModal from "../../../components/Admin/ViewProductModal";
 import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
 import { formatCurrency } from "../../../utils/adminHelpers";
 import { formatPrice } from "../../../utils/helpers";
-import { products as initialProducts } from "../../../data/products";
 import { useCategoryStore } from "../../../store/categoryStore";
 import { useBrandStore } from "../../../store/brandStore";
 import toast from "react-hot-toast";
+import { fetchProducts, deleteProduct } from "../../../services/productApi";
 
 const ManageProducts = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
-  const { categories, initialize: initCategories } = useCategoryStore();
-  const { brands, initialize: initBrands } = useBrandStore();
+  const [loading, setLoading] = useState(false);
+  const { categories, fetchCategories } = useCategoryStore();
+  const { brands, fetchBrands } = useBrandStore();
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedBrand, setSelectedBrand] = useState("all");
+
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     productId: null,
   });
+
   const [productFormModal, setProductFormModal] = useState({
     isOpen: false,
     productId: null,
   });
 
-  useEffect(() => {
-    initCategories();
-    initBrands();
-    loadProducts();
-  }, []);
+  const [viewModal, setViewModal] = useState({
+    isOpen: false,
+    productId: null,
+  });
 
-  const loadProducts = () => {
-    const savedProducts = localStorage.getItem("admin-products");
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    } else {
-      setProducts(initialProducts);
-      localStorage.setItem("admin-products", JSON.stringify(initialProducts));
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchProducts({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+        stock: selectedStatus !== "all" ? selectedStatus : undefined,
+        categoryId: selectedCategory !== "all" ? selectedCategory : undefined,
+        brandId: selectedBrand !== "all" ? selectedBrand : undefined,
+      });
+
+      if (response?.products) {
+        const formatted = response.products.map(p => ({
+          ...p,
+          id: p._id
+        }));
+        setProducts(formatted);
+        setPagination(prev => ({
+          ...prev,
+          total: response.total,
+          totalPages: response.totalPages
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
+  useEffect(() => {
+    fetchCategories();
+    fetchBrands();
+  }, []);
 
-    if (searchQuery) {
-      filtered = filtered.filter((product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  useEffect(() => {
+    loadProducts();
+  }, [pagination.page, pagination.limit, selectedStatus, selectedCategory, selectedBrand]);
 
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter((product) => product.stock === selectedStatus);
-    }
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (product) => product.categoryId === parseInt(selectedCategory)
-      );
-    }
-
-    if (selectedBrand !== "all") {
-      filtered = filtered.filter(
-        (product) => product.brandId === parseInt(selectedBrand)
-      );
-    }
-
-    return filtered;
-  }, [products, searchQuery, selectedStatus, selectedCategory, selectedBrand]);
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      if (searchQuery !== "") loadProducts();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const columns = [
     {
@@ -123,8 +146,8 @@ const ManageProducts = () => {
             value === "in_stock"
               ? "success"
               : value === "low_stock"
-              ? "warning"
-              : "error"
+                ? "warning"
+                : "error"
           }>
           {value.replace("_", " ").toUpperCase()}
         </Badge>
@@ -139,10 +162,12 @@ const ManageProducts = () => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setProductFormModal({ isOpen: true, productId: row.id });
+              setViewModal({ isOpen: true, productId: row.id });
             }}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-            <FiEdit />
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="View Details"
+          >
+            <FiEye />
           </button>
           <button
             onClick={(e) => {
@@ -157,12 +182,15 @@ const ManageProducts = () => {
     },
   ];
 
-  const confirmDelete = () => {
-    const newProducts = products.filter((p) => p.id !== deleteModal.productId);
-    setProducts(newProducts);
-    localStorage.setItem("admin-products", JSON.stringify(newProducts));
-    setDeleteModal({ isOpen: false, productId: null });
-    toast.success("Product deleted successfully");
+  const confirmDelete = async () => {
+    try {
+      await deleteProduct(deleteModal.productId);
+      toast.success("Product deleted successfully");
+      loadProducts();
+      setDeleteModal({ isOpen: false, productId: null });
+    } catch (error) {
+      toast.error("Failed to delete product");
+    }
   };
 
   return (
@@ -215,24 +243,20 @@ const ManageProducts = () => {
                 { value: 'all', label: 'All Categories' },
                 ...categories
                   .filter((cat) => cat.isActive !== false)
-                  .map((cat) => ({ value: String(cat.id), label: cat.name })),
+                  .map((cat) => ({ value: String(cat.id || cat._id), label: cat.name })),
               ]}
               className="w-full sm:w-auto min-w-[160px]"
             />
 
-            <button
-              onClick={() => setProductFormModal({ isOpen: true, productId: "new" })}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 gradient-green text-white rounded-lg hover:shadow-glow-green transition-all font-semibold text-sm sm:text-base whitespace-nowrap">
-              <span>Add New Product</span>
-            </button>
+
 
             <div className="w-full sm:w-auto">
               <ExportButton
-                data={filteredProducts}
+                data={products}
                 headers={[
                   { label: "ID", accessor: (row) => row.id },
                   { label: "Name", accessor: (row) => row.name },
-                  { label: "Price", accessor: (row) => formatCurrency(row.price) },
+                  { label: "Price", accessor: (row) => formatPrice(row.price) },
                   { label: "Stock", accessor: (row) => row.stockQuantity },
                   { label: "Status", accessor: (row) => row.stock },
                 ]}
@@ -244,11 +268,15 @@ const ManageProducts = () => {
 
         {/* DataTable */}
         <DataTable
-          data={filteredProducts}
+          data={products}
+          loading={loading}
           columns={columns}
           pagination={true}
-          itemsPerPage={10}
-          onRowClick={(row) => setProductFormModal({ isOpen: true, productId: row.id })}
+          itemsPerPage={pagination.limit}
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+          onRowClick={(row) => setViewModal({ isOpen: true, productId: row.id })}
         />
       </div>
 
@@ -270,6 +298,12 @@ const ManageProducts = () => {
         onSuccess={() => {
           loadProducts();
         }}
+      />
+
+      <ViewProductModal
+        isOpen={viewModal.isOpen}
+        onClose={() => setViewModal({ isOpen: false, productId: null })}
+        productId={viewModal.productId}
       />
     </motion.div>
   );

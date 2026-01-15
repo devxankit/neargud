@@ -45,16 +45,22 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide header on checkout-related routes
-  const isCheckoutRoute = 
-    location.pathname.startsWith('/checkout') || 
+  // Hide header on checkout and auth related routes
+  const shouldHideHeader =
+    location.pathname.startsWith('/checkout') ||
     location.pathname.startsWith('/app/checkout') ||
-    location.pathname.startsWith('/order-confirmation') || 
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/app/login') ||
+    location.pathname.startsWith('/register') ||
+    location.pathname.startsWith('/app/register') ||
+    location.pathname.startsWith('/verification') ||
+    location.pathname.startsWith('/app/verification') ||
+    location.pathname.startsWith('/order-confirmation') ||
     location.pathname.startsWith('/app/order-confirmation') ||
-    location.pathname.startsWith('/track-order') || 
+    location.pathname.startsWith('/track-order') ||
     location.pathname.startsWith('/app/track-order');
 
-  if (isCheckoutRoute) {
+  if (shouldHideHeader) {
     return null;
   }
 
@@ -70,7 +76,7 @@ const Header = () => {
   };
 
   const currentCategoryId = getCurrentCategoryId();
-  
+
   // Get gradient background style - More intense at top, fading to white at bottom (fully opaque, moderate intensity)
   const getHeaderBackgroundStyle = () => {
     if (currentCategoryId) {
@@ -111,14 +117,14 @@ const Header = () => {
       if (logoRef.current && cartRef.current) {
         const logoRect = logoRef.current.getBoundingClientRect();
         const cartRect = cartRef.current.getBoundingClientRect();
-        
+
         const positions = {
           startX: logoRect.left + logoRect.width / 2,
           startY: logoRect.top + logoRect.height / 2,
           endX: cartRect.left + cartRect.width / 2,
           endY: cartRect.top + cartRect.height / 2,
         };
-        
+
         // Only set positions if they're valid and animation hasn't played yet
         if (positions.startX > 0 && positions.endX > 0 && positions.startY > 0 && positions.endY > 0 && !hasPlayed) {
           setAnimationPositions(positions);
@@ -134,10 +140,10 @@ const Header = () => {
     const timer1 = setTimeout(calculatePositions, 100);
     const timer2 = setTimeout(calculatePositions, 500);
     const timer3 = setTimeout(calculatePositions, 1000);
-    
+
     // Recalculate on resize
     window.addEventListener("resize", calculatePositions);
-    
+
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
@@ -207,12 +213,12 @@ const Header = () => {
   ) : null;
 
   return (
-    <header 
+    <header
       className="sticky top-0 z-50 shadow-lg overflow-visible transition-all duration-500"
       style={headerBackgroundStyle}>
       {/* Cart Animation - Rendered via Portal */}
       {typeof document !== 'undefined' && createPortal(animationContent, document.body)}
-      
+
       {/* Top Bar */}
       <div className={`border-b ${currentCategoryId ? 'border-white/30' : 'border-white/20'} overflow-visible`}>
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3 md:py-4 overflow-visible">
@@ -249,7 +255,7 @@ const Header = () => {
                 className="p-1.5 sm:p-2 md:p-2.5 hover:bg-white/50 rounded-full transition-all duration-300 hover:scale-110 relative group">
                 <FiHeart className="text-primary-500 text-base sm:text-lg md:text-xl group-hover:text-accent-500 transition-colors" />
                 {wishlistCount > 0 && (
-                  <span 
+                  <span
                     className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-white text-[10px] sm:text-xs font-bold"
                     style={{ backgroundColor: '#ffc101' }}>
                     {wishlistCount > 9 ? "9+" : wishlistCount}

@@ -1,287 +1,233 @@
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { FiPlus, FiSearch, FiEdit, FiTrash2 } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMapPin } from 'react-icons/fi';
+import Button from '../../../components/Admin/Button';
 import DataTable from '../../../components/Admin/DataTable';
-import ConfirmModal from '../../../components/Admin/ConfirmModal';
-import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
+import { useLocationStore } from '../../../store/locationStore';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import Modal from '../../../components/Admin/Modal';
 
 const Cities = () => {
-  const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
-  const [cities, setCities] = useState([
-    { id: 1, name: 'New York', state: 'New York', country: 'USA', status: 'active' },
-    { id: 2, name: 'Los Angeles', state: 'California', country: 'USA', status: 'active' },
-    { id: 3, name: 'Chicago', state: 'Illinois', country: 'USA', status: 'active' },
-  ]);
+  const { cities, fetchCities, createCity, updateCity, deleteCity, isLoading } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCity, setEditingCity] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [formData, setFormData] = useState({ name: '', state: '', country: 'India', isActive: true });
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, id: null });
 
-  const filteredCities = cities.filter((city) =>
-    !searchQuery ||
+  useEffect(() => {
+    fetchCities();
+  }, [fetchCities]);
+
+  const filteredCities = (cities || []).filter(city => 
     city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    city.state.toLowerCase().includes(searchQuery.toLowerCase())
+    city.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (city.country || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = (cityData) => {
-    if (editingCity && editingCity.id) {
-      setCities(cities.map((c) => (c.id === editingCity.id ? { ...cityData, id: editingCity.id } : c)));
-      toast.success('City updated');
-    } else {
-      setCities([...cities, { ...cityData, id: cities.length + 1 }]);
-      toast.success('City added');
-    }
-    setEditingCity(null);
-  };
-
-  const handleDelete = () => {
-    setCities(cities.filter((c) => c.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('City deleted');
-  };
-
   const columns = [
-    {
-      key: 'name',
-      label: 'City Name',
-      sortable: true,
-      render: (value) => <span className="font-semibold text-gray-800">{value}</span>,
-    },
-    {
-      key: 'state',
-      label: 'State',
-      sortable: true,
-    },
-    {
-      key: 'country',
-      label: 'Country',
-      sortable: true,
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      sortable: true,
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'state', label: 'State', sortable: true },
+    { key: 'country', label: 'Country', sortable: true },
+    { 
+      key: 'isActive',
+      label: 'Status', 
       render: (value) => (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
+        <span className={`px-2 py-1 rounded-full text-xs ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {value ? 'Active' : 'Inactive'}
         </span>
-      ),
+      )
     },
     {
       key: 'actions',
       label: 'Actions',
-      sortable: false,
       render: (_, row) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditingCity(row)}
+        <div className="flex gap-2">
+          <button 
+            onClick={() => handleEdit(row)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           >
-            <FiEdit />
+            <FiEdit2 size={16} />
           </button>
-          <button
-            onClick={() => setDeleteModal({ isOpen: true, id: row.id })}
+          <button 
+            onClick={() => setDeleteConfirmation({ isOpen: true, id: row._id || row.id })}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
-            <FiTrash2 />
+            <FiTrash2 size={16} />
           </button>
         </div>
       ),
     },
   ];
 
+  const handleEdit = (city) => {
+    setEditingCity(city);
+    setFormData({
+      name: city.name,
+      state: city.state,
+      country: city.country || 'India',
+      isActive: city.isActive,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingCity(null);
+    setFormData({ name: '', state: '', country: 'India', isActive: true });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.state.trim()) {
+      toast.error('Name and State are required');
+      return;
+    }
+
+    try {
+      if (editingCity) {
+        await updateCity(editingCity._id || editingCity.id, formData);
+      } else {
+        await createCity(formData);
+      }
+      handleCloseModal();
+    } catch (error) {
+      // Error handled by store
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleteConfirmation.id) {
+      await deleteCity(deleteConfirmation.id);
+      setDeleteConfirmation({ isOpen: false, id: null });
+    }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="lg:hidden">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Cities</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage serviceable cities</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <FiMapPin className="text-primary-500" />
+            Cities
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Manage delivery cities and states</p>
         </div>
-        <button
-          onClick={() => setEditingCity({})}
-          className="flex items-center gap-2 px-4 py-2 gradient-green text-white rounded-lg hover:shadow-glow-green transition-all font-semibold text-sm"
-        >
-          <FiPlus />
-          <span>Add City</span>
-        </button>
+        <Button onClick={() => setIsModalOpen(true)} icon={FiPlus}>
+          Add City
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search cities..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search cities..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        
         <DataTable
-          data={filteredCities}
           columns={columns}
-          pagination={true}
+          data={filteredCities}
+          isLoading={isLoading}
+          pagination
           itemsPerPage={10}
         />
       </div>
 
-      <AnimatePresence>
-        {editingCity !== null && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => setEditingCity(null)}
-              className="fixed inset-0 bg-black/50 z-[10000]"
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingCity ? 'Edit City' : 'Add City'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">City Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              placeholder="e.g. Mumbai"
+              required
             />
-            
-            {/* Modal Content - Mobile: Slide up from bottom, Desktop: Center with scale */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={`fixed inset-0 z-[10000] flex ${isAppRoute ? 'items-start pt-[10px]' : 'items-end'} sm:items-center justify-center p-4 pointer-events-none`}
-            >
-              <motion.div
-                variants={{
-                  hidden: { 
-                    y: isAppRoute ? '-100%' : '100%',
-                    scale: 0.95,
-                    opacity: 0
-                  },
-                  visible: { 
-                    y: 0,
-                    scale: 1,
-                    opacity: 1,
-                    transition: { 
-                      type: 'spring',
-                      damping: 22,
-                      stiffness: 350,
-                      mass: 0.7
-                    }
-                  },
-                  exit: { 
-                    y: isAppRoute ? '-100%' : '100%',
-                    scale: 0.95,
-                    opacity: 0,
-                    transition: { 
-                      type: 'spring',
-                      damping: 30,
-                      stiffness: 400
-                    }
-                  }
-                }}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                onClick={(e) => e.stopPropagation()}
-                className={`bg-white ${isAppRoute ? 'rounded-b-3xl' : 'rounded-t-3xl'} sm:rounded-xl shadow-xl p-6 max-w-md w-full pointer-events-auto`}
-                style={{ willChange: 'transform' }}
-              >
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingCity.id ? 'Edit City' : 'Add City'}
-                </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                handleSave({
-                  name: formData.get('name'),
-                  state: formData.get('state'),
-                  country: formData.get('country'),
-                  status: formData.get('status'),
-                });
-              }}
-              className="space-y-4"
-            >
-              <input
-                type="text"
-                name="name"
-                defaultValue={editingCity.name || ''}
-                placeholder="City Name"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <input
-                type="text"
-                name="state"
-                defaultValue={editingCity.state || ''}
-                placeholder="State"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <input
-                type="text"
-                name="country"
-                defaultValue={editingCity.country || ''}
-                placeholder="Country"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <AnimatedSelect
-                name="status"
-                value={editingCity.status || 'active'}
-                onChange={(e) => {
-                  const form = e.target.closest('form');
-                  if (form) {
-                    const statusInput = form.querySelector('[name="status"]');
-                    if (statusInput) statusInput.value = e.target.value;
-                  }
-                }}
-                options={[
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
-                ]}
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingCity(null)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-              </motion.div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <input
+              type="text"
+              value={formData.state}
+              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              placeholder="e.g. Maharashtra"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+            <input
+              type="text"
+              value={formData.country}
+              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              placeholder="e.g. India"
+              required
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active</label>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={handleCloseModal} type="button">Cancel</Button>
+            <Button type="submit" isLoading={isLoading}>
+              {editingCity ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-      <ConfirmModal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, id: null })}
-        onConfirm={handleDelete}
-        title="Delete City?"
-        message="Are you sure you want to delete this city? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="danger"
-      />
-    </motion.div>
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        title="Delete City"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Are you sure you want to delete this city? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteConfirmation({ isOpen: false, id: null })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={handleDelete}
+              isLoading={isLoading}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };
 
 export default Cities;
-

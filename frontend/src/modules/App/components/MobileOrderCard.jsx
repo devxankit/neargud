@@ -25,14 +25,14 @@ const MobileOrderCard = ({ order }) => {
       animate={{ opacity: 1, y: 0 }}
       className="glass-card rounded-2xl p-4 mb-4"
     >
-      <Link to={`/app/orders/${order.id}`}>
+      <Link to={`/app/orders/${order._id || order.id}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl gradient-green flex items-center justify-center flex-shrink-0">
               <FiPackage className="text-white text-xl" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-800 text-base">Order #{order.id}</h3>
+              <h3 className="font-bold text-gray-800 text-base">Order #{order.orderCode || order._id || order.id}</h3>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <FiCalendar className="text-xs" />
                 {new Date(order.date || order.createdAt).toLocaleDateString()}

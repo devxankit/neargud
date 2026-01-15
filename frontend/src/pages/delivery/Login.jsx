@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiTruck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useDeliveryAuthStore } from '../../store/deliveryAuthStore';
@@ -9,10 +9,10 @@ import PageTransition from '../../components/PageTransition';
 const DeliveryLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading } = useDeliveryAuthStore();
-  
+  const { login, isAuthenticated, isLoading, deliveryBoy } = useDeliveryAuthStore();
+
   const [formData, setFormData] = useState({
-    email: '',
+    identifier: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -20,11 +20,17 @@ const DeliveryLogin = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && deliveryBoy?.status === 'available') {
       const from = location.state?.from?.pathname || '/delivery/dashboard';
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, deliveryBoy, navigate, location]);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      toast.error(location.state.message);
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     setFormData({
@@ -35,19 +41,24 @@ const DeliveryLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
+
+    if (!formData.identifier || !formData.password) {
       toast.error('Please fill in all fields');
       return;
     }
 
     try {
-      await login(formData.email, formData.password, rememberMe);
+      await login(formData.identifier, formData.password, rememberMe);
       toast.success('Login successful!');
       const from = location.state?.from?.pathname || '/delivery/dashboard';
       navigate(from, { replace: true });
     } catch (error) {
-      toast.error(error.message || 'Invalid credentials');
+      if (error.response?.data?.isUnverified) {
+        toast.error('Please verify your email first');
+        navigate('/delivery/verify', { state: { email: formData.identifier } });
+      } else {
+        toast.error(error.message || 'Invalid credentials');
+      }
     }
   };
 
@@ -75,16 +86,16 @@ const DeliveryLogin = () => {
               {/* Email Field */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
+                  Email or Phone Number
                 </label>
                 <div className="relative">
                   <FiMail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
+                    type="text"
+                    name="identifier"
+                    value={formData.identifier}
                     onChange={handleChange}
-                    placeholder="delivery@delivery.com"
+                    placeholder="Enter email or phone"
                     className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none transition-colors text-base"
                     required
                   />
@@ -117,7 +128,6 @@ const DeliveryLogin = () => {
                 </div>
               </div>
 
-              {/* Remember Me */}
               <div className="flex items-center justify-between">
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -128,6 +138,12 @@ const DeliveryLogin = () => {
                   />
                   <span className="ml-2 text-sm text-gray-700">Remember me</span>
                 </label>
+                <Link
+                  to="/delivery/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Forgot Password?
+                </Link>
               </div>
 
               {/* Submit Button */}
@@ -140,12 +156,7 @@ const DeliveryLogin = () => {
               </button>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-primary-50 rounded-xl">
-              <p className="text-sm text-gray-700 font-semibold mb-2">Demo Credentials:</p>
-              <p className="text-xs text-gray-600">Email: delivery@delivery.com</p>
-              <p className="text-xs text-gray-600">Password: delivery123</p>
-            </div>
+            {/* Registration links removed as per admin policy */}
           </div>
         </motion.div>
       </div>

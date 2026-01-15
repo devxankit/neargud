@@ -36,7 +36,7 @@ const PaymentSettings = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-gray-800">Payment Methods</h3>
+        <h3 className="text-lg font-bold text-gray-800">Payment </h3>
         <label className="flex items-center gap-2">
           <input
             type="checkbox"

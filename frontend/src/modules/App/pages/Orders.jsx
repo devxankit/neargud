@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiFilter } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -6,14 +6,12 @@ import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import MobileOrderCard from '../components/MobileOrderCard';
 import { useOrderStore } from '../../../store/orderStore';
 import { useAuthStore } from '../../../store/authStore';
-import PageTransition from '../../../components/PageTransition';
-import ProtectedRoute from '../../../components/Auth/ProtectedRoute';
 import usePullToRefresh from '../../../hooks/usePullToRefresh';
 import toast from 'react-hot-toast';
 
 const MobileOrders = () => {
   const navigate = useNavigate();
-  const { getAllOrders } = useOrderStore();
+  const { getAllOrders, fetchOrders, isLoading } = useOrderStore();
   const { user } = useAuthStore();
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
@@ -29,6 +27,10 @@ const MobileOrders = () => {
 
   const allOrders = getAllOrders(user?.id || null);
 
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
   const filteredOrders = useMemo(() => {
     if (selectedStatus === 'all') return allOrders;
     return allOrders.filter((order) => order.status === selectedStatus);
@@ -36,13 +38,12 @@ const MobileOrders = () => {
 
   // Pull to refresh handler
   const handleRefresh = async () => {
-    // Simulate refresh - in real app, this would fetch new orders
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        toast.success('Orders refreshed');
-        resolve();
-      }, 1000);
-    });
+    try {
+      await fetchOrders();
+      toast.success('Orders refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh orders');
+    }
   };
 
   const {
@@ -56,102 +57,98 @@ const MobileOrders = () => {
   } = usePullToRefresh(handleRefresh);
 
   return (
-    <ProtectedRoute>
-      <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
-          <div className="w-full pb-24">
-            {/* Header */}
-            <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-30">
-              <div className="flex items-center gap-3 mb-3">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <FiArrowLeft className="text-xl text-gray-700" />
-                </button>
-                <div className="flex-1">
-                  <h1 className="text-xl font-bold text-gray-800">My Orders</h1>
-                  <p className="text-sm text-gray-600">
-                    {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowFilter(!showFilter)}
-                  className="p-2 glass-card rounded-xl hover:bg-white/80 transition-colors"
-                >
-                  <FiFilter className="text-gray-600 text-lg" />
-                </button>
-              </div>
-
-              {/* Filter Options */}
-              {showFilter && (
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
-                  {statusOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setSelectedStatus(option.value);
-                        setShowFilter(false);
-                      }}
-                      className={`px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap transition-all ${selectedStatus === option.value
-                          ? 'gradient-green text-white'
-                          : 'bg-gray-100 text-gray-700'
-                        }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Orders List */}
-            <div
-              ref={elementRef}
-              className="px-4 py-4"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              style={{
-                transform: `translateY(${Math.min(pullDistance, 80)}px)`,
-                transition: isPulling ? 'none' : 'transform 0.3s ease-out',
-              }}
+    <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
+      <div className="w-full pb-24">
+        {/* Header */}
+        <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-30">
+          <div className="flex items-center gap-3 mb-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
-              {filteredOrders.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl text-gray-300 mx-auto mb-4">📦</div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">No orders found</h3>
-                  <p className="text-gray-600 mb-6">
-                    {selectedStatus === 'all'
-                      ? "You haven't placed any orders yet"
-                      : `No ${selectedStatus} orders`}
-                  </p>
-                  <button
-                    onClick={() => navigate('/app')}
-                    className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
-                  >
-                    Start Shopping
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-0">
-                  {filteredOrders.map((order, index) => (
-                    <motion.div
-                      key={order.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <MobileOrderCard order={order} />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+              <FiArrowLeft className="text-xl text-gray-700" />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-gray-800">My Orders</h1>
+              <p className="text-sm text-gray-600">
+                {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
+              </p>
             </div>
+            <button
+              onClick={() => setShowFilter(!showFilter)}
+              className="p-2 glass-card rounded-xl hover:bg-white/80 transition-colors"
+            >
+              <FiFilter className="text-gray-600 text-lg" />
+            </button>
           </div>
-        </MobileLayout>
-      </PageTransition>
-    </ProtectedRoute>
+
+          {/* Filter Options */}
+          {showFilter && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
+              {statusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setSelectedStatus(option.value);
+                    setShowFilter(false);
+                  }}
+                  className={`px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap transition-all ${selectedStatus === option.value
+                    ? 'gradient-green text-white'
+                    : 'bg-gray-100 text-gray-700'
+                    }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Orders List */}
+        <div
+          ref={elementRef}
+          className="px-4 py-4"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            transform: `translateY(${Math.min(pullDistance, 80)}px)`,
+            transition: isPulling ? 'none' : 'transform 0.3s ease-out',
+          }}
+        >
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl text-gray-300 mx-auto mb-4">📦</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">No orders found</h3>
+              <p className="text-gray-600 mb-6">
+                {selectedStatus === 'all'
+                  ? "You haven't placed any orders yet"
+                  : `No ${selectedStatus} orders`}
+              </p>
+              <button
+                onClick={() => navigate('/app')}
+                className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
+              >
+                Start Shopping
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {filteredOrders.map((order, index) => (
+                <motion.div
+                  key={order._id || order.id || index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <MobileOrderCard order={order} />
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </MobileLayout>
   );
 };
 

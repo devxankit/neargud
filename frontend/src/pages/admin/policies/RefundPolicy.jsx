@@ -1,31 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useContentStore } from '../../../store/contentStore';
 import { FiSave, FiFileText } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+import { calcLength, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const RefundPolicy = () => {
-  const [content, setContent] = useState(`Refund Policy
+  const { fetchPolicyContent, updatePolicyContent } = useContentStore();
+  const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-Last updated: ${new Date().toLocaleDateString()}
+  useEffect(() => {
+    const loadPolicy = async () => {
+      setIsLoading(true);
+      const data = await fetchPolicyContent('refund');
+      console.log("data",data)
+      if (data) setContent(data);
+      setIsLoading(false);
+    };
+    loadPolicy();
+  }, [fetchPolicyContent]);
 
-1. Refund Eligibility
-Items must be returned within 30 days of purchase in their original condition with tags attached.
-
-2. Refund Process
-To initiate a refund, please contact our customer service team. Refunds will be processed within 5-7 business days.
-
-3. Non-Refundable Items
-Certain items such as personalized products, digital goods, and perishable items are not eligible for refunds.
-
-4. Return Shipping
-Customers are responsible for return shipping costs unless the item was defective or incorrect.
-
-5. Refund Methods
-Refunds will be issued to the original payment method used for the purchase.`);
-
-  const handleSave = () => {
-    toast.success('Refund policy saved successfully');
+  const handleSave = async () => {
+    try {
+      await updatePolicyContent('refund', content);
+    } catch (error) {
+      // Error handled in store
+    }
   };
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Loading...</div>;
+  }
 
   return (
     <motion.div

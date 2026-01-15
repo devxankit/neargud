@@ -7,21 +7,20 @@ import ExportButton from '../../../components/Admin/ExportButton';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { formatPrice } from '../../../utils/helpers';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
-import { useCommissionStore } from '../../../store/commissionStore';
-import { useOrderStore } from '../../../store/orderStore';
+import { fetchEarningsStats, fetchWalletTransactions, fetchVendorOrdersList, fetchVendorWallet, requestVendorWithdrawal, fetchVendorWithdrawals } from '../../../services/vendorDashboardApi';
+import { toast } from 'react-hot-toast';
 
 const Earnings = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { vendor } = useVendorAuthStore();
-  const { getVendorCommissions, getVendorEarningsSummary, getVendorSettlements } = useCommissionStore();
-  const { orders } = useOrderStore();
 
   // Determine active tab from URL
   const getActiveTab = () => {
     const path = location.pathname;
     if (path.includes('/commission-history')) return 'commission';
     if (path.includes('/settlement-history')) return 'settlement';
+    if (path.includes('/withdrawals')) return 'withdrawals';
     return 'overview'; // Default to overview
   };
 
@@ -29,7 +28,12 @@ const Earnings = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [commissions, setCommissions] = useState([]);
   const [settlements, setSettlements] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [earningsSummary, setEarningsSummary] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [wallet, setWallet] = useState(null);
+  const [hasPendingWithdrawal, setHasPendingWithdrawal] = useState(false);
 
   useEffect(() => {
     setActiveTab(getActiveTab());
@@ -38,31 +42,122 @@ const Earnings = () => {
   const vendorId = vendor?.id;
 
   useEffect(() => {
-    if (!vendorId) return;
+    const loadData = async () => {
+      if (!vendorId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        // Earnings summary
+        const earningsRes = await fetchEarningsStats();
+        const earningsData = earningsRes?.data || earningsRes;
+        const pending = earningsData?.pendingEarnings || 0;
+        const total = earningsData?.totalOrderEarnings || 0;
+        const totalOrders = earningsData?.totalOrders || 0;
+        const mappedSummary = {
+          totalEarnings: total,
+          pendingEarnings: pending,
+          paidEarnings: Math.max(total - pending, 0),
+          totalOrders: totalOrders,
+          totalCommission: 0,
+        };
+        setEarningsSummary(mappedSummary);
 
-    const vendorCommissions = getVendorCommissions(vendorId);
-    const vendorSettlements = getVendorSettlements(vendorId);
-    const summary = getVendorEarningsSummary(vendorId);
+        // Commission history derived from vendor orders
+        const ordersRes = await fetchVendorOrdersList({ page: 1, limit: 50 });
+        console.log('ordersRes', ordersRes);
+        const ordersPayload = ordersRes?.data?.data || ordersRes?.data || ordersRes || {};
+        const ordersList = ordersPayload?.orders || ordersPayload?.data?.orders || ordersRes?.orders || [];
+        const commissionList = ordersList.map((o) => {
+          const vendorBreak = Array.isArray(o.vendorItems)
+            ? o.vendorItems.find(v => v.vendorId === vendorId)
+            : null;
 
-    setCommissions(vendorCommissions);
-    setSettlements(vendorSettlements);
-    setEarningsSummary(summary);
-  }, [vendorId, getVendorCommissions, getVendorSettlements, getVendorEarningsSummary]);
+          const subtotal = vendorBreak?.subtotal || 0;
+          const commission = vendorBreak?.commission || 0;
+          const vendorEarnings = vendorBreak?.vendorEarnings || 0;
+
+          const status =
+            o.status === 'delivered' || o.status === 'completed'
+              ? 'paid'
+              : o.status === 'cancelled' || o.status === 'canceled'
+                ? 'cancelled'
+                : 'pending';
+
+          return {
+            id: o._id,
+            orderId: o.orderCode,
+            createdAt: o.createdAt,
+            subtotal,
+            commission,
+            vendorEarnings,
+            status,
+          };
+        });
+
+        setCommissions(commissionList);
+
+        // Settlements from wallet transactions
+        const txRes = await fetchWalletTransactions();
+        const txList = txRes?.data || txRes || [];
+        const settlementsMapped = (Array.isArray(txList?.data) ? txList.data : Array.isArray(txList) ? txList : []).map((t) => ({
+          id: t._id || t.referenceId || `TX-${Math.random().toString(36).slice(2)}`,
+          commissionId: t.referenceId || null,
+          vendorId: vendorId,
+          vendorName: vendor?.storeName || vendor?.name || 'You',
+          amount: t.amount || 0,
+          paymentMethod: t.referenceType || t.type || 'manual',
+          transactionId: t.referenceId || null,
+          createdAt: t.createdAt || new Date().toISOString(),
+        }));
+        setSettlements(settlementsMapped);
+
+        const walletRes = await fetchVendorWallet();
+        const walletData = walletRes?.data || walletRes;
+        setWallet(walletData);
+
+        const withdrawalsRes = await fetchVendorWithdrawals();
+        const withdrawalsList = withdrawalsRes?.data || withdrawalsRes || [];
+        setWithdrawals(Array.isArray(withdrawalsList) ? withdrawalsList : []);
+        const pendingWithdrawals = (Array.isArray(withdrawalsList) ? withdrawalsList : []).filter(w => w.status === 'pending');
+        setHasPendingWithdrawal(pendingWithdrawals.length > 0);
+      } catch (err) {
+        setError(err?.message || 'Failed to load earnings');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [vendorId]);
 
   const filteredCommissions = useMemo(() => {
     if (selectedStatus === 'all') return commissions;
     return commissions.filter((c) => c.status === selectedStatus);
   }, [commissions, selectedStatus]);
 
-  // Get order details for commission
-  const getOrderDetails = (orderId) => {
-    return orders.find((o) => o.id === orderId);
+  const getOrderDetails = (orderId) => null;
+  const handleWithdrawal = async () => {
+    try {
+      if (!wallet?.balance) return;
+      await requestVendorWithdrawal();
+      toast.success('Withdrawal request submitted');
+      setHasPendingWithdrawal(true);
+    } catch (err) {
+      toast.error(err?.message || 'Withdrawal request failed');
+    }
   };
 
   if (!vendorId) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to view earnings</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -75,6 +170,8 @@ const Earnings = () => {
       navigate('/vendor/earnings/commission-history');
     } else if (tab === 'settlement') {
       navigate('/vendor/earnings/settlement-history');
+    } else if (tab === 'withdrawals') {
+      navigate('/vendor/earnings/withdrawals');
     }
   };
 
@@ -98,8 +195,8 @@ const Earnings = () => {
             <button
               onClick={() => handleTabChange('overview')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm ${activeTab === 'overview'
-                  ? 'border-purple-600 text-purple-600 font-semibold'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
+                ? 'border-purple-600 text-purple-600 font-semibold'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
             >
               <FiDollarSign />
@@ -108,8 +205,8 @@ const Earnings = () => {
             <button
               onClick={() => handleTabChange('commission')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm ${activeTab === 'commission'
-                  ? 'border-purple-600 text-purple-600 font-semibold'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
+                ? 'border-purple-600 text-purple-600 font-semibold'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
             >
               <FiFileText />
@@ -118,12 +215,22 @@ const Earnings = () => {
             <button
               onClick={() => handleTabChange('settlement')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm ${activeTab === 'settlement'
-                  ? 'border-purple-600 text-purple-600 font-semibold'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
+                ? 'border-purple-600 text-purple-600 font-semibold'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
             >
               <FiCheckCircle />
               <span>Settlement History</span>
+            </button>
+            <button
+              onClick={() => handleTabChange('withdrawals')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm ${activeTab === 'withdrawals'
+                ? 'border-purple-600 text-purple-600 font-semibold'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
+                }`}
+            >
+              <FiDownload />
+              <span>Withdrawals</span>
             </button>
           </div>
         </div>
@@ -175,6 +282,36 @@ const Earnings = () => {
                     {earningsSummary ? earningsSummary.totalOrders : 0}
                   </p>
                   <p className="text-xs text-purple-600 mt-1">With earnings</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-gray-700 font-medium">Available to Withdraw</p>
+                    <FiCheckCircle className="text-blue-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {wallet ? formatPrice(wallet.balance || 0) : formatPrice(0)}
+                  </p>
+                  <div className="mt-3">
+                    <button
+                      onClick={handleWithdrawal}
+                      disabled={!wallet?.balance || hasPendingWithdrawal}
+                      className={`px-4 py-2 rounded-lg text-white ${!wallet?.balance || hasPendingWithdrawal ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'} transition-colors`}
+                    >
+                      {hasPendingWithdrawal ? 'Request Pending' : 'Request Withdrawal'}
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-gray-700 font-medium">Pending Settlement</p>
+                    <FiClock className="text-yellow-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {wallet ? formatPrice(wallet.pendingBalance || 0) : formatPrice(0)}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">Awaiting admin approval</p>
                 </div>
               </div>
             </div>
@@ -371,6 +508,117 @@ const Earnings = () => {
               <p className="text-sm text-gray-400">
                 Settlements will appear here once your commissions are paid
               </p>
+            </div>
+          )}
+
+          {/* Withdrawals Section */}
+          {activeTab === 'withdrawals' && (
+            <div>
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-800 mb-1">Withdrawal Requests</h2>
+                    <p className="text-sm text-gray-600">View your withdrawal request history</p>
+                  </div>
+                  <ExportButton
+                    data={withdrawals}
+                    headers={[
+                      { label: 'Request ID', accessor: (row) => row._id?.slice(-8) || 'N/A' },
+                      { label: 'Amount', accessor: (row) => formatPrice(row.amount) },
+                      { label: 'Status', accessor: (row) => row.status },
+                      { label: 'Requested', accessor: (row) => new Date(row.requestedAt).toLocaleDateString() },
+                      { label: 'Processed', accessor: (row) => row.processedAt ? new Date(row.processedAt).toLocaleDateString() : 'Pending' },
+                      { label: 'Transaction ID', accessor: (row) => row.transactionId || 'N/A' },
+                    ]}
+                    filename="withdrawal-requests"
+                  />
+                </div>
+
+                {withdrawals.length > 0 ? (
+                  <div className="space-y-3">
+                    {withdrawals.map((withdrawal) => (
+                      <div
+                        key={withdrawal._id}
+                        className={`rounded-xl p-6 border transition-all ${withdrawal.status === 'approved'
+                            ? 'bg-green-50 border-green-200'
+                            : withdrawal.status === 'rejected'
+                              ? 'bg-red-50 border-red-200'
+                              : 'bg-yellow-50 border-yellow-200'
+                          }`}
+                      >
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-gray-800">Request #{withdrawal._id?.slice(-8)}</h3>
+                            <Badge
+                              variant={
+                                withdrawal.status === 'approved'
+                                  ? 'success'
+                                  : withdrawal.status === 'rejected'
+                                    ? 'error'
+                                    : 'warning'
+                              }
+                            >
+                              {withdrawal.status?.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <p className="text-2xl font-bold text-green-600">{formatPrice(withdrawal.amount)}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
+                          <div>
+                            <p className="text-gray-600">Requested On</p>
+                            <p className="font-semibold text-gray-800">
+                              {new Date(withdrawal.requestedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Processed On</p>
+                            <p className="font-semibold text-gray-800">
+                              {withdrawal.processedAt
+                                ? new Date(withdrawal.processedAt).toLocaleDateString()
+                                : 'Pending'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Payment Method</p>
+                            <p className="font-semibold text-gray-800 capitalize">
+                              {withdrawal.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
+                            </p>
+                          </div>
+                          {withdrawal.transactionId && (
+                            <div>
+                              <p className="text-gray-600">Transaction ID</p>
+                              <p className="font-mono text-xs text-gray-700">{withdrawal.transactionId}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {withdrawal.adminNotes && (
+                          <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                            <p className="text-xs text-gray-600 mb-1 font-medium">Admin Notes:</p>
+                            <p className="text-sm text-gray-800">{withdrawal.adminNotes}</p>
+                          </div>
+                        )}
+
+                        {withdrawal.rejectionReason && (
+                          <div className="mt-3 p-3 bg-white rounded-lg border border-red-200">
+                            <p className="text-xs text-red-600 mb-1 font-medium">Rejection Reason:</p>
+                            <p className="text-sm text-red-700">{withdrawal.rejectionReason}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FiDownload className="text-4xl text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-2">No withdrawal requests found</p>
+                    <p className="text-sm text-gray-400">
+                      Your withdrawal requests will appear here
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

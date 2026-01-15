@@ -54,9 +54,38 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check if file is an image
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({
+          ...formData,
+          image: reader.result, // Base64 data URL
+        });
+      };
+      reader.onerror = () => {
+        toast.error("Error reading image file");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('Category name is required');
       return;
@@ -64,9 +93,9 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
 
     try {
       if (isEdit) {
-        updateCategory(category.id, formData);
+        await updateCategory(category.id, formData);
       } else {
-        createCategory(formData);
+        await createCategory(formData);
       }
       onSave?.();
       onClose();
@@ -95,7 +124,7 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
           onClick={onClose}
           className="fixed inset-0 bg-black/50 z-[10000]"
         />
-        
+
         {/* Modal Content - Mobile: Slide up from bottom, Desktop: Center with scale */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -105,27 +134,27 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
         >
           <motion.div
             variants={{
-              hidden: { 
+              hidden: {
                 y: isAppRoute ? '-100%' : '100%',
                 scale: 0.95,
                 opacity: 0
               },
-              visible: { 
+              visible: {
                 y: 0,
                 scale: 1,
                 opacity: 1,
-                transition: { 
+                transition: {
                   type: 'spring',
                   damping: 22,
                   stiffness: 350,
                   mass: 0.7
                 }
               },
-              exit: { 
+              exit: {
                 y: isAppRoute ? '-100%' : '100%',
                 scale: 0.95,
                 opacity: 0,
-                transition: { 
+                transition: {
                   type: 'spring',
                   damping: 30,
                   stiffness: 400
@@ -163,153 +192,168 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
               />
             </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Basic Information */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Basic Information</h3>
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Basic Information */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Category Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g., Clothing, Electronics"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Category description..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Parent Category
-                </label>
-                {isSubcategory || (isEdit && category.parentId) ? (
-                  <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-700 font-medium">
-                        {parentCategory ? parentCategory.name : 'None'}
-                      </span>
-                      {isSubcategory && (
-                        <span className="text-xs text-gray-500">(Cannot be changed)</span>
-                      )}
-                    </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Basic Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Category Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="e.g., Clothing, Electronics"
+                    />
                   </div>
-                ) : (
-                  <AnimatedSelect
-                    name="parentId"
-                    value={formData.parentId || ''}
-                    onChange={handleChange}
-                    placeholder="None (Root Category)"
-                    options={[
-                      { value: '', label: 'None (Root Category)' },
-                      ...getAvailableParents().map((cat) => ({
-                        value: String(cat.id),
-                        label: cat.name,
-                      })),
-                    ]}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Image */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Category Image</h3>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Image URL
-              </label>
-              <input
-                type="text"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="/images/categories/category.png"
-              />
-              {formData.image && (
-                <div className="mt-4">
-                  <img
-                    src={formData.image}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="Category description..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Parent Category
+                    </label>
+                    {isSubcategory || (isEdit && category.parentId) ? (
+                      <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-700 font-medium">
+                            {parentCategory ? parentCategory.name : 'None'}
+                          </span>
+                          {isSubcategory && (
+                            <span className="text-xs text-gray-500">(Cannot be changed)</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <AnimatedSelect
+                        name="parentId"
+                        value={formData.parentId || ''}
+                        onChange={handleChange}
+                        placeholder="None (Root Category)"
+                        options={[
+                          { value: '', label: 'None (Root Category)' },
+                          ...getAvailableParents().map((cat) => ({
+                            value: String(cat.id),
+                            label: cat.name,
+                          })),
+                        ]}
+                      />
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Settings */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Display Order
-                </label>
-                <input
-                  type="number"
-                  name="order"
-                  value={formData.order}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
               </div>
 
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm font-semibold text-gray-700">Active</span>
-              </label>
-            </div>
-          </div>
+              {/* Image */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Category Image</h3>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Upload Image
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="category-image-upload"
+                    />
+                    <label
+                      htmlFor="category-image-upload"
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors">
+                      <FiUpload className="text-xl text-gray-600" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {formData.image ? "Change Image" : "Choose Image to Upload"}
+                      </span>
+                    </label>
+                  </div>
+                  {formData.image && (
+                    <div className="mt-4 flex flex-col items-start">
+                      <img
+                        src={formData.image}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, image: '' })}
+                        className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium">
+                        Remove Image
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
-            <Button
-              type="button"
-              onClick={onClose}
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              icon={FiSave}
-            >
-              {isEdit ? 'Update Category' : 'Create Category'}
-            </Button>
-          </div>
-        </form>
+              {/* Settings */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Display Order
+                    </label>
+                    <input
+                      type="number"
+                      name="order"
+                      value={formData.order}
+                      onChange={handleChange}
+                      min="0"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="isActive"
+                      checked={formData.isActive}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-sm font-semibold text-gray-700">Active</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  onClick={onClose}
+                  variant="secondary"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  icon={FiSave}
+                >
+                  {isEdit ? 'Update Category' : 'Create Category'}
+                </Button>
+              </div>
+            </form>
           </motion.div>
         </motion.div>
       </>

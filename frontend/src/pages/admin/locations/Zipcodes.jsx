@@ -1,287 +1,273 @@
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { FiPlus, FiSearch, FiEdit, FiTrash2 } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMapPin } from 'react-icons/fi';
+import Button from '../../../components/Admin/Button';
 import DataTable from '../../../components/Admin/DataTable';
-import ConfirmModal from '../../../components/Admin/ConfirmModal';
-import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
+import { useLocationStore } from '../../../store/locationStore';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import Modal from '../../../components/Admin/Modal'; // Will update this after checking list_dir
+import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 
 const Zipcodes = () => {
-  const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
-  const [zipcodes, setZipcodes] = useState([
-    { id: 1, zipcode: '10001', city: 'New York', state: 'New York', deliveryAvailable: true },
-    { id: 2, zipcode: '90001', city: 'Los Angeles', state: 'California', deliveryAvailable: true },
-    { id: 3, zipcode: '60601', city: 'Chicago', state: 'Illinois', deliveryAvailable: false },
-  ]);
+  const { 
+    zipcodes, cities, fetchZipcodes, fetchCities, 
+    createZipcode, updateZipcode, deleteZipcode, isLoading 
+  } = useLocationStore();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingZipcode, setEditingZipcode] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingZip, setEditingZip] = useState(null);
+  const [formData, setFormData] = useState({ 
+    code: '', 
+    city: '', 
+    state: '',
+    deliveryCharge: 0,
+    isActive: true 
+  });
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, id: null });
 
-  const filteredZipcodes = zipcodes.filter((zip) =>
-    !searchQuery ||
-    zip.zipcode.includes(searchQuery) ||
-    zip.city.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    fetchZipcodes();
+    fetchCities();
+  }, [fetchZipcodes, fetchCities]);
+
+  const filteredZipcodes = (zipcodes || []).filter(zip => 
+    zip.code.includes(searchQuery) ||
+    (zip.city?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (zip.state || zip.city?.state || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = (zipcodeData) => {
-    if (editingZipcode && editingZipcode.id) {
-      setZipcodes(zipcodes.map((z) => (z.id === editingZipcode.id ? { ...zipcodeData, id: editingZipcode.id } : z)));
-      toast.success('Zipcode updated');
-    } else {
-      setZipcodes([...zipcodes, { ...zipcodeData, id: zipcodes.length + 1 }]);
-      toast.success('Zipcode added');
-    }
-    setEditingZipcode(null);
-  };
-
-  const handleDelete = () => {
-    setZipcodes(zipcodes.filter((z) => z.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Zipcode deleted');
-  };
-
   const columns = [
-    {
-      key: 'zipcode',
-      label: 'Zipcode',
-      sortable: true,
-      render: (value) => <span className="font-semibold text-gray-800">{value}</span>,
-    },
-    {
+    { key: 'code', label: 'Zip Code', sortable: true },
+    { 
       key: 'city',
-      label: 'City',
-      sortable: true,
+      label: 'City', 
+      render: (city) => city?.name || 'Unknown'
     },
-    {
-      key: 'state',
-      label: 'State',
-      sortable: true,
-    },
-    {
-      key: 'deliveryAvailable',
-      label: 'Delivery Available',
-      sortable: true,
+    { key: 'state', label: 'State', sortable: true },
+    { key: 'deliveryCharge', label: 'Delivery Charge', render: (val) => `₹${val}` },
+    { 
+      key: 'isActive',
+      label: 'Status', 
       render: (value) => (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value ? 'Yes' : 'No'}
+        <span className={`px-2 py-1 rounded-full text-xs ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {value ? 'Active' : 'Inactive'}
         </span>
-      ),
+      )
     },
     {
       key: 'actions',
       label: 'Actions',
-      sortable: false,
       render: (_, row) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditingZipcode(row)}
+        <div className="flex gap-2">
+          <button 
+            onClick={() => handleEdit(row)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           >
-            <FiEdit />
+            <FiEdit2 size={16} />
           </button>
-          <button
-            onClick={() => setDeleteModal({ isOpen: true, id: row.id })}
+          <button 
+            onClick={() => setDeleteConfirmation({ isOpen: true, id: row._id || row.id })}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
-            <FiTrash2 />
+            <FiTrash2 size={16} />
           </button>
         </div>
       ),
     },
   ];
 
+  const handleEdit = (zip) => {
+    setEditingZip(zip);
+    setFormData({
+      code: zip.code,
+      city: zip.city?._id || zip.city?.id || zip.city, // Handle populated or unpopulated
+      state: zip.state || zip.city?.state || '',
+      deliveryCharge: zip.deliveryCharge,
+      isActive: zip.isActive,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingZip(null);
+    setFormData({ code: '', city: '', state: '', deliveryCharge: 0, isActive: true });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.code || !formData.city || !formData.state) {
+      toast.error('Zip Code, City and State are required');
+      return;
+    }
+
+    try {
+      if (editingZip) {
+        await updateZipcode(editingZip._id || editingZip.id, formData);
+      } else {
+        await createZipcode(formData);
+      }
+      handleCloseModal();
+    } catch (error) {
+           // Error handled by store
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleteConfirmation.id) {
+      await deleteZipcode(deleteConfirmation.id);
+      setDeleteConfirmation({ isOpen: false, id: null });
+    }
+  };
+
+  const cityOptions = (cities || []).map(c => ({
+    value: c._id || c.id,
+    label: `${c.name} (${c.state})`
+  }));
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="lg:hidden">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Zipcodes</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage serviceable zipcodes</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <FiMapPin className="text-primary-500" />
+            Zip Codes
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Manage delivery areas and charges</p>
         </div>
-        <button
-          onClick={() => setEditingZipcode({})}
-          className="flex items-center gap-2 px-4 py-2 gradient-green text-white rounded-lg hover:shadow-glow-green transition-all font-semibold text-sm"
-        >
-          <FiPlus />
-          <span>Add Zipcode</span>
-        </button>
+        <Button onClick={() => setIsModalOpen(true)} icon={FiPlus}>
+          Add Zip Code
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search zipcodes..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search zip codes or cities..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        
         <DataTable
-          data={filteredZipcodes}
           columns={columns}
-          pagination={true}
+          data={filteredZipcodes}
+          isLoading={isLoading}
+          pagination
           itemsPerPage={10}
         />
       </div>
 
-      <AnimatePresence>
-        {editingZipcode !== null && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => setEditingZipcode(null)}
-              className="fixed inset-0 bg-black/50 z-[10000]"
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingZip ? 'Edit Zip Code' : 'Add Zip Code'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              placeholder="e.g. 400001"
+              required
             />
-            
-            {/* Modal Content - Mobile: Slide up from bottom, Desktop: Center with scale */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={`fixed inset-0 z-[10000] flex ${isAppRoute ? 'items-start pt-[10px]' : 'items-end'} sm:items-center justify-center p-4 pointer-events-none`}
-            >
-              <motion.div
-                variants={{
-                  hidden: { 
-                    y: isAppRoute ? '-100%' : '100%',
-                    scale: 0.95,
-                    opacity: 0
-                  },
-                  visible: { 
-                    y: 0,
-                    scale: 1,
-                    opacity: 1,
-                    transition: { 
-                      type: 'spring',
-                      damping: 22,
-                      stiffness: 350,
-                      mass: 0.7
-                    }
-                  },
-                  exit: { 
-                    y: isAppRoute ? '-100%' : '100%',
-                    scale: 0.95,
-                    opacity: 0,
-                    transition: { 
-                      type: 'spring',
-                      damping: 30,
-                      stiffness: 400
-                    }
-                  }
-                }}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                onClick={(e) => e.stopPropagation()}
-                className={`bg-white ${isAppRoute ? 'rounded-b-3xl' : 'rounded-t-3xl'} sm:rounded-xl shadow-xl p-6 max-w-md w-full pointer-events-auto`}
-                style={{ willChange: 'transform' }}
-              >
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingZipcode.id ? 'Edit Zipcode' : 'Add Zipcode'}
-                </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                handleSave({
-                  zipcode: formData.get('zipcode'),
-                  city: formData.get('city'),
-                  state: formData.get('state'),
-                  deliveryAvailable: formData.get('deliveryAvailable') === 'true',
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+            <AnimatedSelect
+              options={cityOptions}
+              value={formData.city}
+              onChange={(e) => {
+                const cityId = e.target.value;
+                const selectedCity = cities.find(c => (c._id || c.id) === cityId);
+                setFormData({ 
+                  ...formData, 
+                  city: cityId,
+                  state: selectedCity?.state || formData.state 
                 });
               }}
-              className="space-y-4"
-            >
-              <input
-                type="text"
-                name="zipcode"
-                defaultValue={editingZipcode.zipcode || ''}
-                placeholder="Zipcode"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <input
-                type="text"
-                name="city"
-                defaultValue={editingZipcode.city || ''}
-                placeholder="City"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <input
-                type="text"
-                name="state"
-                defaultValue={editingZipcode.state || ''}
-                placeholder="State"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <AnimatedSelect
-                name="deliveryAvailable"
-                value={editingZipcode.deliveryAvailable ? 'true' : 'false'}
-                onChange={(e) => {
-                  const form = e.target.closest('form');
-                  if (form) {
-                    const deliveryInput = form.querySelector('[name="deliveryAvailable"]');
-                    if (deliveryInput) deliveryInput.value = e.target.value;
-                  }
-                }}
-                options={[
-                  { value: 'true', label: 'Delivery Available' },
-                  { value: 'false', label: 'Delivery Not Available' },
-                ]}
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingZipcode(null)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-              </motion.div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              placeholder="Select City"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <input
+              type="text"
+              value={formData.state}
+              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              placeholder="e.g. Maharashtra"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Charge (₹)</label>
+            <input
+              type="number"
+              value={formData.deliveryCharge}
+              onChange={(e) => setFormData({ ...formData, deliveryCharge: parseFloat(e.target.value) || 0 })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none"
+              min="0"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active</label>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={handleCloseModal} type="button">Cancel</Button>
+            <Button type="submit" isLoading={isLoading}>
+              {editingZip ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
-      <ConfirmModal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, id: null })}
-        onConfirm={handleDelete}
-        title="Delete Zipcode?"
-        message="Are you sure you want to delete this zipcode? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="danger"
-      />
-    </motion.div>
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        title="Delete Zip Code"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Are you sure you want to delete this zip code? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteConfirmation({ isOpen: false, id: null })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={handleDelete}
+              isLoading={isLoading}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };
 
 export default Zipcodes;
-

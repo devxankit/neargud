@@ -79,7 +79,7 @@ const AnimatedSelect = ({
       };
       onChange(syntheticEvent);
     }
-    
+
     setIsOpen(false);
     setSearchQuery('');
   };
@@ -129,7 +129,7 @@ const AnimatedSelect = ({
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
       const estimatedHeight = Math.min(filteredOptions.length * 48 + (searchable ? 60 : 0), 300);
-      
+
       setOpenUpward(spaceBelow < estimatedHeight && spaceAbove > spaceBelow);
     }
   }, [isOpen, filteredOptions.length, searchable]);
@@ -142,11 +142,10 @@ const AnimatedSelect = ({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 text-left border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white flex items-center justify-between transition-all duration-200 ${
-          disabled
+        className={`w-full px-4 py-2.5 text-left border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white flex items-center justify-between transition-all duration-200 ${disabled
             ? 'bg-gray-100 cursor-not-allowed text-gray-400'
             : 'text-gray-900 hover:border-primary-400 cursor-pointer'
-        } ${!value ? 'text-gray-500' : ''}`}
+          } ${!value ? 'text-gray-500' : ''}`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -198,9 +197,8 @@ const AnimatedSelect = ({
                 duration: 0.25,
                 ease: [0.4, 0, 0.2, 1],
               }}
-              className={`absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden ${
-                openUpward ? 'bottom-full mb-2' : 'top-full'
-              }`}
+              className={`absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden ${openUpward ? 'bottom-full mb-2' : 'top-full'
+                }`}
               style={{
                 maxHeight: '300px',
                 transformOrigin: openUpward ? 'bottom center' : 'top center',
@@ -241,20 +239,21 @@ const AnimatedSelect = ({
                       return (
                         <motion.button
                           key={typeof option === 'object' ? option.value : option}
+                          type="button"
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.02 }}
                           onClick={() => handleSelect(optionValue)}
-                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors duration-150 ${
-                            isSelected
+                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors duration-150 ${isSelected
                               ? 'bg-primary-600 text-white font-medium'
                               : 'text-gray-900 hover:bg-gray-50'
-                          }`}
+                            }`}
                           role="option"
                           aria-selected={isSelected}
                         >
                           {optionLabel}
                         </motion.button>
+
                       );
                     })}
                   </div>
@@ -265,8 +264,8 @@ const AnimatedSelect = ({
         )}
       </AnimatePresence>
 
-      {/* Hidden input for form validation */}
-      {required && (
+      {/* Hidden input for form submission/validation */}
+      {name && (
         <input
           type="hidden"
           name={name}

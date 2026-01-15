@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSave, FiCreditCard, FiTruck } from 'react-icons/fi';
+import { FiSave, FiCreditCard, FiTruck, FiPercent } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useSettingsStore } from '../../../store/settingsStore';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
@@ -9,20 +9,18 @@ const PaymentShippingSettings = () => {
   const { settings, updateSettings, initialize } = useSettingsStore();
   const [paymentData, setPaymentData] = useState({});
   const [shippingData, setShippingData] = useState({});
+  const [taxData, setTaxData] = useState({});
   const [activeSection, setActiveSection] = useState('payment');
 
   useEffect(() => {
     initialize();
-    if (settings) {
-      if (settings.payment) setPaymentData(settings.payment);
-      if (settings.shipping) setShippingData(settings.shipping);
-    }
   }, []);
 
   useEffect(() => {
     if (settings) {
       if (settings.payment) setPaymentData(settings.payment);
       if (settings.shipping) setShippingData(settings.shipping);
+      if (settings.tax) setTaxData(settings.tax);
     }
   }, [settings]);
 
@@ -39,6 +37,14 @@ const PaymentShippingSettings = () => {
     setShippingData({
       ...shippingData,
       [name]: value,
+    });
+  };
+
+  const handleTaxChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setTaxData({
+      ...taxData,
+      [name]: type === 'checkbox' ? checked : value,
     });
   };
 
@@ -67,16 +73,26 @@ const PaymentShippingSettings = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    updateSettings('payment', paymentData);
-    updateSettings('shipping', shippingData);
-    toast.success('Settings saved successfully');
+    try {
+      if (activeSection === 'payment') {
+        await updateSettings('payment', paymentData);
+      } else if (activeSection === 'shipping') {
+        await updateSettings('shipping', shippingData);
+      } else if (activeSection === 'tax') {
+        await updateSettings('tax', taxData);
+      }
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      toast.error('Failed to save settings');
+    }
   };
 
   const sections = [
     { id: 'payment', label: 'Payment Methods', icon: FiCreditCard },
     { id: 'shipping', label: 'Shipping Settings', icon: FiTruck },
+    { id: 'tax', label: 'Tax Settings', icon: FiPercent },
   ];
 
   return (
@@ -87,7 +103,7 @@ const PaymentShippingSettings = () => {
     >
       <div className="lg:hidden">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Payment & Shipping</h1>
-        <p className="text-sm sm:text-base text-gray-600">Configure payment methods and shipping options</p>
+        <p className="text-sm sm:text-base text-gray-600">Configure payment, shipping and tax options</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-w-full overflow-x-hidden">
@@ -99,11 +115,10 @@ const PaymentShippingSettings = () => {
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${
-                    activeSection === section.id
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${activeSection === section.id
                       ? 'border-primary-600 text-primary-600 font-semibold'
                       : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
+                    }`}
                 >
                   <Icon className="text-base sm:text-lg" />
                   <span>{section.label}</span>
@@ -339,6 +354,73 @@ const PaymentShippingSettings = () => {
             </div>
           )}
 
+          {/* Tax Section */}
+          {activeSection === 'tax' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800">Enable Tax Calculation</h4>
+                  <p className="text-xs text-gray-600">Toggle this to enable/disable tax on orders</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="isEnabled"
+                    checked={taxData.isEnabled || false}
+                    onChange={handleTaxChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tax Name (e.g., GST, VAT)
+                  </label>
+                  <input
+                    type="text"
+                    name="taxName"
+                    value={taxData.taxName || 'Tax'}
+                    onChange={handleTaxChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tax Type
+                  </label>
+                  <AnimatedSelect
+                    name="taxType"
+                    value={taxData.taxType || 'percentage'}
+                    onChange={handleTaxChange}
+                    options={[
+                      { value: 'percentage', label: 'Percentage (%)' },
+                      { value: 'fixed', label: 'Fixed Amount (₹)' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tax Value
+                  </label>
+                  <input
+                    type="number"
+                    name="taxValue"
+                    value={taxData.taxValue || 0}
+                    onChange={handleTaxChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-200 mt-4 sm:mt-6">
             <button
               type="submit"
@@ -355,4 +437,3 @@ const PaymentShippingSettings = () => {
 };
 
 export default PaymentShippingSettings;
-

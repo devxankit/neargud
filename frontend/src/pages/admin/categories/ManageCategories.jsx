@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 const ManageCategories = () => {
   const {
     categories,
-    initialize,
+    fetchCategories,
     deleteCategory,
   } = useCategoryStore();
 
@@ -26,7 +26,7 @@ const ManageCategories = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    initialize();
+    fetchCategories();
   }, []);
 
   const filteredCategories = useMemo(() => {
@@ -244,7 +244,6 @@ const ManageCategories = () => {
           parentId={parentCategoryId}
           onClose={handleFormClose}
           onSave={() => {
-            initialize();
             handleFormClose();
           }}
         />

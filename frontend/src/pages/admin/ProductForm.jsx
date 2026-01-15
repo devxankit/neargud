@@ -16,8 +16,8 @@ const ProductForm = () => {
 
   const productsPath = "/admin/products";
 
-  const { categories, initialize: initCategories } = useCategoryStore();
-  const { brands, initialize: initBrands } = useBrandStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { brands, fetchBrands } = useBrandStore();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -50,8 +50,8 @@ const ProductForm = () => {
   });
 
   useEffect(() => {
-    initCategories();
-    initBrands();
+    fetchCategories();
+    fetchBrands();
   }, []);
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useCartStore } from '../store/useStore';
 import { useAuthStore } from '../store/authStore';
 import { useAddressStore } from '../store/addressStore';
 import { useOrderStore } from '../store/orderStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { formatPrice } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import PageTransition from '../components/PageTransition';
@@ -15,8 +16,9 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { items, getTotal, clearCart, getItemsByVendor } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
-  const { addresses, getDefaultAddress, addAddress } = useAddressStore();
+  const { addresses, getDefaultAddress, addAddress, updateAddress, deleteAddress } = useAddressStore();
   const { createOrder } = useOrderStore();
+  const { settings } = useSettingsStore();
 
   // Group items by vendor
   const itemsByVendor = useMemo(() => getItemsByVendor(), [items, getItemsByVendor]);
@@ -25,6 +27,8 @@ const Checkout = () => {
   const [isGuest, setIsGuest] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [shippingOption, setShippingOption] = useState('standard');
@@ -91,22 +95,42 @@ const Checkout = () => {
 
   const total = getTotal();
   const shipping = calculateShipping();
-  const tax = total * 0.1;
+
+  // Dynamic Tax Calculation
+  const taxSettings = settings?.tax;
+  const tax = taxSettings?.isEnabled
+    ? (taxSettings.taxType === 'percentage' ? total * (taxSettings.taxValue / 100) : taxSettings.taxValue)
+    : 0;
   const discount = appliedCoupon ? (appliedCoupon.type === 'percentage'
     ? total * (appliedCoupon.value / 100)
     : appliedCoupon.value) : 0;
   const finalTotal = Math.max(0, total + shipping + tax - discount);
 
-  // Coupon validation
-  const validateCoupon = (code) => {
-    const coupons = {
-      'SAVE10': { type: 'percentage', value: 10, name: '10% Off' },
-      'FREESHIP': { type: 'freeship', value: 0, name: 'Free Shipping' },
-      'WELCOME20': { type: 'percentage', value: 20, name: '20% Off' },
-      'SAVE50': { type: 'fixed', value: 50, name: '$50 Off' },
-    };
+  const validCoupons = useMemo(() => {
+    const allCoupons = items.flatMap(item => item.applicableCoupons || []);
+    const uniqueCoupons = [];
+    const seenCodes = new Set();
+    allCoupons.forEach(coupon => {
+      if (coupon && typeof coupon === 'object' && coupon.code && !seenCodes.has(coupon.code)) {
+        seenCodes.add(coupon.code);
+        uniqueCoupons.push(coupon);
+      }
+    });
+    return uniqueCoupons;
+  }, [items]);
 
-    return coupons[code.toUpperCase()] || null;
+  const validateCoupon = (code) => {
+    const normalizedCode = code.trim().toUpperCase();
+    const found = validCoupons.find(c => c.code.toUpperCase() === normalizedCode);
+    if (found) {
+      return {
+        type: found.type,
+        value: found.value || found.discountValue,
+        name: found.description || found.code,
+        code: found.code
+      };
+    }
+    return null;
   };
 
   const handleApplyCoupon = () => {
@@ -263,8 +287,8 @@ const Checkout = () => {
                       <div className="flex flex-col items-center relative">
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${step >= s.id
-                              ? 'gradient-green text-white shadow-glow-green scale-110'
-                              : 'bg-white text-gray-400 border-2 border-gray-100 shadow-sm'
+                            ? 'gradient-green text-white shadow-glow-green scale-110'
+                            : 'bg-white text-gray-400 border-2 border-gray-100 shadow-sm'
                             }`}
                         >
                           {step > s.id ? <FiCheck className="text-xl" /> : s.id}
@@ -340,6 +364,40 @@ const Checkout = () => {
                                   <p className="text-sm text-gray-600">
                                     {address.city}, {address.state} {address.zipCode}
                                   </p>
+                                  <div className="flex gap-2 mt-3">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingAddress(address);
+                                        setShowEditForm(true);
+                                      }}
+                                      className="px-3 py-1 text-xs font-semibold text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        const id = address._id || address.id;
+                                        if (window.confirm('Delete this address?')) {
+                                          try {
+                                            await deleteAddress(id);
+                                            toast.success('Address deleted');
+                                            if (selectedAddressId === address.id) {
+                                              setSelectedAddressId(null);
+                                            }
+                                          } catch (err) {
+                                            toast.error(err.message || 'Failed to delete address');
+                                          }
+                                        }
+                                      }}
+                                      className="px-3 py-1 text-xs font-semibold text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -384,6 +442,55 @@ const Checkout = () => {
                                 <AddressForm
                                   onSubmit={handleNewAddress}
                                   onCancel={() => setShowAddressForm(false)}
+                                  title="Add New Address"
+                                  submitLabel="Add Address"
+                                />
+                              </motion.div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <AnimatePresence>
+                          {showEditForm && editingAddress && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                              onClick={() => setShowEditForm(false)}
+                            >
+                              <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                              >
+                                <div className="flex items-center justify-between mb-6">
+                                  <h3 className="text-xl font-bold text-gray-800">Edit Address</h3>
+                                  <button
+                                    onClick={() => setShowEditForm(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-full"
+                                  >
+                                    <FiX className="text-xl" />
+                                  </button>
+                                </div>
+                                <AddressForm
+                                  onSubmit={async (data) => {
+                                    try {
+                                      const id = editingAddress._id || editingAddress.id;
+                                      await updateAddress(id, data);
+                                      toast.success('Address updated');
+                                      setShowEditForm(false);
+                                      setEditingAddress(null);
+                                    } catch (err) {
+                                      toast.error(err.message || 'Failed to update address');
+                                    }
+                                  }}
+                                  onCancel={() => setShowEditForm(false)}
+                                  initialData={editingAddress}
+                                  title="Edit Address"
+                                  submitLabel="Update Address"
                                 />
                               </motion.div>
                             </motion.div>
@@ -720,47 +827,49 @@ const Checkout = () => {
                     </div>
 
                     {/* Coupon Code */}
-                    <div className="mb-6 pb-6 border-b border-gray-200">
-                      {!appliedCoupon ? (
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-gray-700">
-                            Coupon Code
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={couponCode}
-                              onChange={(e) => setCouponCode(e.target.value)}
-                              placeholder="Enter code"
-                              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                            />
+                    {validCoupons.length > 0 && (
+                      <div className="mb-6 pb-6 border-b border-gray-200">
+                        {!appliedCoupon ? (
+                          <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-gray-700">
+                              Coupon Code
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                placeholder="Enter code"
+                                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleApplyCoupon}
+                                className="px-4 py-2 gradient-green text-white rounded-lg font-semibold text-sm hover:shadow-glow-green transition-all"
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div>
+                              <p className="text-sm font-semibold text-green-800">
+                                {appliedCoupon.name} Applied
+                              </p>
+                              <p className="text-xs text-green-600">Code: {couponCode}</p>
+                            </div>
                             <button
                               type="button"
-                              onClick={handleApplyCoupon}
-                              className="px-4 py-2 gradient-green text-white rounded-lg font-semibold text-sm hover:shadow-glow-green transition-all"
+                              onClick={handleRemoveCoupon}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              Apply
+                              <FiX className="text-lg" />
                             </button>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                          <div>
-                            <p className="text-sm font-semibold text-green-800">
-                              {appliedCoupon.name} Applied
-                            </p>
-                            <p className="text-xs text-green-600">Code: {couponCode}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleRemoveCoupon}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <FiX className="text-lg" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="border-t border-gray-200 pt-4 space-y-2">
                       <div className="flex justify-between text-gray-600">
@@ -784,7 +893,14 @@ const Checkout = () => {
                         </span>
                       </div>
                       <div className="flex justify-between text-gray-600">
-                        <span>Tax</span>
+                        <div className="flex flex-col">
+                          <span>{taxSettings?.taxName || 'Tax'}</span>
+                          {taxSettings?.isEnabled && (
+                            <span className="text-[10px] text-gray-400">
+                              ({taxSettings.taxType === 'percentage' ? `${taxSettings.taxValue}%` : 'Fixed Amount'} applied)
+                            </span>
+                          )}
+                        </div>
                         <span>{formatPrice(tax)}</span>
                       </div>
                       <div className="flex justify-between text-lg font-bold text-gray-800 pt-2 border-t border-gray-200">
@@ -804,7 +920,7 @@ const Checkout = () => {
 };
 
 // Address Form Component for Modal
-const AddressForm = ({ onSubmit, onCancel }) => {
+const AddressForm = ({ onSubmit, onCancel, initialData, title, submitLabel }) => {
   const [formData, setFormData] = useState({
     name: '',
     fullName: '',
@@ -815,6 +931,21 @@ const AddressForm = ({ onSubmit, onCancel }) => {
     zipCode: '',
     country: '',
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        fullName: initialData.fullName || '',
+        phone: initialData.phone || '',
+        address: initialData.address || '',
+        city: initialData.city || '',
+        state: initialData.state || '',
+        zipCode: initialData.zipCode || '',
+        country: initialData.country || '',
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -827,6 +958,9 @@ const AddressForm = ({ onSubmit, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {title && (
+        <h4 className="text-lg font-bold text-gray-800">{title}</h4>
+      )}
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
           Address Label
@@ -931,7 +1065,7 @@ const AddressForm = ({ onSubmit, onCancel }) => {
           type="submit"
           className="flex-1 gradient-green text-white py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all"
         >
-          Add Address
+          {submitLabel || 'Add Address'}
         </button>
         <button
           type="button"

@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { FiSave, FiUser, FiLock, FiShield } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useVendorAuthStore } from '../../store/vendorAuthStore';
-import { useVendorStore } from '../../store/vendorStore';
 import toast from 'react-hot-toast';
 
 const ProfileSettings = () => {
-  const { vendor, logout } = useVendorAuthStore();
-  const { updateVendorProfile } = useVendorStore();
+  const { vendor, logout, updateProfile } = useVendorAuthStore();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,6 +15,7 @@ const ProfileSettings = () => {
     confirmPassword: '',
   });
   const [activeSection, setActiveSection] = useState('profile');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (vendor) {
@@ -40,17 +39,19 @@ const ProfileSettings = () => {
     e.preventDefault();
     if (!vendor) return;
 
+    setIsSaving(true);
     try {
-      const updateData = {
+      await updateProfile({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-      };
-
-      updateVendorProfile(vendor.id, updateData);
+      });
       toast.success('Profile updated successfully');
     } catch (error) {
-      toast.error('Failed to update profile');
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
     }
   };
 

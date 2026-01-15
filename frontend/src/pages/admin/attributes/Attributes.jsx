@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,34 +6,38 @@ import DataTable from '../../../components/Admin/DataTable';
 import ConfirmModal from '../../../components/Admin/ConfirmModal';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import toast from 'react-hot-toast';
+import useAttributeStore from '../../../store/attributeStore';
 
 const Attributes = () => {
   const location = useLocation();
   const isAppRoute = location.pathname.startsWith('/app');
-  const [attributes, setAttributes] = useState([
-    { id: 1, name: 'Color', type: 'select', required: true, status: 'active' },
-    { id: 2, name: 'Size', type: 'select', required: true, status: 'active' },
-    { id: 3, name: 'Material', type: 'select', required: false, status: 'active' },
-    { id: 4, name: 'Weight', type: 'text', required: false, status: 'active' },
-  ]);
+  
+  // Store
+  const { attributes, fetchAttributes, createAttribute, updateAttribute, deleteAttribute, loadingAttributes } = useAttributeStore();
+
   const [editingAttribute, setEditingAttribute] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
-  const handleSave = (attrData) => {
-    if (editingAttribute && editingAttribute.id) {
-      setAttributes(attributes.map((a) => (a.id === editingAttribute.id ? { ...attrData, id: editingAttribute.id } : a)));
-      toast.success('Attribute updated');
+  // Fetch on mount
+  useEffect(() => {
+    fetchAttributes();
+  }, [fetchAttributes]);
+
+  const handleSave = async (attrData) => {
+    if (editingAttribute && editingAttribute._id) {
+      const success = await updateAttribute(editingAttribute._id, attrData);
+      if(success) setEditingAttribute(null);
     } else {
-      setAttributes([...attributes, { ...attrData, id: attributes.length + 1 }]);
-      toast.success('Attribute added');
+      const success = await createAttribute(attrData);
+      if(success) setEditingAttribute(null);
     }
-    setEditingAttribute(null);
   };
 
-  const handleDelete = () => {
-    setAttributes(attributes.filter((a) => a.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Attribute deleted');
+  const handleDelete = async () => {
+    if (deleteModal.id) {
+        await deleteAttribute(deleteModal.id);
+        setDeleteModal({ isOpen: false, id: null });
+    }
   };
 
   const columns = [
@@ -90,7 +94,7 @@ const Attributes = () => {
             <FiEdit />
           </button>
           <button
-            onClick={() => setDeleteModal({ isOpen: true, id: row.id })}
+            onClick={() => setDeleteModal({ isOpen: true, id: row._id })}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <FiTrash2 />
@@ -126,6 +130,7 @@ const Attributes = () => {
           columns={columns}
           pagination={true}
           itemsPerPage={10}
+          loading={loadingAttributes}
         />
       </div>
 
@@ -186,7 +191,7 @@ const Attributes = () => {
                 style={{ willChange: 'transform' }}
               >
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingAttribute.id ? 'Edit Attribute' : 'Add Attribute'}
+                  {editingAttribute._id ? 'Edit Attribute' : 'Add Attribute'}
                 </h3>
             <form
               onSubmit={(e) => {
@@ -259,9 +264,10 @@ const Attributes = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                  disabled={loadingAttributes}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50"
                 >
-                  Save
+                  {loadingAttributes ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"

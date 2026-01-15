@@ -1,259 +1,341 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiPackage, FiMapPin, FiClock, FiCheckCircle, FiXCircle, FiNavigation } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiPackage, FiMapPin, FiClock, FiCheckCircle, FiXCircle, FiNavigation, FiPlusCircle, FiTruck } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import PageTransition from '../../components/PageTransition';
 import { formatPrice } from '../../utils/helpers';
 
+import { useDeliveryStore } from '../../store/deliveryStore';
+import toast from 'react-hot-toast';
+
 const DeliveryOrders = () => {
   const navigate = useNavigate();
+  const [view, setView] = useState('available'); // 'available' or 'my-orders'
   const [filter, setFilter] = useState('all'); // all, pending, in-transit, completed
-  const [orders, setOrders] = useState([]);
+  const {
+    assignedOrders,
+    availableOrders,
+    fetchAssignedOrders,
+    fetchAvailableOrders,
+    updateOrderStatus,
+    claimOrder,
+    updateLocation,
+    loading
+  } = useDeliveryStore();
 
-  // Mock orders data - replace with actual API call
+  const [coords, setCoords] = useState({ lat: null, lng: null });
+
+  // Get location
   useEffect(() => {
-    const mockOrders = [
-      {
-        id: 'ORD-001',
-        customer: 'John Doe',
-        phone: '+1234567890',
-        address: '123 Main St, City, State 12345',
-        amount: 45.99,
-        status: 'pending',
-        distance: '2.5 km',
-        estimatedTime: '15 min',
-        items: 3,
-        createdAt: '2024-01-15T10:30:00',
-      },
-      {
-        id: 'ORD-002',
-        customer: 'Jane Smith',
-        phone: '+1234567891',
-        address: '456 Oak Ave, City, State 12345',
-        amount: 89.50,
-        status: 'in-transit',
-        distance: '5.1 km',
-        estimatedTime: '25 min',
-        items: 5,
-        createdAt: '2024-01-15T09:15:00',
-      },
-      {
-        id: 'ORD-003',
-        customer: 'Bob Johnson',
-        phone: '+1234567892',
-        address: '789 Pine Rd, City, State 12345',
-        amount: 32.00,
-        status: 'pending',
-        distance: '1.8 km',
-        estimatedTime: '10 min',
-        items: 2,
-        createdAt: '2024-01-15T11:00:00',
-      },
-      {
-        id: 'ORD-004',
-        customer: 'Alice Brown',
-        phone: '+1234567893',
-        address: '321 Elm St, City, State 12345',
-        amount: 67.25,
-        status: 'completed',
-        distance: '3.2 km',
-        estimatedTime: '20 min',
-        items: 4,
-        createdAt: '2024-01-15T08:00:00',
-      },
-    ];
-    setOrders(mockOrders);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          updateLocation(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          // Fallback or leave as null (backend defaults to show all if not strict)
+        }
+      );
+    }
   }, []);
 
-  const filteredOrders = orders.filter((order) => {
-    if (filter === 'all') return true;
-    return order.status === filter;
-  });
+  useEffect(() => {
+    if (view === 'my-orders') {
+      let status = '';
+      if (filter === 'pending') status = 'ready_to_ship';
+      else if (filter === 'in-transit') status = 'active';
+      else if (filter === 'completed') status = 'history';
+      else if (filter !== 'all') status = filter;
+
+      fetchAssignedOrders(status);
+    } else {
+      fetchAvailableOrders(coords.lat, coords.lng);
+    }
+  }, [view, filter, coords]);
+
+  const handleClaim = async (orderId) => {
+    try {
+      await claimOrder(orderId);
+      toast.success('Order assigned to you!');
+      setView('my-orders');
+      setFilter('pending');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to claim order');
+    }
+  };
+
+  const handleAcceptOrder = async (orderId) => {
+    try {
+      await updateOrderStatus(orderId, 'out_for_delivery');
+      toast.success('Order picked up!');
+    } catch (error) {
+      toast.error('Failed to update order');
+    }
+  };
+
+  const handleCompleteOrder = async (orderId) => {
+    try {
+      await updateOrderStatus(orderId, 'delivered');
+      toast.success('Order delivered!');
+    } catch (error) {
+      toast.error('Failed to complete order');
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
+      case 'ready_to_ship':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'in-transit':
+      case 'in_transit':
+      case 'out_for_delivery':
+      case 'shipped':
         return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'delivered':
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-300';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'pending':
-        return <FiClock className="text-yellow-600" />;
-      case 'in-transit':
-        return <FiNavigation className="text-blue-600" />;
-      case 'completed':
-        return <FiCheckCircle className="text-green-600" />;
-      case 'cancelled':
-        return <FiXCircle className="text-red-600" />;
-      default:
-        return <FiPackage className="text-gray-600" />;
-    }
-  };
+  const OrderCard = ({ order, isAvailable }) => (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+      onClick={() => navigate(`/delivery/orders/${order._id}`)}
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-primary-50 rounded-lg">
+            <FiPackage className="text-primary-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 font-medium">Order #{order.orderCode?.slice(-8) || order._id.slice(-8)}</p>
+            <p className="text-sm font-bold text-gray-800">
+              {order.vendorBreakdown?.[0]?.vendorId?.storeName || 'Vendor'}
+            </p>
+          </div>
+        </div>
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}`}>
+          {order.status.replace(/_/g, ' ')}
+        </span>
+      </div>
 
-  const handleAcceptOrder = (orderId) => {
-    // Update order status to in-transit
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: 'in-transit' } : order
-      )
-    );
-  };
+      <div className="space-y-3 mb-4">
+        {/* Pickup Location */}
+        <div className="flex items-start gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="p-1.5 bg-red-100 rounded-lg">
+            <FiMapPin className="text-red-600" size={14} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Pickup From</span>
+            <p className="text-xs text-gray-800 font-semibold leading-tight">
+              {(() => {
+                const addr = order.vendorBreakdown?.[0]?.vendorId?.address;
+                if (!addr) return 'Address not specified';
+                if (typeof addr === 'string') return addr;
+                // Handle object format if exists
+                const parts = [addr.street, addr.city].filter(Boolean);
+                return parts.length > 0 ? parts.join(', ') : 'Indore, MP';
+              })()}
+            </p>
+            {order.distance !== undefined && (
+              <span className="text-[10px] text-primary-600 font-bold mt-0.5">
+                {order.distance} km from your current location
+              </span>
+            )}
+          </div>
+        </div>
 
-  const handleCompleteOrder = (orderId) => {
-    // Update order status to completed
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: 'completed' } : order
-      )
-    );
-  };
+        {/* Drop Location */}
+        <div className="flex items-start gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+          <div className="p-1.5 bg-blue-100 rounded-lg">
+            <FiNavigation className="text-blue-600" size={14} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Drop To</span>
+            <p className="text-xs text-gray-800 font-bold leading-tight">
+              {order.shippingAddress?.address ? `${order.shippingAddress.address}, ${order.shippingAddress.city}` : 'Customer Address'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+        <div className="flex gap-4">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-gray-400 font-bold uppercase">Delivery Charge</span>
+            <span className="text-sm font-black text-primary-600 font-outfit">{formatPrice(order.deliveryFee || 0)}</span>
+          </div>
+          <div className="flex flex-col border-l border-gray-100 pl-4">
+            <span className="text-[10px] text-gray-400 font-bold uppercase">Order Total</span>
+            <span className="text-sm font-bold text-gray-800 font-outfit">{formatPrice(order.total)}</span>
+          </div>
+          <div className="flex flex-col border-l border-gray-100 pl-4">
+            <span className="text-[10px] text-gray-400 font-bold uppercase">Items</span>
+            <span className="text-sm font-bold text-gray-800">{order.items?.length || 0}</span>
+          </div>
+        </div>
+
+        {isAvailable ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClaim(order._id);
+            }}
+            className="px-6 py-2 bg-primary-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary-100 hover:bg-primary-700 active:scale-95 transition-all"
+          >
+            Accept Request
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            {['ready_to_ship', 'shipped_seller'].includes(order.status) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAcceptOrder(order._id);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
+              >
+                Pick Up
+              </button>
+            )}
+            {order.status === 'out_for_delivery' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCompleteOrder(order._id);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold"
+              >
+                Delivered
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
 
   return (
     <PageTransition>
-      <div className="px-4 py-6 space-y-4">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
-          <h1 className="text-2xl font-bold text-gray-800">Orders</h1>
-          <span className="text-sm text-gray-600">{filteredOrders.length} orders</span>
-        </motion.div>
+      <div className="pb-24">
+        {/* Header Section */}
+        <div className="bg-white px-6 pt-8 pb-6 rounded-b-[40px] shadow-sm sticky top-0 z-20">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 font-outfit">Orders</h1>
+              <p className="text-xs text-gray-500">Manage your delivery tasks</p>
+            </div>
+            <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100">
+              <FiTruck className="text-primary-600 text-xl" />
+            </div>
+          </div>
 
-        {/* Filter Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex gap-2 overflow-x-auto pb-2"
-        >
-          {['all', 'pending', 'in-transit', 'completed'].map((tab) => (
+          {/* View Switcher */}
+          <div className="bg-gray-100 p-1.5 rounded-2xl flex gap-1 mb-4">
             <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-                filter === tab
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              onClick={() => setView('available')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${view === 'available' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500'
+                }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1).replace('-', ' ')}
+              <FiPlusCircle />
+              New Requests
             </button>
-          ))}
-        </motion.div>
-
-        {/* Orders List */}
-        <div className="space-y-4">
-          {filteredOrders.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
+            <button
+              onClick={() => setView('my-orders')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${view === 'my-orders' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500'
+                }`}
             >
-              <FiPackage className="text-gray-400 text-5xl mx-auto mb-4" />
-              <p className="text-gray-600">No orders found</p>
-            </motion.div>
-          ) : (
-            filteredOrders.map((order, index) => (
+              <FiPackage />
+              My Orders
+            </button>
+          </div>
+
+          {/* Filter (only for My Orders) */}
+          <AnimatePresence>
+            {view === 'my-orders' && (
               <motion.div
-                key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => navigate(`/delivery/orders/${order.id}`)}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="flex gap-2 overflow-x-auto no-scrollbar pt-2"
               >
-                {/* Order Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      {getStatusIcon(order.status)}
-                      <p className="font-bold text-gray-800">{order.id}</p>
-                    </div>
-                    <p className="text-sm text-gray-600">{order.customer}</p>
-                    <p className="text-xs text-gray-500">{order.phone}</p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                      order.status
-                    )}`}
-                  >
-                    {order.status.replace('-', ' ')}
-                  </span>
-                </div>
-
-                {/* Address */}
-                <div className="flex items-start gap-2 mb-3 p-3 bg-gray-50 rounded-xl">
-                  <FiMapPin className="text-primary-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-700">{order.address}</p>
-                </div>
-
-                {/* Order Details */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <FiPackage />
-                      <span>{Array.isArray(order.items) ? order.items.length : (typeof order.items === 'number' ? order.items : 0)} items</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FiClock />
-                      <span>{order.estimatedTime}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FiNavigation />
-                      <span>{order.distance}</span>
-                    </div>
-                  </div>
-                  <p className="font-bold text-primary-600">{formatPrice(order.amount)}</p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  {order.status === 'pending' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAcceptOrder(order.id);
-                      }}
-                      className="flex-1 gradient-green text-white py-2.5 rounded-xl font-semibold text-sm"
-                    >
-                      Accept Order
-                    </button>
-                  )}
-                  {order.status === 'in-transit' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCompleteOrder(order.id);
-                      }}
-                      className="flex-1 gradient-green text-white py-2.5 rounded-xl font-semibold text-sm"
-                    >
-                      Mark Complete
-                    </button>
-                  )}
+                {['all', 'pending', 'in-transit', 'completed'].map((tab) => (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/delivery/orders/${order.id}`);
-                    }}
-                    className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-200"
+                    key={tab}
+                    onClick={() => setFilter(tab)}
+                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${filter === tab
+                      ? 'bg-primary-600 text-white border-primary-600'
+                      : 'bg-white text-gray-400 border-gray-100'
+                      }`}
                   >
-                    View Details
+                    {tab}
                   </button>
-                </div>
+                ))}
               </motion.div>
-            ))
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Orders Content */}
+        <div className="px-6 py-4">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 opacity-50">
+              <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-sm font-medium text-gray-500">Scanning for orders...</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 mt-2">
+              <AnimatePresence mode="popLayout">
+                {view === 'available' ? (
+                  availableOrders?.length > 0 ? (
+                    availableOrders.map(order => (
+                      <OrderCard key={order._id} order={order} isAvailable={true} />
+                    ))
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-20"
+                    >
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                        <FiNavigation className="text-gray-300 text-2xl animate-pulse text-primary-400" />
+                      </div>
+                      <p className="text-sm font-bold text-gray-400 mb-1">No requests nearby</p>
+                      <p className="text-xs text-gray-400 px-10">We couldn't find any orders in your area. Stay online to get alerts.</p>
+                    </motion.div>
+                  )
+                ) : (
+                  assignedOrders?.length > 0 ? (
+                    assignedOrders.map(order => (
+                      <OrderCard key={order._id} order={order} isAvailable={false} />
+                    ))
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-20"
+                    >
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                        <FiPackage className="text-gray-200 text-2xl" />
+                      </div>
+                      <p className="text-sm font-bold text-gray-400 mb-1">No active tasks</p>
+                      <p className="text-xs text-gray-400">Accept a request from the "New Requests" tab to start working.</p>
+                    </motion.div>
+                  )
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
       </div>
@@ -262,4 +344,3 @@ const DeliveryOrders = () => {
 };
 
 export default DeliveryOrders;
-

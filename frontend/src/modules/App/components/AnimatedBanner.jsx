@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { 
-  FiArrowRight, 
-  FiZap, 
+import {
+  FiArrowRight,
+  FiZap,
   FiTag
 } from 'react-icons/fi';
 
 const AnimatedBanner = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [ripples, setRipples] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const banners = [
+  const fallbackBanners = [
     {
       id: 1,
       title: 'Flash Sale',
@@ -44,6 +46,38 @@ const AnimatedBanner = () => {
     },
   ];
 
+  useEffect(() => {
+    const getBanners = async () => {
+      try {
+        setLoading(true);
+        const { fetchActiveBanners } = await import('../../../services/publicApi');
+        const res = await fetchActiveBanners();
+        if (res.success && res.data && res.data.length > 0) {
+          const apiBanners = res.data.map((b, idx) => ({
+            id: b._id || b.id || idx,
+            title: b.title,
+            subtitle: b.subtitle || 'Special Offer',
+            discount: b.discountText || 'Check it out',
+            description: b.description,
+            gradient: b.gradient || 'from-primary-500 to-primary-700',
+            link: b.link || '/app',
+            icon: b.icon === 'zap' ? FiZap : FiTag,
+            image: b.image
+          }));
+          setBanners(apiBanners);
+        } else {
+          setBanners(fallbackBanners);
+        }
+      } catch (error) {
+        console.error("Error fetching banners:", error);
+        setBanners(fallbackBanners);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getBanners();
+  }, []);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -58,19 +92,29 @@ const AnimatedBanner = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     const newRipple = {
       id: Date.now(),
       x,
       y,
     };
-    
+
     setRipples((prev) => [...prev, newRipple]);
-    
+
     setTimeout(() => {
       setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
     }, 600);
   };
+
+  if (loading && banners.length === 0) {
+    return (
+      <div className="px-4 py-3">
+        <div className="w-full h-32 rounded-2xl bg-gray-100 animate-pulse flex items-center justify-center">
+          <FiZap className="text-gray-300 text-2xl animate-bounce" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-3">
@@ -79,7 +123,7 @@ const AnimatedBanner = () => {
           {banners.map((banner, index) => {
             if (index !== currentBanner) return null;
             const Icon = banner.icon;
-            
+
             return (
               <motion.div
                 key={banner.id}
@@ -91,8 +135,14 @@ const AnimatedBanner = () => {
                   ease: [0.25, 0.1, 0.25, 1],
                 }}
                 style={{ willChange: 'transform, opacity' }}
-                className={`absolute inset-0 bg-gradient-to-br ${banner.gradient} p-4 relative`}
+                className={`absolute inset-0 bg-gradient-to-br ${banner.gradient} p-4 relative overflow-hidden`}
               >
+                {/* Background Image if exists */}
+                {banner.image && (
+                  <div className="absolute inset-0 z-0">
+                    <img src={banner.image} alt="" className="w-full h-full object-cover opacity-30 mix-blend-overlay" />
+                  </div>
+                )}
 
                 {/* Ripple Effects */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
@@ -114,8 +164,8 @@ const AnimatedBanner = () => {
                 </div>
 
                 {/* Content */}
-                <Link 
-                  to={banner.link} 
+                <Link
+                  to={banner.link}
                   onClick={handleRipple}
                   onTouchStart={handleRipple}
                   className="relative z-10 h-full flex items-center justify-between group"
@@ -140,7 +190,7 @@ const AnimatedBanner = () => {
                       >
                         <Icon className="text-white text-lg drop-shadow-lg" />
                       </motion.div>
-                      <motion.span 
+                      <motion.span
                         className="text-white/90 text-xs font-medium"
                         animate={{
                           opacity: [0.9, 1, 0.9],
@@ -154,7 +204,7 @@ const AnimatedBanner = () => {
                         {banner.subtitle}
                       </motion.span>
                     </motion.div>
-                    
+
                     <motion.h3
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -163,7 +213,7 @@ const AnimatedBanner = () => {
                     >
                       {banner.title}
                     </motion.h3>
-                    
+
                     <motion.p
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -172,7 +222,7 @@ const AnimatedBanner = () => {
                     >
                       {banner.description}
                     </motion.p>
-                    
+
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -208,9 +258,8 @@ const AnimatedBanner = () => {
                   opacity: index === currentBanner ? 1 : 0.5,
                 }}
                 transition={{ duration: 0.3 }}
-                className={`h-1.5 rounded-full bg-white ${
-                  index === currentBanner ? 'w-6' : 'w-1.5'
-                }`}
+                className={`h-1.5 rounded-full bg-white ${index === currentBanner ? 'w-6' : 'w-1.5'
+                  }`}
               />
             </button>
           ))}

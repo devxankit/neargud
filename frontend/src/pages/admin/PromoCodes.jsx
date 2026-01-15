@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiPlus, FiSearch, FiEdit, FiTrash2, FiTag, FiCopy, FiCheck } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePromoCodeStore } from '../../store/promoCodeStore';
 import DataTable from '../../components/Admin/DataTable';
 import ExportButton from '../../components/Admin/ExportButton';
 import Badge from '../../components/Badge';
@@ -13,61 +14,35 @@ import toast from 'react-hot-toast';
 const PromoCodes = () => {
   const location = useLocation();
   const isAppRoute = location.pathname.startsWith('/app');
-  const [promoCodes, setPromoCodes] = useState([
-    {
-      id: 1,
-      code: 'SAVE20',
-      type: 'percentage',
-      value: 20,
-      minPurchase: 50,
-      maxDiscount: 100,
-      usageLimit: 100,
-      usedCount: 45,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'active',
-    },
-    {
-      id: 2,
-      code: 'FLAT50',
-      type: 'fixed',
-      value: 50,
-      minPurchase: 100,
-      maxDiscount: 50,
-      usageLimit: 50,
-      usedCount: 32,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'active',
-    },
-    {
-      id: 3,
-      code: 'WELCOME10',
-      type: 'percentage',
-      value: 10,
-      minPurchase: 0,
-      maxDiscount: 25,
-      usageLimit: 1,
-      usedCount: 0,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'active',
-    },
-  ]);
+  
+  const {
+    promoCodes,
+    fetchPromoCodes,
+    createPromoCode,
+    updatePromoCode,
+    deletePromoCode,
+    toggleStatus: toggleStoreStatus,
+    isLoading
+  } = usePromoCodeStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [editingCode, setEditingCode] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [copiedCode, setCopiedCode] = useState(null);
+  const [promoType, setPromoType] = useState('percentage');
+  const [promoStatus, setPromoStatus] = useState('active');
 
   useEffect(() => {
-    const savedCodes = localStorage.getItem('admin-promocodes');
-    if (savedCodes) {
-      setPromoCodes(JSON.parse(savedCodes));
-    } else {
-      localStorage.setItem('admin-promocodes', JSON.stringify(promoCodes));
+    if (editingCode) {
+      setPromoType(editingCode.type || 'percentage');
+      setPromoStatus(editingCode.status || 'active');
     }
-  }, []);
+  }, [editingCode]);
+
+  useEffect(() => {
+    fetchPromoCodes();
+  }, [fetchPromoCodes]);
 
   const filteredCodes = promoCodes.filter((code) => {
     const matchesSearch =
@@ -79,23 +54,24 @@ const PromoCodes = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleSave = (codeData) => {
-    const updatedCodes = editingCode && editingCode.id
-      ? promoCodes.map((c) => (c.id === editingCode.id ? { ...codeData, id: editingCode.id } : c))
-      : [...promoCodes, { ...codeData, id: promoCodes.length + 1, usedCount: 0 }];
-    
-    setPromoCodes(updatedCodes);
-    localStorage.setItem('admin-promocodes', JSON.stringify(updatedCodes));
-    setEditingCode(null);
-    toast.success(editingCode && editingCode.id ? 'Promo code updated' : 'Promo code added');
+  const handleSave = async (codeData) => {
+    try {
+      if (editingCode && editingCode.id) {
+        await updatePromoCode(editingCode.id, codeData);
+      } else {
+        await createPromoCode(codeData);
+      }
+      setEditingCode(null);
+    } catch (error) {
+      // Error handled in store
+    }
   };
 
-  const handleDelete = () => {
-    const updatedCodes = promoCodes.filter((c) => c.id !== deleteModal.id);
-    setPromoCodes(updatedCodes);
-    localStorage.setItem('admin-promocodes', JSON.stringify(updatedCodes));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Promo code deleted');
+  const handleDelete = async () => {
+    if (deleteModal.id) {
+        await deletePromoCode(deleteModal.id);
+        setDeleteModal({ isOpen: false, id: null });
+    }
   };
 
   const copyToClipboard = (code) => {
@@ -105,13 +81,8 @@ const PromoCodes = () => {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const toggleStatus = (id) => {
-    const updatedCodes = promoCodes.map((c) =>
-      c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' : 'active' } : c
-    );
-    setPromoCodes(updatedCodes);
-    localStorage.setItem('admin-promocodes', JSON.stringify(updatedCodes));
-    toast.success('Status updated');
+  const toggleStatus = async (id, currentStatus) => {
+    await toggleStoreStatus(id, currentStatus);
   };
 
   const columns = [
@@ -183,7 +154,7 @@ const PromoCodes = () => {
       sortable: true,
       render: (value, row) => (
         <button
-          onClick={() => toggleStatus(row.id)}
+          onClick={() => toggleStatus(row.id, row.status)}
           className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
             value === 'active'
               ? 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -386,14 +357,8 @@ const PromoCodes = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                   <AnimatedSelect
                     name="type"
-                    value={editingCode.type || 'percentage'}
-                    onChange={(e) => {
-                      const form = e.target.closest('form');
-                      if (form) {
-                        const typeInput = form.querySelector('[name="type"]');
-                        if (typeInput) typeInput.value = e.target.value;
-                      }
-                    }}
+                    value={promoType}
+                    onChange={(e) => setPromoType(e.target.value)}
                     options={[
                       { value: 'percentage', label: 'Percentage' },
                       { value: 'fixed', label: 'Fixed Amount' },
@@ -406,11 +371,11 @@ const PromoCodes = () => {
                     type="number"
                     name="value"
                     defaultValue={editingCode.value || ''}
-                    placeholder={editingCode.type === 'fixed' ? '50.00' : '20'}
+                    placeholder={promoType === 'fixed' ? '50.00' : '20'}
                     required
                     min="0"
-                    step={editingCode.type === 'fixed' ? '0.01' : '1'}
-                    max={editingCode.type === 'percentage' ? '100' : ''}
+                    step={promoType === 'fixed' ? '0.01' : '1'}
+                    max={promoType === 'percentage' ? '100' : ''}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
@@ -482,14 +447,8 @@ const PromoCodes = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <AnimatedSelect
                   name="status"
-                  value={editingCode.status || 'active'}
-                  onChange={(e) => {
-                    const form = e.target.closest('form');
-                    if (form) {
-                      const statusInput = form.querySelector('[name="status"]');
-                      if (statusInput) statusInput.value = e.target.value;
-                    }
-                  }}
+                  value={promoStatus}
+                  onChange={(e) => setPromoStatus(e.target.value)}
                   options={[
                     { value: 'active', label: 'Active' },
                     { value: 'inactive', label: 'Inactive' },

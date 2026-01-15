@@ -29,6 +29,7 @@ import {
   FiEdit,
 } from "react-icons/fi";
 import { useAdminAuthStore } from "../../../store/adminAuthStore";
+import { useSettingsStore } from "../../../store/settingsStore";
 import adminMenu from "../../../config/adminMenu.json";
 
 // Icon mapping for menu items
@@ -37,7 +38,7 @@ const iconMap = {
   Orders: FiShoppingBag,
   "Return Requests": FiRotateCcw,
   Products: FiPackage,
-  "Attribute Management": FiLayers,
+
   Categories: FiGrid,
   Brands: FiTag,
   Customers: FiUsers,
@@ -72,11 +73,7 @@ const getChildRoute = (parentRoute, childName) => {
       "Product Ratings": "/admin/products/product-ratings",
       "Product FAQs": "/admin/products/product-faqs",
     },
-    "/admin/attributes": {
-      "Attribute Sets": "/admin/attributes/attribute-sets",
-      Attributes: "/admin/attributes/attributes",
-      "Attribute Values": "/admin/attributes/attribute-values",
-    },
+
     "/admin/categories": {
       "Manage Categories": "/admin/categories/manage-categories",
       "Category Order": "/admin/categories/category-order",
@@ -104,6 +101,7 @@ const getChildRoute = (parentRoute, childName) => {
     "/admin/notifications": {
       "Push Notifications": "/admin/notifications/push-notifications",
       "Custom Messages": "/admin/notifications/custom-messages",
+      "Send Notification": "/admin/notifications/send-custom",
     },
     "/admin/support": {
       "Live Chat": "/admin/support/live-chat",
@@ -121,9 +119,11 @@ const getChildRoute = (parentRoute, childName) => {
       "Payment Breakdown": "/admin/finance/payment-breakdown",
       "Tax Reports": "/admin/finance/tax-reports",
       "Refund Reports": "/admin/finance/refund-reports",
+      "Vendor Withdrawals": "/admin/finance/vendor-withdrawals",
     },
     "/admin/settings": {
-      General: "/admin/settings/general",
+      Store: "/admin/settings/store",
+      Contact: "/admin/settings/contact",
       "Payment & Shipping": "/admin/settings/payment-shipping",
       "Orders & Customers": "/admin/settings/orders-customers",
       "Products & Inventory": "/admin/settings/products-inventory",
@@ -148,8 +148,13 @@ const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { admin } = useAdminAuthStore();
+  const { settings, initialize: initializeSettings } = useSettingsStore();
   const [expandedItems, setExpandedItems] = useState({});
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    initializeSettings();
+  }, []);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -358,15 +363,19 @@ const AdminSidebar = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between gap-3">
           {/* Admin User Info */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-              <FiUser className="text-white text-xl" />
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden">
+              {settings?.general?.storeLogo ? (
+                <img src={settings.general.storeLogo} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <FiUser className="text-primary-600 text-xl" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-white text-sm truncate">
-                {admin?.name || "Admin User"}
+                {settings?.general?.storeName || "Near Gud Admin"}
               </h2>
               <p className="text-xs text-gray-400 truncate">
-                {admin?.email || "admin@admin.com"}
+                {admin?.name || "Administrator"}
               </p>
             </div>
           </div>

@@ -2,21 +2,22 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { FiSave, FiX, FiUpload } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import { products as initialProducts } from "../../data/products";
 import { useCategoryStore } from "../../store/categoryStore";
 import { useBrandStore } from "../../store/brandStore";
 import CategorySelector from "./CategorySelector";
 import AnimatedSelect from "./AnimatedSelect";
 import toast from "react-hot-toast";
 import Button from "./Button";
+import { fetchProductById, createProduct, updateProduct } from "../../services/productApi";
 
 const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
   const location = useLocation();
   const isAppRoute = location.pathname.startsWith('/app');
   const isEdit = productId && productId !== "new";
 
-  const { categories, initialize: initCategories } = useCategoryStore();
-  const { brands, initialize: initBrands } = useBrandStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { brands, fetchBrands } = useBrandStore();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -58,117 +59,118 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
   });
 
   useEffect(() => {
-    initCategories();
-    initBrands();
-  }, [initCategories, initBrands]);
+    fetchCategories();
+    fetchBrands();
+  }, []);
 
   useEffect(() => {
-    if (isOpen && isEdit && productId && categories.length > 0) {
-      const savedProducts = localStorage.getItem("admin-products");
-      const products = savedProducts
-        ? JSON.parse(savedProducts)
-        : initialProducts;
-      const product = products.find((p) => p.id === parseInt(productId));
+    const loadProductDetails = async () => {
+      if (isOpen && isEdit && productId) {
+        setLoading(true);
+        try {
+          const product = await fetchProductById(productId);
 
-      if (product) {
-        // Determine if categoryId is a subcategory
-        const category = categories.find(
-          (cat) => cat.id === product.categoryId
-        );
-        const isSubcategory = category && category.parentId;
+          if (product) {
+            // Determine category and subcategory
+            // Backend might have product.categoryId as populated or just ID
+            const catId = product.categoryId?._id || product.categoryId;
+            const subId = product.subcategoryId?._id || product.subcategoryId;
 
-        setFormData({
-          name: product.name || "",
-          unit: product.unit || "",
-          price: product.price || "",
-          originalPrice: product.originalPrice || product.price || "",
-          image: product.image || "",
-          images: product.images || [],
-          categoryId: isSubcategory
-            ? category.parentId
-            : product.categoryId || null,
-          subcategoryId: isSubcategory
-            ? product.categoryId
-            : product.subcategoryId || null,
-          brandId: product.brandId || null,
-          stock: product.stock || "in_stock",
-          stockQuantity: product.stockQuantity || "",
-          totalAllowedQuantity: product.totalAllowedQuantity || "",
-          minimumOrderQuantity: product.minimumOrderQuantity || "",
-          warrantyPeriod: product.warrantyPeriod || "",
-          guaranteePeriod: product.guaranteePeriod || "",
-          hsnCode: product.hsnCode || "",
-          flashSale: product.flashSale || false,
-          isNew: product.isNew || false,
-          isFeatured: product.isFeatured || false,
-          isVisible: product.isVisible !== undefined ? product.isVisible : true,
-          codAllowed:
-            product.codAllowed !== undefined ? product.codAllowed : true,
-          returnable:
-            product.returnable !== undefined ? product.returnable : true,
-          cancelable:
-            product.cancelable !== undefined ? product.cancelable : true,
-          taxIncluded:
-            product.taxIncluded !== undefined ? product.taxIncluded : false,
-          description: product.description || "",
-          tags: product.tags || [],
-          variants: {
-            sizes: product.variants?.sizes || [],
-            colors: product.variants?.colors || [],
-            materials: product.variants?.materials || [],
-            prices: product.variants?.prices || {},
-            defaultVariant: product.variants?.defaultVariant || {},
-          },
-          seoTitle: product.seoTitle || "",
-          seoDescription: product.seoDescription || "",
-          relatedProducts: product.relatedProducts || [],
-        });
-      } else {
-        toast.error("Product not found");
-        onClose();
+            setFormData({
+              name: product.name || "",
+              unit: product.unit || "",
+              price: product.price || "",
+              originalPrice: product.originalPrice || "",
+              image: product.image || "",
+              images: product.images || [],
+              categoryId: catId || null,
+              subcategoryId: subId || null,
+              brandId: product.brandId?._id || product.brandId || null,
+              stock: product.stock || "in_stock",
+              stockQuantity: product.stockQuantity || "",
+              totalAllowedQuantity: product.totalAllowedQuantity || "",
+              minimumOrderQuantity: product.minimumOrderQuantity || "",
+              warrantyPeriod: product.warrantyPeriod || "",
+              guaranteePeriod: product.guaranteePeriod || "",
+              hsnCode: product.hsnCode || "",
+              flashSale: product.flashSale || false,
+              isNew: product.isNew || false,
+              isFeatured: product.isFeatured || false,
+              isVisible: product.isVisible !== undefined ? product.isVisible : true,
+              codAllowed: product.codAllowed !== undefined ? product.codAllowed : true,
+              returnable: product.returnable !== undefined ? product.returnable : true,
+              cancelable: product.cancelable !== undefined ? product.cancelable : true,
+              taxIncluded: product.taxIncluded !== undefined ? product.taxIncluded : false,
+              description: product.description || "",
+              tags: product.tags || [],
+              variants: {
+                sizes: product.variants?.sizes || [],
+                colors: product.variants?.colors || [],
+                materials: product.variants?.materials || [],
+                prices: product.variants?.prices || {},
+                defaultVariant: product.variants?.defaultVariant || {},
+              },
+              seoTitle: product.seoTitle || "",
+              seoDescription: product.seoDescription || "",
+              relatedProducts: product.relatedProducts || [],
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error("Failed to load product details");
+          onClose();
+        } finally {
+          setLoading(false);
+        }
       }
-    } else if (isOpen && !isEdit) {
-      // Reset form for new product
-      setFormData({
-        name: "",
-        unit: "",
-        price: "",
-        originalPrice: "",
-        image: "",
-        images: [],
-        categoryId: null,
-        subcategoryId: null,
-        brandId: null,
-        stock: "in_stock",
-        stockQuantity: "",
-        totalAllowedQuantity: "",
-        minimumOrderQuantity: "",
-        warrantyPeriod: "",
-        guaranteePeriod: "",
-        hsnCode: "",
-        flashSale: false,
-        isNew: false,
-        isFeatured: false,
-        isVisible: true,
-        codAllowed: true,
-        returnable: true,
-        cancelable: true,
-        taxIncluded: false,
-        description: "",
-        tags: [],
-        variants: {
-          sizes: [],
-          colors: [],
-          materials: [],
-          prices: {},
-          defaultVariant: {},
-        },
-        seoTitle: "",
-        seoDescription: "",
-        relatedProducts: [],
-      });
+    };
+
+    if (isOpen) {
+      if (isEdit) {
+        loadProductDetails();
+      } else {
+        // Reset form for new product
+        setFormData({
+          name: "",
+          unit: "",
+          price: "",
+          originalPrice: "",
+          image: "",
+          images: [],
+          categoryId: null,
+          subcategoryId: null,
+          brandId: null,
+          stock: "in_stock",
+          stockQuantity: "",
+          totalAllowedQuantity: "",
+          minimumOrderQuantity: "",
+          warrantyPeriod: "",
+          guaranteePeriod: "",
+          hsnCode: "",
+          flashSale: false,
+          isNew: false,
+          isFeatured: false,
+          isVisible: true,
+          codAllowed: true,
+          returnable: true,
+          cancelable: true,
+          taxIncluded: false,
+          description: "",
+          tags: [],
+          variants: {
+            sizes: [],
+            colors: [],
+            materials: [],
+            prices: {},
+            defaultVariant: {},
+          },
+          seoTitle: "",
+          seoDescription: "",
+          relatedProducts: [],
+        });
+      }
     }
-  }, [isOpen, isEdit, productId, onClose, categories]);
+  }, [isOpen, isEdit, productId]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -254,7 +256,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || !formData.price || !formData.stockQuantity) {
@@ -262,76 +264,38 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
       return;
     }
 
-    const savedProducts = localStorage.getItem("admin-products");
-    const products = savedProducts
-      ? JSON.parse(savedProducts)
-      : initialProducts;
-
-    // Determine final categoryId - use subcategoryId if selected, otherwise categoryId
-    const finalCategoryId = formData.subcategoryId
-      ? parseInt(formData.subcategoryId)
-      : formData.categoryId
-      ? parseInt(formData.categoryId)
-      : null;
-
-    if (isEdit) {
-      const updatedProducts = products.map((p) =>
-        p.id === parseInt(productId)
-          ? {
-              ...p,
-              ...formData,
-              id: parseInt(productId),
-              price: parseFloat(formData.price),
-              originalPrice: formData.originalPrice
-                ? parseFloat(formData.originalPrice)
-                : null,
-              stockQuantity: parseInt(formData.stockQuantity),
-              totalAllowedQuantity: formData.totalAllowedQuantity
-                ? parseInt(formData.totalAllowedQuantity)
-                : null,
-              minimumOrderQuantity: formData.minimumOrderQuantity
-                ? parseInt(formData.minimumOrderQuantity)
-                : null,
-              warrantyPeriod: formData.warrantyPeriod || null,
-              guaranteePeriod: formData.guaranteePeriod || null,
-              hsnCode: formData.hsnCode || null,
-              categoryId: finalCategoryId,
-              subcategoryId: formData.subcategoryId
-                ? parseInt(formData.subcategoryId)
-                : null,
-              brandId: formData.brandId ? parseInt(formData.brandId) : null,
-            }
-          : p
-      );
-      localStorage.setItem("admin-products", JSON.stringify(updatedProducts));
-      toast.success("Product updated successfully");
-    } else {
-      const newId = Math.max(...products.map((p) => p.id), 0) + 1;
-      const newProduct = {
-        id: newId,
+    setLoading(true);
+    try {
+      const payload = {
         ...formData,
         price: parseFloat(formData.price),
-        originalPrice: formData.originalPrice
-          ? parseFloat(formData.originalPrice)
-          : null,
+        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
         stockQuantity: parseInt(formData.stockQuantity),
-        categoryId: finalCategoryId,
-        subcategoryId: formData.subcategoryId
-          ? parseInt(formData.subcategoryId)
-          : null,
-        brandId: formData.brandId ? parseInt(formData.brandId) : null,
-        rating: 0,
-        reviewCount: 0,
+        totalAllowedQuantity: formData.totalAllowedQuantity ? parseInt(formData.totalAllowedQuantity) : null,
+        minimumOrderQuantity: formData.minimumOrderQuantity ? parseInt(formData.minimumOrderQuantity) : null,
+        categoryId: formData.categoryId,
+        subcategoryId: formData.subcategoryId,
+        brandId: formData.brandId || null,
       };
-      const updatedProducts = [...products, newProduct];
-      localStorage.setItem("admin-products", JSON.stringify(updatedProducts));
-      toast.success("Product created successfully");
-    }
 
-    if (onSuccess) {
-      onSuccess();
+      if (isEdit) {
+        await updateProduct(productId, payload);
+        toast.success("Product updated successfully");
+      } else {
+        await createProduct(payload);
+        toast.success("Product created successfully");
+      }
+
+      if (onSuccess) {
+        onSuccess();
+      }
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} product`);
+    } finally {
+      setLoading(false);
     }
-    onClose();
   };
 
   if (!isOpen) return null;

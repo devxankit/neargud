@@ -5,6 +5,7 @@ import DataTable from '../../../components/Admin/DataTable';
 import Badge from '../../../components/Badge';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
+import { getNotifications as fetchNotifications, markAsRead as markReadApi, markAllAsRead as markAllReadApi, deleteNotification as deleteNotificationApi, deleteAllRead as deleteAllReadApi } from '../services/notificationService';
 import toast from 'react-hot-toast';
 
 const Notifications = () => {
@@ -16,40 +17,37 @@ const Notifications = () => {
 
   const vendorId = vendor?.id;
 
-  useEffect(() => {
-    if (!vendorId) return;
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
 
-    const savedNotifications = localStorage.getItem(`vendor-${vendorId}-notifications`);
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    } else {
-      // Initialize with some dummy notifications
-      const dummyNotifications = [
-        {
-          id: 1,
-          type: 'new_order',
-          title: 'New Order Received',
-          message: 'You have received a new order #ORD-FH-001',
-          orderId: 'ORD-FH-001',
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          actionUrl: '/vendor/orders/ORD-FH-001',
-        },
-        {
-          id: 2,
-          type: 'order_status_change',
-          title: 'Order Status Updated',
-          message: 'Order #ORD-FH-002 status changed to processing',
-          orderId: 'ORD-FH-002',
-          isRead: false,
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          actionUrl: '/vendor/orders/ORD-FH-002',
-        },
-      ];
-      setNotifications(dummyNotifications);
-      localStorage.setItem(`vendor-${vendorId}-notifications`, JSON.stringify(dummyNotifications));
+  useEffect(() => {
+    if (vendorId) {
+      loadNotifications();
     }
-  }, [vendorId]);
+  }, [vendorId, typeFilter, readFilter, pagination.page]);
+
+  const loadNotifications = async () => {
+    setLoading(true);
+    try {
+      const filters = {
+        page: pagination.page,
+        limit: pagination.limit,
+        type: typeFilter !== 'all' ? typeFilter : undefined,
+        isRead: readFilter === 'all' ? undefined : (readFilter === 'read'),
+        search: searchQuery || undefined
+      };
+      const response = await fetchNotifications(filters);
+      if (response.success) {
+        setNotifications(response.data.notifications);
+        setPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      toast.error('Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredNotifications = useMemo(() => {
     let filtered = notifications;
@@ -75,25 +73,34 @@ const Notifications = () => {
     return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }, [notifications, searchQuery, typeFilter, readFilter]);
 
-  const handleMarkRead = (id) => {
-    const updated = notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n));
-    setNotifications(updated);
-    localStorage.setItem(`vendor-${vendorId}-notifications`, JSON.stringify(updated));
-    toast.success('Notification marked as read');
+  const handleMarkRead = async (id) => {
+    try {
+      await markReadApi(id);
+      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+      toast.success('Marked as read');
+    } catch (error) {
+      toast.error('Failed to mark as read');
+    }
   };
 
-  const handleMarkAllRead = () => {
-    const updated = notifications.map((n) => ({ ...n, isRead: true }));
-    setNotifications(updated);
-    localStorage.setItem(`vendor-${vendorId}-notifications`, JSON.stringify(updated));
-    toast.success('All notifications marked as read');
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllReadApi();
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      toast.success('All marked as read');
+    } catch (error) {
+      toast.error('Failed to mark all as read');
+    }
   };
 
-  const handleDelete = (id) => {
-    const updated = notifications.filter((n) => n.id !== id);
-    setNotifications(updated);
-    localStorage.setItem(`vendor-${vendorId}-notifications`, JSON.stringify(updated));
-    toast.success('Notification deleted');
+  const handleDelete = async (id) => {
+    try {
+      await deleteNotificationApi(id);
+      setNotifications(notifications.filter(n => n._id !== id));
+      toast.success('Notification deleted');
+    } catch (error) {
+      toast.error('Failed to delete notification');
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -157,14 +164,14 @@ const Notifications = () => {
         <div className="flex items-center gap-2">
           {!row.isRead && (
             <button
-              onClick={() => handleMarkRead(row.id)}
+              onClick={(e) => { e.stopPropagation(); handleMarkRead(row._id); }}
               className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
               title="Mark as Read">
               <FiCheck />
             </button>
           )}
           <button
-            onClick={() => handleDelete(row.id)}
+            onClick={(e) => { e.stopPropagation(); handleDelete(row._id); }}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             title="Delete">
             <FiX />
@@ -274,16 +281,20 @@ const Notifications = () => {
       {/* Notifications Table */}
       {filteredNotifications.length > 0 ? (
         <DataTable
-          data={filteredNotifications}
+          data={notifications}
           columns={columns}
           pagination={true}
-          itemsPerPage={10}
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={(page) => setPagination({ ...pagination, page })}
+          itemsPerPage={pagination.limit}
+          loading={loading}
           onRowClick={(row) => {
             if (row.actionUrl) {
               window.location.href = row.actionUrl;
             }
             if (!row.isRead) {
-              handleMarkRead(row.id);
+              handleMarkRead(row._id);
             }
           }}
         />

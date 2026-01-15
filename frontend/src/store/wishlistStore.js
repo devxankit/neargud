@@ -1,61 +1,99 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { wishlistApi } from '../services/wishlistApi';
 
-export const useWishlistStore = create(
-  persist(
-    (set, get) => ({
-      items: [],
+export const useWishlistStore = create((set, get) => ({
+  items: [],
+  isLoading: false,
+  error: null,
 
-      // Add item to wishlist
-      addItem: (item) =>
-        set((state) => {
-          const existingItem = state.items.find((i) => i.id === item.id);
-          if (existingItem) {
-            return state; // Item already in wishlist
-          }
-          return {
-            items: [...state.items, { ...item }],
-          };
-        }),
-
-      // Remove item from wishlist
-      removeItem: (id) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== id),
-        })),
-
-      // Check if item is in wishlist
-      isInWishlist: (id) => {
-        const state = get();
-        return state.items.some((item) => item.id === id);
-      },
-
-      // Clear wishlist
-      clearWishlist: () => set({ items: [] }),
-
-      // Get wishlist count
-      getItemCount: () => {
-        const state = get();
-        return state.items.length;
-      },
-
-      // Move item from wishlist to cart (returns item for cart)
-      moveToCart: (id) => {
-        const state = get();
-        const item = state.items.find((i) => i.id === id);
-        if (item) {
-          set({
-            items: state.items.filter((i) => i.id !== id),
-          });
-          return item;
-        }
-        return null;
-      },
-    }),
-    {
-      name: 'wishlist-storage',
-      storage: createJSONStorage(() => localStorage),
+  // Fetch wishlist from server
+  fetchWishlist: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await wishlistApi.getWishlist();
+      // Ensure we extract the product array correctly from the response
+      const wishlistData = response.data?.products || response.products || response.data || [];
+      // Normalize items if they are populated objects or just IDs
+      const items = wishlistData.map(item => item.productId || item);
+      set({ items, isLoading: false });
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
     }
-  )
-);
+  },
+
+  // Add item to wishlist
+  addItem: async (product) => {
+    const productId = product._id || product.id;
+    set({ isLoading: true, error: null });
+    try {
+      await wishlistApi.addToWishlist(productId);
+        // Fetch updated wishlist to ensure sync
+        await get().fetchWishlist();
+        set((state) => {
+          const existingItem = state.items.find((i) => (i._id || i.id) === productId);
+          if (existingItem) return { isLoading: false };
+          return {
+            items: [...state.items, product],
+            isLoading: false,
+          };
+        });
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Remove item from wishlist
+  removeItem: async (productId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await wishlistApi.removeFromWishlist(productId);
+      set((state) => ({
+        items: state.items.filter((item) => (item._id || item.id) !== productId),
+        isLoading: false,
+      }));
+      // Fetch updated wishlist to ensure sync
+      await get().fetchWishlist();
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Check if item is in wishlist
+  isInWishlist: (productId) => {
+    const state = get();
+    return state.items.some((item) => (item._id || item.id) === productId);
+  },
+
+  // Clear wishlist
+  clearWishlist: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await wishlistApi.clearWishlist();
+      set({ items: [], isLoading: false });
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Get wishlist count
+  getItemCount: () => {
+    const state = get();
+    return state.items.length;
+  },
+
+  // Toggle wishlist (Convenience method)
+  toggleWishlist: async (product) => {
+    const productId = product._id || product.id;
+    const isWishlisted = get().isInWishlist(productId);
+    if (isWishlisted) {
+      await get().removeItem(productId);
+    } else {
+      await get().addItem(product);
+    }
+  }
+}));
+
 

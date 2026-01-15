@@ -224,7 +224,7 @@ const MobileLogin = () => {
               </form>
 
               {/* Social Login Section */}
-              <div className="mt-6">
+              {/* <div className="mt-6">
                 <div className="text-center mb-4">
                   <span className="text-sm text-gray-500">Or Sign In With</span>
                 </div>
@@ -263,7 +263,7 @@ const MobileLogin = () => {
                     <span className="text-sm font-medium">Facebook</span>
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               {/* Sign Up Link */}
               <div className="mt-6 text-center">

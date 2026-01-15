@@ -1,51 +1,47 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import toast from 'react-hot-toast';
+import sliderApi from '../services/sliderApi';
 
 export const useBannerStore = create(
   persist(
     (set, get) => ({
       banners: [],
       isLoading: false,
+      error: null,
 
       // Initialize banners
-      initialize: () => {
-        const savedBanners = localStorage.getItem('admin-banners');
-        if (savedBanners) {
-          set({ banners: JSON.parse(savedBanners) });
-        } else {
-          // Initialize with some default banners
-          const defaultBanners = [
-            {
-              id: 1,
-              type: 'hero',
-              title: 'Welcome to Our Store',
-              subtitle: 'Discover Amazing Products',
-              image: '/images/hero/slide1.png',
-              link: '/',
-              order: 1,
-              isActive: true,
-              startDate: null,
-              endDate: null,
-            },
-          ];
-          set({ banners: defaultBanners });
-          localStorage.setItem('admin-banners', JSON.stringify(defaultBanners));
+      initialize: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await sliderApi.getAll();
+          if (response.success) {
+            const banners = (response.data.sliders || response.data || []).map(b => ({ ...b, id: b._id || b.id }));
+            set({ banners });
+          }
+          set({ isLoading: false });
+        } catch (error) {
+          // If 404/error, just set empty to prevent constant loading loop or maybe defaults
+          set({ banners: [], isLoading: false, error: error.message });
+          // Optional: initialize defaults via API call or keep empty
+          console.error("Failed to fetch banners", error);
         }
       },
 
       // Get all banners
       getBanners: () => {
         const state = get();
-        if (state.banners.length === 0) {
-          state.initialize();
+        if (state.banners.length === 0 && !state.isLoading && !state.error) {
+          // Maybe auto-fetch if empty?
+          // state.initialize();
+          // Careful with infinite loop
         }
         return get().banners;
       },
 
       // Get banner by ID
       getBannerById: (id) => {
-        return get().banners.find((banner) => banner.id === parseInt(id));
+        return get().banners.find((banner) => banner.id === id || banner._id === id);
       },
 
       // Get banners by type
@@ -54,111 +50,125 @@ export const useBannerStore = create(
       },
 
       // Create banner
-      createBanner: (bannerData) => {
-        set({ isLoading: true });
+      createBanner: async (bannerData) => {
+        set({ isLoading: true, error: null });
         try {
-          const banners = get().banners;
-          const newId = banners.length > 0 
-            ? Math.max(...banners.map((b) => b.id)) + 1 
-            : 1;
-          
-          const newBanner = {
-            id: newId,
-            type: bannerData.type, // 'hero', 'promotional'
-            title: bannerData.title || '',
-            subtitle: bannerData.subtitle || '',
-            description: bannerData.description || '',
-            image: bannerData.image || '',
-            link: bannerData.link || '',
-            order: bannerData.order || banners.length + 1,
-            isActive: bannerData.isActive !== undefined ? bannerData.isActive : true,
-            startDate: bannerData.startDate || null,
-            endDate: bannerData.endDate || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+          const response = await sliderApi.create(bannerData);
 
-          const updatedBanners = [...banners, newBanner];
-          set({ banners: updatedBanners, isLoading: false });
-          localStorage.setItem('admin-banners', JSON.stringify(updatedBanners));
-          toast.success('Banner created successfully');
-          return newBanner;
+          if (response.success) {
+            const rawBanner = response.data.slider || response.data;
+            const newBanner = { ...rawBanner, id: rawBanner._id || rawBanner.id };
+            set(state => ({
+              banners: [...state.banners, newBanner],
+              isLoading: false
+            }));
+            toast.success('Slider created successfully');
+            return newBanner;
+          }
         } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to create banner');
+          set({ isLoading: false, error: error.message });
+          toast.error(error.message || 'Failed to create banner');
           throw error;
         }
       },
 
       // Update banner
-      updateBanner: (id, bannerData) => {
-        set({ isLoading: true });
+      updateBanner: async (id, bannerData) => {
+        set({ isLoading: true, error: null });
         try {
-          const banners = get().banners;
-          const updatedBanners = banners.map((banner) =>
-            banner.id === parseInt(id)
-              ? { ...banner, ...bannerData, updatedAt: new Date().toISOString() }
-              : banner
-          );
-          set({ banners: updatedBanners, isLoading: false });
-          localStorage.setItem('admin-banners', JSON.stringify(updatedBanners));
-          toast.success('Banner updated successfully');
-          return updatedBanners.find((banner) => banner.id === parseInt(id));
+          const response = await sliderApi.update(id, bannerData);
+
+          if (response.success) {
+            const rawBanner = response.data.slider || response.data;
+            const updatedBanner = { ...rawBanner, id: rawBanner._id || rawBanner.id };
+            set(state => ({
+              banners: state.banners.map(b => (b.id === id || b._id === id) ? updatedBanner : b),
+              isLoading: false
+            }));
+            toast.success('Slider updated successfully');
+            return updatedBanner;
+          }
         } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to update banner');
+          set({ isLoading: false, error: error.message });
+          toast.error(error.message || 'Failed to update banner');
           throw error;
         }
       },
 
       // Delete banner
-      deleteBanner: (id) => {
-        set({ isLoading: true });
+      deleteBanner: async (id) => {
+        set({ isLoading: true, error: null });
         try {
-          const banners = get().banners;
-          const updatedBanners = banners.filter((banner) => banner.id !== parseInt(id));
-          set({ banners: updatedBanners, isLoading: false });
-          localStorage.setItem('admin-banners', JSON.stringify(updatedBanners));
-          toast.success('Banner deleted successfully');
+          await sliderApi.delete(id);
+
+          set(state => ({
+            banners: state.banners.filter(b => b.id !== id && b._id !== id),
+            isLoading: false
+          }));
+          toast.success('Slider deleted successfully');
           return true;
         } catch (error) {
-          set({ isLoading: false });
-          toast.error('Failed to delete banner');
+          set({ isLoading: false, error: error.message });
+          toast.error(error.message || 'Failed to delete banner');
           throw error;
         }
       },
 
-      // Reorder banners
-      reorderBanners: (bannerIds) => {
+      // Reorder banners (Backend usually handles sort order via update, or specific reorder endpoint)
+      // For now, let's assume manual update of 'order' field one by one or bulk? 
+      // Simplified: We'll implement reorder by iterating updates, or add a bulk endpoint later.
+      // Current usage: reorderBanners(bannerIds)
+      reorderBanners: async (bannerIds) => {
+        // This is complex without a bulk endpoint.
+        // For now, let's just update local state and maybe warn user? 
+        // Or strictly, we should call update for each.
+        // Let's defer strict implementation or do a loop.
         set({ isLoading: true });
         try {
+          // Mock optimistic update
           const banners = get().banners;
           const updatedBanners = banners.map((banner) => {
-            const newOrder = bannerIds.indexOf(banner.id);
+            const newOrder = bannerIds.indexOf(banner._id || banner.id);
             return newOrder !== -1 ? { ...banner, order: newOrder + 1 } : banner;
           });
+
+          // In real world, we need to save this.
+          // Assuming we might have a bulk update endpoint, or just loop.
+          // Loop for now (inefficient but works for small numbers)
+          // Only update changed ones
+          for (const b of updatedBanners) {
+            const original = banners.find(old => (old._id || old.id) === (b._id || b.id));
+            if (original.order !== b.order) {
+              await sliderApi.update(b._id || b.id, { order: b.order });
+            }
+          }
+
           set({ banners: updatedBanners, isLoading: false });
-          localStorage.setItem('admin-banners', JSON.stringify(updatedBanners));
           toast.success('Banners reordered successfully');
           return true;
         } catch (error) {
           set({ isLoading: false });
-          toast.error('Failed to reorder banners');
-          throw error;
+          toast.error("Failed to reorder");
         }
       },
 
       // Toggle banner status
-      toggleBannerStatus: (id) => {
+      toggleBannerStatus: async (id) => {
+        // We can use update for this
         const banner = get().getBannerById(id);
         if (banner) {
-          get().updateBanner(id, { isActive: !banner.isActive });
+          try {
+            await get().updateBanner(id, { isActive: !banner.isActive });
+          } catch (err) {
+            // handled in update
+          }
         }
       },
     }),
     {
       name: 'banner-storage',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ banners: state.banners }),
     }
   )
 );

@@ -1,196 +1,215 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { FiMessageCircle, FiSend, FiUser, FiSearch, FiArrowLeft, FiShoppingBag, FiMoreVertical } from 'react-icons/fi';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { FiMessageCircle, FiSend, FiSearch, FiArrowLeft, FiShoppingBag, FiMoreVertical, FiPlus, FiX, FiTrash2 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import Badge from '../components/Badge';
 import MobileLayout from '../components/Layout/Mobile/MobileLayout';
 import PageTransition from '../components/PageTransition';
+import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
+import api from '../utils/api';
+import toast from 'react-hot-toast';
+import { getAvailableVendors } from '../services/contactsApi';
 
 const Chat = () => {
-    const location = useLocation();
     const navigate = useNavigate();
-    const [chats, setChats] = useState([]);
+    const [searchParams] = useSearchParams();
+    const { user, token } = useAuthStore();
+    const {
+        conversations,
+        currentConversation,
+        messages,
+        isLoading,
+        typingUsers,
+        isSocketConnected,
+        initializeSocket,
+        loadConversations,
+        selectConversation,
+        sendChatMessage,
+        startTyping,
+        stopTyping,
+        createConversationWithVendor,
+        clearActiveChat,
+        clearChatMessages,
+        disconnectSocket
+    } = useChatStore();
+
     const [selectedChat, setSelectedChat] = useState(null);
-    const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const [vendors, setVendors] = useState([]);
+    const [vendorSearchQuery, setVendorSearchQuery] = useState('');
+    const [loadingVendors, setLoadingVendors] = useState(false);
     const messagesEndRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
 
     // Get query params for initial chat
-    const queryParams = new URLSearchParams(location.search);
-    const initialVendorId = queryParams.get('vendorId');
-    const initialVendorName = queryParams.get('vendorName');
-    const productId = queryParams.get('productId');
-    const productName = queryParams.get('productName');
-    const productImage = queryParams.get('productImage');
-    const productPrice = queryParams.get('productPrice');
+    const vendorId = searchParams.get('vendorId');
+    const vendorName = searchParams.get('vendorName');
 
-    // userId would come from auth store in real app
-    const userId = 'user-123';
-
-    // Helper to check if we are on mobile view logic might be needed, 
-    // but here we just toggle views based on selectedChat presence 
-    // on small screens (using CSS/conditional rendering).
-
+    // Initialize socket on mount
     useEffect(() => {
-        // Load chats from localStorage
-        const savedChats = localStorage.getItem(`user-${userId}-chats`);
-        let loadedChats = savedChats ? JSON.parse(savedChats) : [];
-
-        // If navigated with vendor info, check if chat exists, else create it
-        if (initialVendorId && initialVendorName) {
-            const existingChat = loadedChats.find(c => c.vendorId === initialVendorId);
-
-            if (!existingChat) {
-                const newChat = {
-                    id: `chat-${initialVendorId}`,
-                    vendorId: initialVendorId,
-                    vendorName: initialVendorName,
-                    lastMessage: 'Start a conversation',
-                    unreadCount: 0,
-                    status: 'active',
-                    lastActivity: new Date().toISOString(),
-                    createdAt: new Date().toISOString(),
-                };
-                loadedChats = [newChat, ...loadedChats];
-                localStorage.setItem(`user-${userId}-chats`, JSON.stringify(loadedChats));
-            } else {
-                // Move to top if exists
-                loadedChats = [existingChat, ...loadedChats.filter(c => c.id !== existingChat.id)];
-            }
-
-            setChats(loadedChats);
-            const chatToSelect = existingChat || loadedChats[0];
-
-            // If we have product context, we might want to attach it to the chat
-            // For now, we'll handle sending the product message in a separate effect once selectedChat is set
-            setSelectedChat(chatToSelect);
-        } else {
-            setChats(loadedChats);
+        if (token && !isSocketConnected) {
+            console.log('🔌 Initializing socket connection...');
+            initializeSocket(token);
         }
-    }, [initialVendorId, initialVendorName]);
 
-    // Handle initial product message
+        return () => {
+            clearActiveChat();
+        };
+    }, [token]);
+
+    // Load conversations
     useEffect(() => {
-        if (selectedChat && productId && initialVendorId === selectedChat.vendorId) {
-            const chatMessagesKey = `user-${userId}-chat-${selectedChat.id}-messages`;
-            const existingMessages = JSON.parse(localStorage.getItem(chatMessagesKey) || '[]');
+        if (user) {
+            loadConversations('user');
+        }
+    }, [user]);
 
-            // Check if this product was already sent as the VERY last message to avoid dupes on refresh
-            // or if we want to be stricter "only for the first time" -> check if ANY message has this productId
-            // The request says "only for the first time", implying start of conversation about this product.
-            // Let's check if the last message is about this product.
-            const isProductAlreadySent = existingMessages.some(m => m.type === 'product' && m.product?.id === productId);
+    // Load vendors always
+    useEffect(() => {
+        if (user && !loadingVendors) {
+            loadVendors();
+        }
+    }, [user]);
 
-            if (!isProductAlreadySent) {
-                const productMsg = {
-                    id: Date.now(),
-                    sender: 'user',
-                    type: 'product',
-                    message: `Hi, I'm interested in this product: ${productName}`,
-                    time: new Date().toISOString(),
-                    product: {
-                        id: productId,
-                        name: productName,
-                        image: productImage,
-                        price: productPrice
+    const [activeTab, setActiveTab] = useState('messages'); // 'messages' | 'vendors'
+
+    // Handle vendor from URL params
+    useEffect(() => {
+        const initializeVendorChat = async () => {
+            if (vendorId) {
+                // If we have text in conversations, try to find it
+                if (conversations.length > 0) {
+                    let conversation = conversations.find(c =>
+                        c.participants?.some(p =>
+                            p.userId?._id === vendorId || p.userId === vendorId
+                        )
+                    );
+                    if (conversation) {
+                        handleSelectChat(conversation);
+                        return;
                     }
-                };
+                }
 
-                const updatedMessages = [...existingMessages, productMsg];
-                setMessages(updatedMessages);
-                localStorage.setItem(chatMessagesKey, JSON.stringify(updatedMessages));
-
-                // Update chat list preview
-                const updatedChats = chats.map(c =>
-                    c.id === selectedChat.id
-                        ? { ...c, lastMessage: `Sent a product: ${productName}`, lastActivity: new Date().toISOString() }
-                        : c
-                );
-                setChats(updatedChats);
-                localStorage.setItem(`user-${userId}-chats`, JSON.stringify(updatedChats));
-
-                // Clear URL params to prevent re-sending on reload (optional but good UX)
-                // navigate(location.pathname + `?vendorId=${initialVendorId}&vendorName=${initialVendorName}`, { replace: true });
+                // If not found in conversations, find in vendors list and select it
+                // Or just create it immediately
+                try {
+                    const conversation = await createConversationWithVendor(vendorId);
+                    toast.success(`Started chat with ${vendorName || 'vendor'}`);
+                    handleSelectChat(conversation);
+                } catch (error) {
+                    console.error('Failed to create conversation:', error);
+                    // If we fail, we might just stay on the vendors list
+                }
             }
-        }
-    }, [selectedChat, productId, initialVendorId, productName, productImage, productPrice, chats, userId]);
+        };
 
-    useEffect(() => {
-        if (selectedChat) {
-            // Load messages for selected chat
-            const savedMessages = localStorage.getItem(`user-${userId}-chat-${selectedChat.id}-messages`);
-            if (savedMessages) {
-                setMessages(JSON.parse(savedMessages));
-            } else {
-                setMessages([]);
-            }
+        if (vendorId && user) { // Run when user is loaded and vendorId exists
+            initializeVendorChat();
         }
-    }, [selectedChat]);
 
+    }, [vendorId, user, conversations.length]); // Depend on conversations.length to retry if they load later? Actually better to just do it once.
+
+    // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const handleSelectChat = (chat) => {
+    const handleSelectChat = async (chat) => {
         setSelectedChat(chat);
-        // Mark as read
-        const updatedChats = chats.map((c) =>
-            c.id === chat.id ? { ...c, unreadCount: 0 } : c
-        );
-        setChats(updatedChats);
-        localStorage.setItem(`user-${userId}-chats`, JSON.stringify(updatedChats));
+        await selectConversation(chat._id, 'user');
     };
 
-    const handleSendMessage = () => {
+    // Load vendors list
+    const loadVendors = async () => {
+        setLoadingVendors(true);
+        try {
+            const vendorsList = await getAvailableVendors();
+            // console.log("Vendors loaded:", vendorsList); 
+            setVendors(vendorsList || []);
+        } catch (error) {
+            console.error('Failed to load vendors:', error);
+            toast.error('Failed to load vendors');
+        } finally {
+            setLoadingVendors(false);
+        }
+    };
+
+
+    // Start new chat with vendor
+    const handleStartChatWithVendor = async (vendor) => {
+        try {
+            // Check if chat already exists
+            const existingChat = conversations.find(c =>
+                c.participants?.some(p => (p.userId?._id || p.userId) === (vendor._id || vendor.id))
+            );
+
+            if (existingChat) {
+                handleSelectChat(existingChat);
+                setActiveTab('messages'); // Switch to messages tab
+                return;
+            }
+
+            const conversation = await createConversationWithVendor(vendor._id || vendor.id);
+            setVendorSearchQuery('');
+            handleSelectChat(conversation);
+            setActiveTab('messages'); // Switch to messages when chat starts
+            toast.success(`Started chat with ${vendor.storeName || vendor.name}`);
+            loadConversations('user'); // Refresh list
+        } catch (error) {
+            console.error('Failed to start chat:', error);
+            toast.error('Failed to start chat');
+        }
+    };
+
+    const handleSendMessage = async () => {
         if (!newMessage.trim() || !selectedChat) return;
 
-        const message = {
-            id: Date.now(),
-            sender: 'user',
-            message: newMessage,
-            time: new Date().toISOString(),
-        };
-
-        const updatedMessages = [...messages, message];
-        setMessages(updatedMessages);
+        const messageText = newMessage;
         setNewMessage('');
+        stopTyping();
 
-        // Update chat last message
-        const updatedChats = chats.map((c) =>
-            c.id === selectedChat.id
-                ? {
-                    ...c,
-                    lastMessage: newMessage,
-                    lastActivity: new Date().toISOString(),
-                }
-                : c
-        );
-        setChats(updatedChats);
-
-        // Save to localStorage
-        localStorage.setItem(
-            `user-${userId}-chat-${selectedChat.id}-messages`,
-            JSON.stringify(updatedMessages)
-        );
-        localStorage.setItem(`user-${userId}-chats`, JSON.stringify(updatedChats));
-
-        // Simulate Vendor Reply
-        setTimeout(() => {
-            const replyMsg = {
-                id: Date.now() + 1,
-                sender: 'vendor',
-                message: "Thanks for your message! We'll get back to you shortly.",
-                time: new Date().toISOString(),
-            };
-            const msgsAfterReply = [...updatedMessages, replyMsg];
-            setMessages(msgsAfterReply);
-            localStorage.setItem(
-                `user-${userId}-chat-${selectedChat.id}-messages`,
-                JSON.stringify(msgsAfterReply)
+        try {
+            // Get receiver info from conversation
+            const receiver = selectedChat.participants?.find(p =>
+                p.role === 'vendor'
             );
-            // Update chat last message regarding reply would ideally happen here too
-        }, 1500);
+
+            if (!receiver) {
+                toast.error('Cannot find receiver');
+                return;
+            }
+
+            const receiverId = receiver.userId?._id || receiver.userId;
+
+            await sendChatMessage(messageText, receiverId, 'vendor', 'user');
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            toast.error('Failed to send message');
+            setNewMessage(messageText); // Restore message on error
+        }
+    };
+
+    const handleInputChange = (e) => {
+        setNewMessage(e.target.value);
+
+        // Handle typing indicator
+        if (!isTyping) {
+            setIsTyping(true);
+            startTyping();
+        }
+
+        // Clear existing timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Set new timeout
+        typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+            stopTyping();
+        }, 1000);
     };
 
     const handleKeyPress = (e) => {
@@ -200,10 +219,184 @@ const Chat = () => {
         }
     };
 
-    const filteredChats = chats.filter((chat) =>
-        !searchQuery ||
-        chat.vendorName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredChats = conversations.filter((chat) => {
+        if (!searchQuery) return true;
+        const vendorParticipant = chat.participants?.find(p => p.role === 'vendor');
+        const vendorName = vendorParticipant?.userId?.storeName ||
+            vendorParticipant?.userId?.name || '';
+        return vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
+    // Filter vendors ensuring we handle the structure correctly
+    const filteredVendors = vendors.filter(v => {
+        if (!vendorSearchQuery) return true;
+        const search = vendorSearchQuery.toLowerCase();
+        return (v.storeName?.toLowerCase().includes(search) ||
+            v.name?.toLowerCase().includes(search) ||
+            v.businessName?.toLowerCase().includes(search));
+    });
+
+    const getVendorInfo = (chat) => {
+        const vendor = chat.participants?.find(p => p.role === 'vendor');
+        return {
+            name: vendor?.userId?.storeName || vendor?.userId?.name || 'Vendor',
+            logo: vendor?.userId?.storeLogo || null
+        };
+    };
+
+    const formatTime = (date) => {
+        if (!date) return '';
+        const d = new Date(date);
+        const now = new Date();
+        const diff = now - d;
+
+        if (diff < 86400000) { // Less than 24 hours
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else if (diff < 604800000) { // Less than 7 days
+            return d.toLocaleDateString([], { weekday: 'short' });
+        } else {
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+    };
+
+    const isOtherUserTyping = selectedChat && typingUsers[selectedChat._id]?.isTyping;
+
+    // Render Side List Content
+    const renderSideList = () => {
+        if (activeTab === 'messages') {
+            if (isLoading && conversations.length === 0) {
+                return (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    </div>
+                );
+            }
+
+            if (filteredChats.length === 0) {
+                return (
+                    <div className="w-full h-full flex flex-col items-center justify-center px-4 text-center">
+                        <FiMessageCircle className="text-4xl text-gray-300 mb-3" />
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">No Chats</h3>
+                        <p className="text-gray-500 mb-4">Start a conversation from the Vendor list.</p>
+                        <button
+                            onClick={() => setActiveTab('vendors')}
+                            className="text-primary-600 font-medium hover:underline"
+                        >
+                            Find Vendors
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="divide-y divide-gray-50">
+                    {filteredChats.map((chat) => {
+                        const vendorInfo = getVendorInfo(chat);
+                        const lastMsg = chat.lastMessage?.message || 'Start a conversation';
+                        const unread = chat.unreadCount || 0;
+
+                        return (
+                            <div
+                                key={chat._id}
+                                onClick={() => handleSelectChat(chat)}
+                                className={`p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors ${selectedChat?._id === chat._id ? 'bg-primary-50/50' : ''
+                                    }`}
+                            >
+                                <div className="flex gap-3">
+                                    <div className="relative">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl overflow-hidden">
+                                            {vendorInfo.logo ? (
+                                                <img src={vendorInfo.logo} alt={vendorInfo.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <FiShoppingBag className="text-gray-500" />
+                                            )}
+                                        </div>
+                                        {unread > 0 && (
+                                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white">
+                                                {unread}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h3 className="font-semibold text-gray-900 truncate">
+                                                {vendorInfo.name}
+                                            </h3>
+                                            <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                                                {formatTime(chat.lastMessageAt || chat.updatedAt)}
+                                            </span>
+                                        </div>
+                                        <p className={`text-sm truncate ${unread > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'
+                                            }`}>
+                                            {lastMsg}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        } else {
+            // Vendors Tab
+            if (loadingVendors) {
+                return (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    </div>
+                );
+            }
+
+            if (filteredVendors.length > 0) {
+                return (
+                    <div className="divide-y divide-gray-50">
+                        {filteredVendors.map((vendor) => (
+                            <div
+                                key={vendor._id || vendor.id}
+                                onClick={() => handleStartChatWithVendor(vendor)}
+                                className="p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                            >
+                                <div className="flex gap-3">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        {vendor.storeLogo ? (
+                                            <img
+                                                src={vendor.storeLogo}
+                                                alt={vendor.storeName || vendor.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <FiShoppingBag className="text-gray-500 text-xl" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-900 truncate">
+                                            {vendor.storeName || vendor.name || 'Vendor'}
+                                        </h3>
+                                        {vendor.businessName && (
+                                            <p className="text-xs text-gray-500 truncate">
+                                                {vendor.businessName}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <FiMessageCircle className="text-primary-600 self-center" size={24} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center px-4 text-center">
+                    <FiShoppingBag className="text-4xl text-gray-300 mb-3" />
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">No Vendors</h3>
+                    <p className="text-gray-500 text-sm max-w-[200px]">
+                        {vendorSearchQuery ? 'Try a different search' : 'No vendors currently available'}
+                    </p>
+                </div>
+            );
+        }
+    };
 
     return (
         <PageTransition>
@@ -213,158 +406,155 @@ const Chat = () => {
                     <div className={`w-full lg:w-1/3 flex flex-col border-r border-gray-100 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
-                            <h1 className="text-2xl font-bold text-gray-800 mb-3">Messages</h1>
+                            <h1 className="text-2xl font-bold text-gray-800 mb-3">
+                                Messages
+                            </h1>
+
+                            {/* Tabs */}
+                            <div className="flex p-1 bg-gray-100 rounded-xl mb-3">
+                                <button
+                                    onClick={() => setActiveTab('messages')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'messages'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <FiMessageCircle size={16} />
+                                    Chats
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('vendors')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'vendors'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <FiShoppingBag size={16} />
+                                    Vendors
+                                </button>
+                            </div>
+
                             <div className="relative">
                                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search chats"
+                                    value={activeTab === 'messages' ? searchQuery : vendorSearchQuery}
+                                    onChange={(e) => activeTab === 'messages' ? setSearchQuery(e.target.value) : setVendorSearchQuery(e.target.value)}
+                                    placeholder={activeTab === 'messages' ? "Search chats" : "Search vendors..."}
                                     className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-gray-800 placeholder-gray-500 focus:ring-0"
                                 />
                             </div>
-                        </div>
-
-                        {/* List */}
-                        <div className="flex-1 overflow-y-auto w-full">
-                            {filteredChats.length > 0 ? (
-                                <div className="divide-y divide-gray-50">
-                                    {filteredChats.map((chat) => (
-                                        <div
-                                            key={chat.id}
-                                            onClick={() => handleSelectChat(chat)}
-                                            className={`p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors ${selectedChat?.id === chat.id ? 'bg-primary-50/50' : ''
-                                                }`}
-                                        >
-                                            <div className="flex gap-3">
-                                                <div className="relative">
-                                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl">
-                                                        <FiShoppingBag className="text-gray-500" />
-                                                    </div>
-                                                    {chat.unreadCount > 0 && (
-                                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white">
-                                                            {chat.unreadCount}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <h3 className="font-semibold text-gray-900 truncate">
-                                                            {chat.vendorName}
-                                                        </h3>
-                                                        <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                                                            {new Date(chat.lastActivity).toLocaleDateString(undefined, {
-                                                                month: 'short', day: 'numeric'
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                    <p className={`text-sm truncate ${chat.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'
-                                                        }`}>
-                                                        {chat.lastMessage}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center px-4 text-center">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                        <FiMessageCircle className="text-2xl text-gray-400" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-gray-800 mb-2">No Messages Yet</h3>
-                                    <p className="text-gray-500 text-sm max-w-[200px]">
-                                        Your conversations with sellers will appear here.
-                                    </p>
+                            {!isSocketConnected && (
+                                <div className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                                    <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                                    Connecting...
                                 </div>
                             )}
+                        </div>
+
+                        {/* List Content */}
+                        <div className="flex-1 overflow-y-auto w-full">
+                            {renderSideList()}
                         </div>
                     </div>
 
                     {/* Chat Window - Full screen on mobile */}
-                    <div className={`w-full lg:w-2/3 flex flex-col bg-white ${!selectedChat ? 'hidden lg:flex' : 'flex fixed inset-0 lg:static z-[60]'} `}>
+                    <div className={`w-full lg:w-2/3 flex flex-col bg-white ${!selectedChat ? 'hidden lg:flex' : 'flex fixed inset-0 lg:static z-[60]'
+                        }`}>
                         {selectedChat ? (
                             <>
                                 {/* Header */}
                                 <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 bg-white">
                                     <button
                                         onClick={() => {
-                                            if (initialVendorId) {
-                                                navigate(-1);
-                                            } else {
-                                                setSelectedChat(null);
-                                            }
+                                            setSelectedChat(null);
+                                            clearActiveChat();
                                         }}
                                         className="lg:hidden -ml-2 p-2 text-gray-600 hover:bg-gray-50 rounded-full"
                                     >
                                         <FiArrowLeft size={24} />
                                     </button>
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <FiShoppingBag className="text-gray-600" />
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                                        {getVendorInfo(selectedChat).logo ? (
+                                            <img
+                                                src={getVendorInfo(selectedChat).logo}
+                                                alt={getVendorInfo(selectedChat).name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <FiShoppingBag className="text-gray-600" />
+                                        )}
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-bold text-gray-900">{selectedChat.vendorName}</h3>
-                                        <p className="text-xs text-green-600 flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
-                                            Online
-                                        </p>
+                                        <h3 className="font-bold text-gray-900">{getVendorInfo(selectedChat).name}</h3>
+                                        {isOtherUserTyping ? (
+                                            <p className="text-xs text-primary-600 flex items-center gap-1">
+                                                <span className="flex gap-0.5">
+                                                    <span className="w-1 h-1 rounded-full bg-primary-600 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                                    <span className="w-1 h-1 rounded-full bg-primary-600 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                                    <span className="w-1 h-1 rounded-full bg-primary-600 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                                </span>
+                                                typing...
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-green-600 flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                                                Online
+                                            </p>
+                                        )}
                                     </div>
-                                    <button className="p-2 text-gray-400 hover:text-gray-600">
-                                        <FiMoreVertical size={20} />
-                                    </button>
+
+                                    {/* Chat Actions */}
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm('Are you sure you want to clear this chat history? This action only hides it for you.')) {
+                                                    try {
+                                                        await clearChatMessages(selectedChat._id, 'user');
+                                                        toast.success('Chat history cleared');
+                                                    } catch (err) {
+                                                        toast.error('Failed to clear chat');
+                                                    }
+                                                }
+                                            }}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                            title="Clear Chat"
+                                        >
+                                            <FiTrash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Messages */}
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
-                                    {messages.map((msg) => (
-                                        <div
-                                            key={msg.id}
-                                            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            <div
-                                                className={`max-w-[75%] shadow-sm ${msg.sender === 'user'
-                                                    ? 'bg-primary-600 text-white rounded-2xl rounded-tr-none'
-                                                    : 'bg-white text-gray-900 rounded-2xl rounded-tl-none border border-gray-100'
-                                                    } ${msg.type === 'product' ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}
-                                            >
-                                                {msg.type === 'product' ? (
-                                                    <div className="w-64 bg-white rounded-lg overflow-hidden border-2 border-primary-500">
-                                                        <div className="relative h-32">
-                                                            <img
-                                                                src={msg.product.image}
-                                                                alt={msg.product.name}
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => e.target.src = 'https://via.placeholder.com/150'}
-                                                            />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-2">
-                                                                <span className="text-white font-bold text-lg">
-                                                                    ₹{parseFloat(msg.product.price).toLocaleString()}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="p-3 bg-white">
-                                                            <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-2">
-                                                                {msg.product.name}
-                                                            </h4>
-                                                            <p className="text-xs text-primary-600 mb-0 font-medium">
-                                                                {msg.message}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-[15px] leading-relaxed">{msg.message}</p>
-                                                )}
+                                    {messages.map((msg) => {
+                                        const isUser = msg.senderRole === 'user';
+                                        const time = new Date(msg.createdAt).toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        });
 
-                                                {msg.type !== 'product' && (
-                                                    <p className={`text-[10px] mt-1 text-right ${msg.sender === 'user' ? 'text-primary-100' : 'text-gray-400'
+                                        return (
+                                            <div
+                                                key={msg._id}
+                                                className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                                            >
+                                                <div
+                                                    className={`max-w-[75%] shadow-sm ${isUser
+                                                        ? 'bg-primary-600 text-white rounded-2xl rounded-tr-none'
+                                                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-none border border-gray-100'
+                                                        } px-4 py-2.5`}
+                                                >
+                                                    <p className="text-[15px] leading-relaxed break-words">{msg.message}</p>
+                                                    <p className={`text-[10px] mt-1 text-right ${isUser ? 'text-primary-100' : 'text-gray-400'
                                                         }`}>
-                                                        {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {time}
+                                                        {isUser && msg.readStatus && ' ✓✓'}
                                                     </p>
-                                                )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                     <div ref={messagesEndRef} />
                                 </div>
 
@@ -374,7 +564,7 @@ const Chat = () => {
                                         <input
                                             type="text"
                                             value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            onChange={handleInputChange}
                                             onKeyPress={handleKeyPress}
                                             placeholder="Message..."
                                             className="flex-1 px-4 py-3 bg-gray-100 border-none rounded-full text-gray-900 placeholder-gray-500 focus:ring-0"

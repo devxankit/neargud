@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch, FiEdit, FiDollarSign } from "react-icons/fi";
 import { motion } from "framer-motion";
@@ -6,12 +6,22 @@ import DataTable from "../../../components/Admin/DataTable";
 import ExportButton from "../../../components/Admin/ExportButton";
 import Badge from "../../../components/Badge";
 import ConfirmModal from "../../../components/Admin/ConfirmModal";
-import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
+import { fetchApprovedVendors, updateVendorCommissionApi } from "../../../services/vendorApi";
 import toast from "react-hot-toast";
+import { formatPrice } from "../../../utils/helpers";
 
 const CommissionRates = () => {
   const navigate = useNavigate();
-  const { vendors, updateCommissionRate } = useVendorStore();
+  
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [commissionModal, setCommissionModal] = useState({
     isOpen: false,
@@ -21,31 +31,63 @@ const CommissionRates = () => {
   });
   const [newRate, setNewRate] = useState("");
 
-  const filteredVendors = useMemo(() => {
-    let filtered = vendors.filter((v) => v.status === "approved");
+  const loadVendors = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchApprovedVendors({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+      });
 
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (vendor) =>
-          vendor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          vendor.storeName?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      if (response?.vendors) {
+        const formattedVendors = response.vendors.map((v) => ({
+          ...v,
+          id: v._id,
+        }));
+        setVendors(formattedVendors);
+        setPagination((prev) => ({
+          ...prev,
+          total: response.total,
+          totalPages: response.totalPages,
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load vendors");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return filtered;
-  }, [vendors, searchQuery]);
+  useEffect(() => {
+    loadVendors();
+  }, [pagination.page, pagination.limit]);
 
-  const handleCommissionUpdate = () => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      loadVendors();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleCommissionUpdate = async () => {
     const rate = parseFloat(newRate) / 100;
     if (isNaN(rate) || rate < 0 || rate > 1) {
       toast.error("Please enter a valid commission rate (0-100%)");
       return;
     }
-    updateCommissionRate(commissionModal.vendorId, rate);
-    setCommissionModal({ isOpen: false, vendorId: null, vendorName: null, currentRate: "" });
-    setNewRate("");
-    toast.success("Commission rate updated successfully");
+    
+    try {
+      await updateVendorCommissionApi(commissionModal.vendorId, rate);
+      toast.success("Commission rate updated successfully");
+      loadVendors();
+      setCommissionModal({ isOpen: false, vendorId: null, vendorName: null, currentRate: "" });
+      setNewRate("");
+    } catch (error) {
+      toast.error("Failed to update commission rate");
+    }
   };
 
   const columns = [
@@ -53,6 +95,7 @@ const CommissionRates = () => {
       key: "id",
       label: "ID",
       sortable: true,
+      render: (value) => <span className="text-xs text-gray-500">#{value.slice(-6).toUpperCase()}</span>,
     },
     {
       key: "storeName",
@@ -62,6 +105,17 @@ const CommissionRates = () => {
         <div>
           <span className="font-medium text-gray-800">{value || row.name}</span>
           <p className="text-xs text-gray-500">{row.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: "performance",
+      label: "Performance",
+      sortable: true,
+      render: (_, row) => (
+        <div className="text-xs">
+          <p className="font-medium text-gray-700">{row.totalOrders || 0} orders</p>
+          <p className="text-green-600 font-bold">{formatPrice(row.totalRevenue || 0)} earned</p>
         </div>
       ),
     },
@@ -145,7 +199,7 @@ const CommissionRates = () => {
 
             <div className="w-full sm:w-auto">
               <ExportButton
-                data={filteredVendors}
+                data={vendors}
                 headers={[
                   { label: "ID", accessor: (row) => row.id },
                   { label: "Store Name", accessor: (row) => row.storeName || row.name },
@@ -160,10 +214,14 @@ const CommissionRates = () => {
 
         {/* DataTable */}
         <DataTable
-          data={filteredVendors}
+          data={vendors}
           columns={columns}
+          loading={loading}
           pagination={true}
-          itemsPerPage={10}
+          itemsPerPage={pagination.limit}
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
           onRowClick={(row) => navigate(`/admin/vendors/${row.id}`)}
         />
       </div>

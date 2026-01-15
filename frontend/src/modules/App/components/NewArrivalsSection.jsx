@@ -2,14 +2,14 @@ import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { FiTag } from 'react-icons/fi';
 import LazyImage from '../../../components/LazyImage';
-import { getNewArrivals } from '../../../data/products';
 
-const NewArrivalsSection = () => {
+
+const NewArrivalsSection = ({ products = [], loading = false }) => {
   const location = useLocation();
   const isMobileApp = location.pathname.startsWith('/app');
-  const newArrivals = getNewArrivals(6);
+  const newArrivals = products.slice(0, 6);
 
-  if (newArrivals.length === 0) {
+  if (!loading && newArrivals.length === 0) {
     return null;
   }
 
@@ -70,7 +70,7 @@ const NewArrivalsSection = () => {
           }}
         />
       </div>
-      
+
       {/* Content */}
       <div className="relative px-4 py-5">
         {/* Header with Badge */}
@@ -142,53 +142,81 @@ const NewArrivalsSection = () => {
 
         {/* Products Grid - Image Only */}
         <div className="flex flex-wrap md:flex-nowrap md:overflow-x-visible gap-2 md:gap-3">
-          {newArrivals.map((product, index) => {
-            const productLink = isMobileApp ? `/app/product/${product.id}` : `/product/${product.id}`;
-            return (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{
-                  delay: index * 0.08,
-                  type: 'spring',
-                  stiffness: 100,
-                  damping: 10,
-                }}
-                className="w-[calc(33.333%-0.5rem)] md:w-0 md:flex-1 md:min-w-0"
-              >
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="w-[calc(33.333%-0.5rem)] aspect-square bg-white/20 animate-pulse rounded-xl" />
+            ))
+          ) : (
+            newArrivals.map((product, index) => {
+              const productLink = isMobileApp ? `/app/product/${product._id || product.id}` : `/product/${product._id || product.id}`;
+              return (
                 <motion.div
-                  animate={{
-                    boxShadow: [
-                      '0 4px 6px rgba(0,0,0,0.1)',
-                      '0 8px 12px rgba(59, 130, 246, 0.3)',
-                      '0 4px 6px rgba(0,0,0,0.1)',
-                    ],
-                  }}
+                  key={product._id || product.id}
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                    delay: index * 0.2,
+                    delay: index * 0.08,
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 10,
                   }}
-                  className="rounded-xl overflow-hidden"
+                  className="w-[calc(33.333%-0.5rem)] md:w-0 md:flex-1 md:min-w-0"
                 >
-                  <Link to={productLink}>
-                    <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden relative rounded-xl">
-                      <LazyImage
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/300x300?text=Product+Image';
-                        }}
-                      />
-                    </div>
-                  </Link>
+                  <motion.div
+                    animate={{
+                      boxShadow: [
+                        '0 4px 6px rgba(0,0,0,0.1)',
+                        '0 8px 12px rgba(59, 130, 246, 0.3)',
+                        '0 4px 6px rgba(0,0,0,0.1)',
+                      ],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: index * 0.2,
+                    }}
+                    className="rounded-xl overflow-hidden"
+                  >
+                    <Link to={productLink} className="group">
+                      <div className="relative rounded-xl overflow-hidden bg-white shadow-md border border-white/50 group-hover:shadow-xl transition-all duration-300">
+                        <div className="w-full aspect-square bg-neutral-50 flex items-center justify-center overflow-hidden relative">
+                          <LazyImage
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500"
+                            onError={(e) => {
+                              e.target.src = 'https://via.placeholder.com/300x300?text=Product';
+                            }}
+                          />
+                          {/* Top Badge */}
+                          <div className="absolute top-1 right-1 bg-cyan-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                            NEW
+                          </div>
+                        </div>
+                        {/* Info Overlay at bottom */}
+                        <div className="p-1.5 bg-white/95 backdrop-blur-sm border-t border-gray-100">
+                          <h3 className="text-[9px] font-bold text-gray-800 line-clamp-1 group-hover:text-cyan-600 transition-colors">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <span className="text-[10px] font-black text-gray-900">
+                              ₹{product.price}
+                            </span>
+                            {product.originalPrice > product.price && (
+                              <span className="text-[8px] text-green-600 font-bold">
+                                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </motion.div>

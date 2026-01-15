@@ -2,17 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSave, FiUpload, FiX } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { products as initialProducts } from "../../../data/products";
 import { useCategoryStore } from "../../../store/categoryStore";
 import { useBrandStore } from "../../../store/brandStore";
 import CategorySelector from "../../../components/Admin/CategorySelector";
 import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
 import toast from "react-hot-toast";
+import { createProduct } from "../../../services/productApi";
 
 const AddProduct = () => {
   const navigate = useNavigate();
-  const { categories, initialize: initCategories } = useCategoryStore();
-  const { brands, initialize: initBrands } = useBrandStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { brands, fetchBrands } = useBrandStore();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,9 +55,9 @@ const AddProduct = () => {
   });
 
   useEffect(() => {
-    initCategories();
-    initBrands();
-  }, [initCategories, initBrands]);
+    fetchCategories();
+    fetchBrands();
+  }, [fetchCategories, fetchBrands]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -69,13 +70,11 @@ const AddProduct = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check if file is an image
       if (!file.type.startsWith("image/")) {
         toast.error("Please select an image file");
         return;
       }
 
-      // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Image size should be less than 5MB");
         return;
@@ -85,7 +84,7 @@ const AddProduct = () => {
       reader.onloadend = () => {
         setFormData({
           ...formData,
-          image: reader.result, // Base64 data URL
+          image: reader.result,
         });
       };
       reader.onerror = () => {
@@ -99,7 +98,6 @@ const AddProduct = () => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Validate all files
     const validFiles = files.filter((file) => {
       if (!file.type.startsWith("image/")) {
         toast.error(`${file.name} is not an image file`);
@@ -114,7 +112,6 @@ const AddProduct = () => {
 
     if (validFiles.length === 0) return;
 
-    // Read all valid files
     const readers = validFiles.map((file) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -144,59 +141,35 @@ const AddProduct = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!formData.name || !formData.price || !formData.stockQuantity) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    const savedProducts = localStorage.getItem("admin-products");
-    const products = savedProducts
-      ? JSON.parse(savedProducts)
-      : initialProducts;
+    setLoading(true);
+    try {
+      const payload = {
+        ...formData,
+        price: parseFloat(formData.price),
+        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
+        stockQuantity: parseInt(formData.stockQuantity),
+        totalAllowedQuantity: formData.totalAllowedQuantity ? parseInt(formData.totalAllowedQuantity) : null,
+        minimumOrderQuantity: formData.minimumOrderQuantity ? parseInt(formData.minimumOrderQuantity) : null,
+        brandId: formData.brandId || null,
+      };
 
-    // Determine final categoryId - use subcategoryId if selected, otherwise categoryId
-    const finalCategoryId = formData.subcategoryId
-      ? parseInt(formData.subcategoryId)
-      : formData.categoryId
-      ? parseInt(formData.categoryId)
-      : null;
-
-    // Create new product
-    const newId = Math.max(...products.map((p) => p.id), 0) + 1;
-    const newProduct = {
-      id: newId,
-      ...formData,
-      price: parseFloat(formData.price),
-      originalPrice: formData.originalPrice
-        ? parseFloat(formData.originalPrice)
-        : null,
-      stockQuantity: parseInt(formData.stockQuantity),
-      totalAllowedQuantity: formData.totalAllowedQuantity
-        ? parseInt(formData.totalAllowedQuantity)
-        : null,
-      minimumOrderQuantity: formData.minimumOrderQuantity
-        ? parseInt(formData.minimumOrderQuantity)
-        : null,
-      warrantyPeriod: formData.warrantyPeriod || null,
-      guaranteePeriod: formData.guaranteePeriod || null,
-      hsnCode: formData.hsnCode || null,
-      categoryId: finalCategoryId,
-      subcategoryId: formData.subcategoryId
-        ? parseInt(formData.subcategoryId)
-        : null,
-      brandId: formData.brandId ? parseInt(formData.brandId) : null,
-      rating: 0,
-      reviewCount: 0,
-    };
-    const updatedProducts = [...products, newProduct];
-    localStorage.setItem("admin-products", JSON.stringify(updatedProducts));
-    toast.success("Product created successfully");
-
-    navigate("/admin/products/manage-products");
+      await createProduct(payload);
+      toast.success("Product created successfully");
+      navigate("/admin/products/manage-products");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to create product");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

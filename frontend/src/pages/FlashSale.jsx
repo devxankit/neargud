@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { FiClock, FiGrid, FiList, FiZap, FiTrendingUp } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { getFlashSale } from '../data/products';
 import { useCampaignStore } from '../store/campaignStore';
 import { formatPrice } from '../utils/helpers';
 import Header from '../components/Layout/Header';
@@ -17,41 +16,33 @@ import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 
 const FlashSale = () => {
   const navigate = useNavigate();
+  const [allFlashSale, setAllFlashSale] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { getActiveCampaigns, getCampaignsByType, initialize } = useCampaignStore();
-  
+
   // Initialize campaigns
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Get active flash sale campaigns
-  const flashSaleCampaigns = useMemo(() => {
-    const allCampaigns = getCampaignsByType('flash_sale');
-    const now = new Date();
-    return allCampaigns.filter(
-      campaign =>
-        campaign.isActive &&
-        new Date(campaign.startDate) <= now &&
-        new Date(campaign.endDate) >= now
-    );
-  }, [getCampaignsByType]);
-
-  // If there's exactly one active flash sale campaign, redirect to it
+  // Fetch flash sale products
   useEffect(() => {
-    if (flashSaleCampaigns.length === 1 && flashSaleCampaigns[0].route) {
-      navigate(flashSaleCampaigns[0].route, { replace: true });
-    }
-  }, [flashSaleCampaigns, navigate]);
-
-  // Fallback to static data if no campaigns
-  const allFlashSale = useMemo(() => {
-    if (flashSaleCampaigns.length > 0) {
-      // If multiple campaigns, use products from the first one
-      // For now, fallback to static data
-      return getFlashSale();
-    }
-    return getFlashSale();
-  }, [flashSaleCampaigns]);
+    const fetchFlashSaleProducts = async () => {
+      try {
+        setLoading(true);
+        const { fetchPublicProducts } = await import('../services/publicApi');
+        const res = await fetchPublicProducts({ flashSale: true, limit: 50 });
+        if (res.success) {
+          setAllFlashSale(res.data.products || []);
+        }
+      } catch (error) {
+        console.error("Error fetching flash sale products:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFlashSaleProducts();
+  }, []);
   const { responsivePadding } = useResponsiveHeaderPadding();
   const [viewMode, setViewMode] = useState('grid');
   const [timeLeft, setTimeLeft] = useState({
@@ -90,10 +81,10 @@ const FlashSale = () => {
   // Calculate discount for each flash sale product
   const flashSaleWithDiscount = useMemo(() => {
     return allFlashSale.map((product) => {
-      const discount = product.originalPrice
-        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-        : 20; // Default discount if no original price
-      return { ...product, discount };
+      const price = product.price;
+      const originalPrice = product.originalPrice || price * 1.25; // Fallback to 25% if missing
+      const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+      return { ...product, originalPrice, discount };
     });
   }, [allFlashSale]);
 
@@ -138,21 +129,19 @@ const FlashSale = () => {
                     <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
                       <button
                         onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'grid'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         <FiGrid className="text-lg" />
                       </button>
                       <button
                         onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'list'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         <FiList className="text-lg" />
                       </button>
@@ -233,7 +222,7 @@ const FlashSale = () => {
                       <div className="text-2xl sm:text-3xl font-bold text-accent-600 mb-1">
                         {Math.round(
                           flashSaleWithDiscount.reduce((sum, p) => sum + p.discount, 0) /
-                            flashSaleWithDiscount.length
+                          flashSaleWithDiscount.length
                         )}
                         %
                       </div>
@@ -255,8 +244,7 @@ const FlashSale = () => {
                 </div>
               </div>
 
-              {/* Products Grid/List */}
-              {allFlashSale.length === 0 ? (
+              {allFlashSale.length === 0 && !loading ? (
                 <div className="glass-card rounded-2xl p-12 text-center">
                   <FiZap className="text-6xl text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-800 mb-2">No flash sale items</h3>
@@ -270,11 +258,16 @@ const FlashSale = () => {
                     Continue Shopping
                   </Link>
                 </div>
+              ) : loading ? (
+                <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
+                  <FiLoader className="text-4xl text-blue-500 animate-spin mb-4" />
+                  <p className="font-bold text-gray-500 uppercase tracking-widest text-xs">Loading Flash Deals...</p>
+                </div>
               ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6 relative z-0">
                   {sortedProducts.map((product, index) => (
                     <motion.div
-                      key={product.id}
+                      key={product._id || product.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03 }}
@@ -291,7 +284,7 @@ const FlashSale = () => {
                 <div className="space-y-4">
                   {sortedProducts.map((product, index) => (
                     <motion.div
-                      key={product.id}
+                      key={product._id || product.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.03 }}

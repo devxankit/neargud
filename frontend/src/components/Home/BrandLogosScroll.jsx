@@ -1,93 +1,66 @@
 import { motion } from 'framer-motion';
-import { brands } from '../../data/brands';
+import { brands as mockBrands } from '../../data/brands';
 import LazyImage from '../LazyImage';
 
-const BrandLogosScroll = () => {
-  // Use existing brands, can be expanded to 8-10 when more brands are added
-  const displayBrands = brands.slice(0, 10);
+const BrandLogosScroll = ({ brands = [], loading = false }) => {
+  const displayBrands = brands.length > 0 ? brands : mockBrands.slice(0, 10);
+
+  // Duplicate brands for seamless infinite loop (x3 to ensure coverage on wide screens)
+  const marqueeBrands = [...displayBrands, ...displayBrands, ...displayBrands];
+
+  if (!loading && displayBrands.length === 0) return null;
+
+  if (loading) {
+    return (
+      <section className="w-full overflow-hidden py-2 bg-transparent">
+        <div className="flex gap-4 px-4 overflow-x-hidden">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="flex-shrink-0 w-20 h-20 bg-gray-100 animate-pulse rounded-xl" />
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section className="bg-transparent w-full overflow-hidden">
-      {/* Desktop Layout - White card container */}
-      <div className="hidden md:block bg-white rounded-lg mb-4 p-4">
-        <div className="w-full overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="flex gap-4 min-w-max pb-2">
-            {displayBrands.map((brand, index) => (
-              <motion.div
-                key={brand.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: index * 0.05, duration: 0.3 }}
-                className="flex-shrink-0 flex flex-col items-center"
-                style={{ width: '64px' }}
-              >
-                <div className="bg-gray-50 rounded-lg p-2 shadow-sm transition-all duration-300 flex items-center justify-center w-16 h-16 group cursor-pointer border border-gray-100 mb-2">
-                  <img
-                    src={brand.logo}
-                    alt={brand.name}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/120x80?text=Brand';
-                    }}
-                    loading="lazy"
-                  />
-                </div>
-                <p className="text-xs font-medium text-gray-700 text-center truncate w-full">
-                  {brand.name}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <section className="w-full overflow-hidden py-2 bg-transparent">
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.33%); } /* 1/3 since we triplicated */
+        }
+        .marquee-track {
+          display: flex;
+          width: max-content;
+          animation: marquee 30s linear infinite;
+        }
+        .marquee-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
 
-      {/* Mobile Layout */}
-      <div className="md:hidden w-full">
-        <style>{`
-          @media (min-width: 1024px) {
-            .brand-card-desktop {
-              width: 5rem !important;
-              min-width: 5rem !important;
-              max-width: 5rem !important;
-            }
-          }
-          @media (min-width: 1280px) {
-            .brand-card-desktop {
-              width: 6rem !important;
-              min-width: 6rem !important;
-              max-width: 6rem !important;
-            }
-          }
-        `}</style>
-        <div className="w-full overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="flex gap-3 sm:gap-4 lg:gap-3 min-w-max px-4 pb-2">
-            {displayBrands.map((brand, index) => (
-              <div
-                key={brand.id}
-                className="flex-shrink-0 flex flex-col items-center brand-card-desktop"
-                style={{
-                  width: 'calc((100vw - 2rem - 0.75rem * 3) / 4)',
-                  minWidth: 'calc((100vw - 2rem - 0.75rem * 3) / 4)',
-                  maxWidth: 'calc((100vw - 2rem - 0.75rem * 3) / 4)',
-                }}
-              >
-                <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-1.5 xl:p-2 shadow-sm transition-all duration-300 flex items-center justify-center w-full aspect-square group cursor-pointer border border-gray-100 mb-1.5 lg:mb-1 hover:shadow-md">
+      <div className="w-full overflow-hidden">
+        <div className="marquee-track">
+          {marqueeBrands.map((brand, index) => (
+            <div
+              key={`${brand._id || brand.id}-${index}`}
+              className="flex-shrink-0 px-2 group cursor-pointer"
+            >
+              <div className="w-20 flex flex-col items-center">
+                <div className="bg-white rounded-xl p-2 w-20 h-20 flex items-center justify-center shadow-sm border border-gray-100 group-hover:shadow-md transition-all duration-300 group-hover:bg-gray-50 group-hover:border-primary-200 group-hover:scale-105">
                   <LazyImage
                     src={brand.logo}
                     alt={brand.name}
-                    className="w-[85%] h-[85%] lg:w-[80%] lg:h-[80%] object-contain"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/120x80?text=Brand';
-                    }}
+                    className="w-full h-full object-contain mix-blend-multiply"
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 </div>
-                <p className="text-xs sm:text-sm lg:text-xs font-semibold text-gray-800 text-center transition-colors truncate w-full px-1">
+                <p className="mt-1.5 text-xs font-semibold text-gray-700 text-center truncate w-full group-hover:text-primary-600">
                   {brand.name}
                 </p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -95,4 +68,3 @@ const BrandLogosScroll = () => {
 };
 
 export default BrandLogosScroll;
-

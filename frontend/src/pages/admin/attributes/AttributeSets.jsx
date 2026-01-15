@@ -1,37 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmModal from '../../../components/Admin/ConfirmModal';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import toast from 'react-hot-toast';
+import useAttributeStore from '../../../store/attributeStore';
 
 const AttributeSets = () => {
   const location = useLocation();
   const isAppRoute = location.pathname.startsWith('/app');
-  const [attributeSets, setAttributeSets] = useState([
-    { id: 1, name: 'Color Set', attributes: ['Red', 'Blue', 'Green'], status: 'active' },
-    { id: 2, name: 'Size Set', attributes: ['S', 'M', 'L', 'XL'], status: 'active' },
-    { id: 3, name: 'Material Set', attributes: ['Cotton', 'Polyester', 'Wool'], status: 'active' },
-  ]);
+  
+  // Store
+  const { attributeSets, fetchAttributeSets, createAttributeSet, updateAttributeSet, deleteAttributeSet, loadingSets } = useAttributeStore();
+
   const [editingSet, setEditingSet] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
-  const handleSave = (setData) => {
-    if (editingSet && editingSet.id) {
-      setAttributeSets(attributeSets.map((s) => (s.id === editingSet.id ? { ...setData, id: editingSet.id } : s)));
-      toast.success('Attribute set updated');
+  // Fetch on mount
+  useEffect(() => {
+     fetchAttributeSets();
+  }, [fetchAttributeSets]);
+
+  const handleSave = async (setData) => {
+    if (editingSet && editingSet._id) {
+       const success = await updateAttributeSet(editingSet._id, setData);
+       if(success) setEditingSet(null);
     } else {
-      setAttributeSets([...attributeSets, { ...setData, id: attributeSets.length + 1 }]);
-      toast.success('Attribute set added');
+       const success = await createAttributeSet(setData);
+       if(success) setEditingSet(null);
     }
-    setEditingSet(null);
   };
 
-  const handleDelete = () => {
-    setAttributeSets(attributeSets.filter((s) => s.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Attribute set deleted');
+  const handleDelete = async () => {
+    if (deleteModal.id) {
+       await deleteAttributeSet(deleteModal.id);
+       setDeleteModal({ isOpen: false, id: null });
+    }
   };
 
   return (
@@ -56,14 +61,14 @@ const AttributeSets = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {attributeSets.map((set) => (
-          <div key={set.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div key={set._id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <h3 className="font-bold text-gray-800 mb-2">{set.name}</h3>
                 <div className="flex flex-wrap gap-2">
                   {set.attributes.map((attr, idx) => (
                     <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                      {attr}
+                      {typeof attr === 'string' ? attr : attr.name || '?'}
                     </span>
                   ))}
                 </div>
@@ -81,7 +86,7 @@ const AttributeSets = () => {
                   <FiEdit />
                 </button>
                 <button
-                  onClick={() => setDeleteModal({ isOpen: true, id: set.id })}
+                  onClick={() => setDeleteModal({ isOpen: true, id: set._id })}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <FiTrash2 />
@@ -149,7 +154,7 @@ const AttributeSets = () => {
                 style={{ willChange: 'transform' }}
               >
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingSet.id ? 'Edit Attribute Set' : 'Add Attribute Set'}
+                  {editingSet._id ? 'Edit Attribute Set' : 'Add Attribute Set'}
                 </h3>
             <form
               onSubmit={(e) => {
@@ -158,7 +163,7 @@ const AttributeSets = () => {
                 const attributes = formData.get('attributes').split(',').map(a => a.trim()).filter(a => a);
                 handleSave({
                   name: formData.get('name'),
-                  attributes,
+                  attributes, // Backend expects array of attribute names or IDs
                   status: formData.get('status'),
                 });
               }}
@@ -175,11 +180,12 @@ const AttributeSets = () => {
               <textarea
                 name="attributes"
                 defaultValue={editingSet.attributes?.join(', ') || ''}
-                placeholder="Attributes (comma-separated)"
+                placeholder="Attributes (comma-separated names, e.g. Color, Size)"
                 required
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
+              <p className="text-xs text-gray-500">Enter exact names of existing Attributes</p>
               <AnimatedSelect
                 name="status"
                 value={editingSet.status || 'active'}
@@ -198,9 +204,10 @@ const AttributeSets = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                  disabled={loadingSets}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50"
                 >
-                  Save
+                  {loadingSets ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"

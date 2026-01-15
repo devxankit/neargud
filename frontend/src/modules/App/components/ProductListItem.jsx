@@ -13,14 +13,13 @@ import { useVendorStore } from "../../../modules/vendor/store/vendorStore";
 const ProductListItem = ({ product, index }) => {
   const location = window.location.pathname;
   const isMobileApp = location.startsWith("/app");
+  const productId = product._id || product.id;
   const productLink = isMobileApp
-    ? `/app/product/${product.id}`
-    : `/product/${product.id}`;
-  const addItem = useCartStore((state) => state.addItem);
-  const items = useCartStore((state) => state.items);
-  const updateQuantity = useCartStore((state) => state.updateQuantity);
-  const cartItem = items.find((i) => i.id === product.id);
-  const vendor = useVendorStore((state) => state.vendors.find((v) => v.id === product?.vendorId));
+    ? `/app/product/${productId}`
+    : `/product/${productId}`;
+  const { addItem, items, updateQuantity } = useCartStore();
+  const cartItem = items.find((i) => i.id === productId);
+  const vendor = useVendorStore((state) => state.vendors.find((v) => v.id === (product?.vendorId?._id || product?.vendorId)));
   const triggerCartAnimation = useUIStore(
     (state) => state.triggerCartAnimation
   );
@@ -29,7 +28,7 @@ const ProductListItem = ({ product, index }) => {
     removeItem: removeFromWishlist,
     isInWishlist,
   } = useWishlistStore();
-  const isFavorite = isInWishlist(product.id);
+  const isFavorite = isInWishlist(productId);
 
   const handleAddToCart = (e) => {
     if (e) {
@@ -38,11 +37,14 @@ const ProductListItem = ({ product, index }) => {
     }
 
     addItem({
-      id: product.id,
+      id: productId,
       name: product.name,
       price: product.price,
+      originalPrice: product.originalPrice,
       image: product.image,
       quantity: 1,
+      applicableCoupons: product.applicableCoupons,
+      isCouponEligible: product.isCouponEligible,
     });
     triggerCartAnimation();
   };
@@ -53,13 +55,14 @@ const ProductListItem = ({ product, index }) => {
       e.stopPropagation();
     }
     if (isFavorite) {
-      removeFromWishlist(product.id);
+      removeFromWishlist(productId);
       toast.success("Removed from wishlist");
     } else {
       addToWishlist({
-        id: product.id,
+        id: productId,
         name: product.name,
         price: product.price,
+        originalPrice: product.originalPrice,
         image: product.image,
       });
       toast.success("Added to wishlist");
@@ -161,7 +164,7 @@ const ProductListItem = ({ product, index }) => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  updateQuantity(product.id, cartItem.quantity - 1);
+                  updateQuantity(productId, cartItem.quantity - 1);
                 }}
                 className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-primary-700 transition-colors"
               >
@@ -174,7 +177,7 @@ const ProductListItem = ({ product, index }) => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  updateQuantity(product.id, cartItem.quantity + 1);
+                  updateQuantity(productId, cartItem.quantity + 1);
                 }}
                 className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-green-600 transition-colors"
               >

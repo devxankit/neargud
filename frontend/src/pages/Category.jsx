@@ -2,8 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FiFilter, FiGrid, FiList, FiLoader } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { products } from '../data/products';
-import { categories as fallbackCategories } from '../data/categories';
 import { useCategoryStore } from '../store/categoryStore';
 import { formatPrice } from '../utils/helpers';
 import Header from '../components/Layout/Header';
@@ -12,84 +10,81 @@ import Footer from '../components/Layout/Footer';
 import PageTransition from '../components/PageTransition';
 import ProductCard from '../components/ProductCard';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
-import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 
 const Category = () => {
-  const { id } = useParams();
-  const categoryId = parseInt(id);
-  const { categories, initialize, getCategoryById, getCategoriesByParent } = useCategoryStore();
-  
-  // Initialize store on mount
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  // Get category from store or fallback
-  const category = useMemo(() => {
-    const cat = getCategoryById(categoryId);
-    return cat || fallbackCategories.find((cat) => cat.id === categoryId);
-  }, [categoryId, categories, getCategoryById]);
-
-  // Get subcategories for this category
-  const subcategories = useMemo(() => {
-    if (!categoryId) return [];
-    return getCategoriesByParent(categoryId).filter(cat => cat.isActive !== false);
-  }, [categoryId, categories, getCategoriesByParent]);
-
-  const { responsivePadding } = useResponsiveHeaderPadding();
+  const { id: categoryId } = useParams();
+  const { initialize, getCategoryById } = useCategoryStore();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
-  const [sortBy, setSortBy] = useState('default'); // default, price-low, price-high, rating
+  const [sortBy, setSortBy] = useState('default');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { responsivePadding } = useResponsiveHeaderPadding();
 
-  // Category to product keywords mapping
-  const categoryMap = {
-    1: ['t-shirt', 'shirt', 'jeans', 'dress', 'gown', 'skirt', 'blazer', 'jacket', 'cardigan', 'sweater', 'flannel', 'maxi'],
-    2: ['sneakers', 'pumps', 'boots', 'heels', 'shoes'],
-    3: ['bag', 'crossbody', 'handbag'],
-    4: ['necklace', 'watch', 'wristwatch'],
-    5: ['sunglasses', 'belt', 'scarf'],
-    6: ['athletic', 'running', 'track', 'sporty'],
-  };
+  // Initialize and fetch data
+  useEffect(() => {
+    const fetchCategoryAndProducts = async () => {
+      try {
+        setLoading(true);
+        const { fetchPublicProducts, fetchPublicCategories } = await import('../services/publicApi');
 
-  // Filter products by category
-  const categoryProducts = useMemo(() => {
-    if (!category) return [];
-    
-    const keywords = categoryMap[categoryId] || [];
-    return products.filter((product) => {
-      const productName = product.name.toLowerCase();
-      return keywords.some((keyword) => productName.includes(keyword));
-    });
-  }, [categoryId, category]);
+        // Fetch Category Details
+        const categoriesRes = await fetchPublicCategories();
+        if (categoriesRes.success) {
+          const allCats = categoriesRes.data.categories || [];
+          const currentCat = allCats.find(c => (c._id || c.id) === categoryId);
+          setCategory(currentCat);
 
-  // Sort products
-  const sortedProducts = useMemo(() => {
-    let sorted = [...categoryProducts];
+          // Find subcategories
+          if (currentCat) {
+            const subs = allCats.filter(c => c.parentId === (currentCat._id || currentCat.id));
+            setSubcategories(subs);
+          }
+        }
 
-    switch (sortBy) {
-      case 'price-low':
-        sorted.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        sorted.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      default:
-        break;
+        // Fetch Products
+        const productsRes = await fetchPublicProducts({
+          categoryId,
+          page,
+          limit: 12,
+          sort: sortBy === 'price-low' ? 'price' : (sortBy === 'price-high' ? '-price' : (sortBy === 'rating' ? '-rating' : '-createdAt'))
+        });
+
+        if (productsRes.success) {
+          if (page === 1) {
+            setProducts(productsRes.data.products || []);
+          } else {
+            setProducts(prev => [...prev, ...(productsRes.data.products || [])]);
+          }
+          setTotalPages(productsRes.data.totalPages || 1);
+        }
+      } catch (error) {
+        console.error("Error fetching category data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoryAndProducts();
+  }, [categoryId, sortBy, page]);
+
+  // Sort products - handled by backend
+  const sortedProducts = products;
+
+  // Infinite scroll logic
+  const hasMore = page < totalPages;
+  const isLoading = loading;
+  const loadMore = () => {
+    if (hasMore && !isLoading) {
+      setPage(prev => prev + 1);
     }
-
-    return sorted;
-  }, [categoryProducts, sortBy]);
-
-  // Infinite scroll hook
-  const { displayedItems, hasMore, isLoading, loadMore, loadMoreRef } = useInfiniteScroll(
-    sortedProducts,
-    12,
-    12
-  );
+  };
+  const displayedItems = products;
 
   if (!category) {
     return (
@@ -97,7 +92,7 @@ const Category = () => {
         <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
           <Header />
           <Navbar />
-          <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
+          <main className="w-full overflow-x-hidden">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-2 text-center">
               <h1 className="text-3xl font-bold text-gray-800 mb-4">Category Not Found</h1>
               <p className="text-gray-600">The category you're looking for doesn't exist.</p>
@@ -114,8 +109,8 @@ const Category = () => {
       <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
         <Header />
         <Navbar />
-          <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-2">
+        <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-2">
             <div className="max-w-7xl mx-auto">
               <Breadcrumbs />
 
@@ -138,7 +133,7 @@ const Category = () => {
                         {category.name}
                       </h1>
                       <p className="text-gray-600 text-sm sm:text-base">
-                        {sortedProducts.length} product{sortedProducts.length !== 1 ? 's' : ''} available
+                        {loading && products.length === 0 ? 'Loading...' : `${products.length} product${products.length !== 1 ? 's' : ''} available`}
                       </p>
                     </div>
                   </div>
@@ -147,21 +142,19 @@ const Category = () => {
                     <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
                       <button
                         onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'grid'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         <FiGrid className="text-lg" />
                       </button>
                       <button
                         onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'list'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         <FiList className="text-lg" />
                       </button>
@@ -216,8 +209,12 @@ const Category = () => {
                 )}
               </div>
 
-              {/* Products Grid/List */}
-              {sortedProducts.length === 0 ? (
+              {loading && products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
+                  <FiLoader className="text-4xl text-primary-500 animate-spin mb-4" />
+                  <p className="font-bold text-gray-500 uppercase tracking-widest text-xs">Fetching Catalog...</p>
+                </div>
+              ) : products.length === 0 ? (
                 <div className="glass-card rounded-2xl p-12 text-center">
                   <div className="text-6xl text-gray-300 mx-auto mb-4">📦</div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">No products found</h3>
@@ -230,7 +227,7 @@ const Category = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6 relative z-0">
                     {displayedItems.map((product, index) => (
                       <motion.div
-                        key={product.id}
+                        key={product._id || product.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.03 }}
@@ -239,10 +236,10 @@ const Category = () => {
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Loading indicator and Load More button */}
                   {hasMore && (
-                    <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-4">
+                    <div className="mt-8 flex flex-col items-center gap-4">
                       {isLoading && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <FiLoader className="animate-spin text-xl" />
@@ -264,7 +261,7 @@ const Category = () => {
                   <div className="space-y-4">
                     {displayedItems.map((product, index) => (
                       <motion.div
-                        key={product.id}
+                        key={product._id || product.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
@@ -315,10 +312,10 @@ const Category = () => {
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Loading indicator and Load More button */}
                   {hasMore && (
-                    <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-4">
+                    <div className="mt-8 flex flex-col items-center gap-4">
                       {isLoading && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <FiLoader className="animate-spin text-xl" />

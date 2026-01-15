@@ -5,49 +5,65 @@ import DataTable from '../../../components/Admin/DataTable';
 import Badge from '../../../components/Badge';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { formatCurrency, formatDateTime } from '../../../utils/adminHelpers';
-import { mockOrders } from '../../../data/adminMockData';
+import toast from 'react-hot-toast';
+import api from '../../../utils/api';
 
 const CashCollection = () => {
   const [collections, setCollections] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [stats, setStats] = useState({ totalCollected: 0, totalPending: 0 });
+
+  const fetchCollections = async (page = 1) => {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/orders/cash-collections', {
+        params: {
+          page,
+          limit: 10,
+          status: statusFilter,
+          search: searchQuery,
+        },
+      });
+      if (response.success) {
+        setCollections(response.data.collections);
+        setPagination(response.data.pagination);
+        setStats({
+          totalCollected: response.data.totalCollected,
+          totalPending: response.data.totalPending,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch collections:', error);
+      toast.error('Failed to load cash collections');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Generate cash collections from orders
-    const generatedCollections = mockOrders
-      .filter((order) => order.paymentMethod === 'cash')
-      .map((order) => ({
-        id: `CC-${order.id}`,
-        orderId: order.id,
-        customerName: order.customer.name,
-        amount: order.total,
-        deliveryBoy: 'John Doe',
-        status: order.status === 'delivered' ? 'collected' : 'pending',
-        collectionDate: order.status === 'delivered' ? order.date : null,
-        orderDate: order.date,
-      }));
-    setCollections(generatedCollections);
-  }, []);
+    fetchCollections(1);
+  }, [statusFilter]);
 
-  const filteredCollections = collections.filter((collection) => {
-    const matchesSearch =
-      !searchQuery ||
-      collection.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      collection.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      collection.deliveryBoy.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchCollections(1);
+  };
 
-    const matchesStatus = statusFilter === 'all' || collection.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalCollected = filteredCollections
-    .filter((c) => c.status === 'collected')
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const totalPending = filteredCollections
-    .filter((c) => c.status === 'pending')
-    .reduce((sum, c) => sum + c.amount, 0);
+  const handleMarkCollected = async (id) => {
+    try {
+      const response = await api.put(`/admin/orders/${id}/mark-collected`);
+      if (response.success) {
+        toast.success('Payment marked as collected');
+        fetchCollections(pagination.page);
+      }
+    } catch (error) {
+      console.error('Failed to mark collected:', error);
+      toast.error(error.response?.data?.message || 'Failed to update status');
+    }
+  };
 
   const columns = [
     {
@@ -107,13 +123,7 @@ const CashCollection = () => {
         row.status === 'pending' ? (
           <button
             className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
-            onClick={() => {
-              setCollections(collections.map((c) =>
-                c.id === row.id
-                  ? { ...c, status: 'collected', collectionDate: new Date().toISOString() }
-                  : c
-              ));
-            }}
+            onClick={() => handleMarkCollected(row.id)}
           >
             Mark Collected
           </button>
@@ -140,26 +150,26 @@ const CashCollection = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">Total Collected</p>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(totalCollected)}</p>
+          <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalCollected)}</p>
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">Pending Collection</p>
-          <p className="text-2xl font-bold text-orange-600">{formatCurrency(totalPending)}</p>
+          <p className="text-2xl font-bold text-orange-600">{formatCurrency(stats.totalPending)}</p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by order ID, customer, or delivery boy..."
+              placeholder="Search by order ID or customer..."
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
-          </div>
+          </form>
 
           <AnimatedSelect
             value={statusFilter}
@@ -176,10 +186,15 @@ const CashCollection = () => {
 
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
         <DataTable
-          data={filteredCollections}
+          data={collections}
           columns={columns}
+          loading={loading}
           pagination={true}
-          itemsPerPage={10}
+          itemsPerPage={pagination.limit}
+          totalItems={pagination.total}
+          totalPages={pagination.totalPages}
+          currentPage={pagination.page}
+          onPageChange={(page) => fetchCollections(page)}
         />
       </div>
     </motion.div>

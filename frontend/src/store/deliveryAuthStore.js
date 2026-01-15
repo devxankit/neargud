@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import api from '../utils/api';
 
 export const useDeliveryAuthStore = create(
   persist(
@@ -10,41 +11,71 @@ export const useDeliveryAuthStore = create(
       isLoading: false,
 
       // Delivery boy login action
-      login: async (email, password, rememberMe = false) => {
+      login: async (identifier, password, rememberMe = false) => {
         set({ isLoading: true });
         try {
-          // Mock delivery boy authentication
-          // In a real app, this would be an API call
-          // const response = await api.post('/delivery/auth/login', { email, password });
-          
-          // Mock credentials: delivery@delivery.com / delivery123
-          if (email === 'delivery@delivery.com' && password === 'delivery123') {
-            const mockDeliveryBoy = {
-              id: 'delivery-1',
-              name: 'Delivery Boy',
-              email: email,
-              phone: '+1234567890',
-              vehicleType: 'Bike',
-              vehicleNumber: 'DL-01-AB-1234',
-              avatar: null,
-              status: 'available', // available, busy, offline
-            };
-            const mockToken = 'delivery-jwt-token-' + Date.now();
+          const response = await api.post('/auth/delivery/login', { identifier, password });
+          const { deliveryBoy, token } = response.data;
 
-            set({
-              deliveryBoy: mockDeliveryBoy,
-              token: mockToken,
-              isAuthenticated: true,
-              isLoading: false,
-            });
+          set({
+            deliveryBoy,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
 
-            // Store token in localStorage for API interceptor
-            localStorage.setItem('delivery-token', mockToken);
-            
-            return { success: true, deliveryBoy: mockDeliveryBoy };
-          } else {
-            throw new Error('Invalid credentials');
-          }
+          // Store token in localStorage for API interceptor
+          localStorage.setItem('delivery-token', token);
+
+          return { success: true, deliveryBoy };
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      // Delivery boy register action
+      register: async (partnerData) => {
+        set({ isLoading: true });
+        try {
+          const response = await api.post('/auth/delivery/register', partnerData);
+          set({ isLoading: false });
+          return response; // Return full response to get email for verification
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      // Verify email action
+      verifyEmail: async (email, otp) => {
+        set({ isLoading: true });
+        try {
+          const response = await api.post('/auth/delivery/verify-email', { email, otp });
+          const { deliveryBoy, token } = response.data;
+
+          set({
+            deliveryBoy,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          localStorage.setItem('delivery-token', token);
+          return { success: true, deliveryBoy };
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      // Resend OTP action
+      resendOTP: async (email) => {
+        set({ isLoading: true });
+        try {
+          const response = await api.post('/auth/delivery/resend-otp', { email });
+          set({ isLoading: false });
+          return response;
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -59,6 +90,7 @@ export const useDeliveryAuthStore = create(
           isAuthenticated: false,
         });
         localStorage.removeItem('delivery-token');
+        localStorage.removeItem('delivery-auth-storage');
       },
 
       // Update delivery boy status
@@ -75,16 +107,23 @@ export const useDeliveryAuthStore = create(
       },
 
       // Initialize delivery auth state from localStorage
-      initialize: () => {
+      initialize: async () => {
         const token = localStorage.getItem('delivery-token');
         if (token) {
-          const storedState = JSON.parse(localStorage.getItem('delivery-auth-storage') || '{}');
-          if (storedState.state?.deliveryBoy && storedState.state?.token) {
-            set({
-              deliveryBoy: storedState.state.deliveryBoy,
-              token: storedState.state.token,
-              isAuthenticated: true,
-            });
+          try {
+            // Optional: verify token by fetching profile
+            const response = await api.get('/auth/delivery/me');
+            if (response.success && response.data) {
+              set({
+                deliveryBoy: response.data,
+                token: token,
+                isAuthenticated: true,
+              });
+            } else {
+              throw new Error('Verification failed');
+            }
+          } catch (error) {
+            get().logout();
           }
         }
       },

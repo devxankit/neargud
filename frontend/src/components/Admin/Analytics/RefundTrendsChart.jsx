@@ -16,34 +16,15 @@ import { motion } from "framer-motion";
 
 const RefundTrendsChart = ({ refundData, period = "month" }) => {
   const chartData = useMemo(() => {
-    // Group refunds by date
-    const grouped = {};
-    refundData.forEach((refund) => {
-      const date = new Date(refund.requestedDate).toISOString().split("T")[0];
-      if (!grouped[date]) {
-        grouped[date] = {
-          date,
-          totalAmount: 0,
-          count: 0,
-          completed: 0,
-          pending: 0,
-        };
-      }
-      grouped[date].totalAmount += refund.amount;
-      grouped[date].count += 1;
-      if (refund.status === "completed") {
-        grouped[date].completed += 1;
-      } else {
-        grouped[date].pending += 1;
-      }
-    });
-
-    return Object.values(grouped)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map((item) => ({
-        ...item,
-        dateLabel: formatDate(item.date, { month: "short", day: "numeric" }),
-      }));
+    // If data is already aggregated (from API)
+    return refundData.map((item) => ({
+      date: item.date,
+      dateLabel: formatDate(item.date, { month: "short", day: "numeric" }),
+      totalAmount: item.amount,
+      completed: item.count, // Assuming all returned items are completed refunds
+      pending: 0,
+      count: item.count
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [refundData]);
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -119,10 +100,6 @@ const RefundTrendsChart = ({ refundData, period = "month" }) => {
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
-              <linearGradient id="colorPending" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-              </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
@@ -178,17 +155,8 @@ const RefundTrendsChart = ({ refundData, period = "month" }) => {
               stroke="#10b981"
               strokeWidth={2}
               fill="url(#colorCompleted)"
-              name="Completed"
+              name="Count"
               dot={{ fill: "#10b981", r: 3 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="pending"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              fill="url(#colorPending)"
-              name="Pending"
-              dot={{ fill: "#f59e0b", r: 3 }}
             />
           </AreaChart>
         </ResponsiveContainer>

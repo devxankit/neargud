@@ -3,7 +3,6 @@ import { useParams, Link, Navigate } from 'react-router-dom';
 import { FiClock, FiGrid, FiList, FiZap, FiTag, FiFilter, FiX, FiTrendingDown } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCampaignStore } from '../store/campaignStore';
-import { getProductById, products } from '../data/products';
 import { formatPrice } from '../utils/helpers';
 import Header from '../components/Layout/Header';
 import Navbar from '../components/Layout/Navbar';
@@ -13,13 +12,14 @@ import ProductCard from '../components/ProductCard';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Badge from '../components/Badge';
 import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
-import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
 const CampaignPage = () => {
   const { slug, id } = useParams();
   const { getCampaignBySlug, getCampaignById, initialize } = useCampaignStore();
   const { responsivePadding } = useResponsiveHeaderPadding();
-  
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   // Initialize campaigns if needed
   useEffect(() => {
     initialize();
@@ -35,12 +35,59 @@ const CampaignPage = () => {
     return null;
   }, [slug, id, getCampaignBySlug, getCampaignById]);
 
+  // Fetch campaign products
+  useEffect(() => {
+    if (campaign?.productIds && campaign.productIds.length > 0) {
+      const fetchCampaignProducts = async () => {
+        try {
+          setLoading(true);
+          const { fetchPublicProducts } = await import('../services/publicApi');
+
+          // Fetch products that match the campaign's productIds
+          // Currently our API doesn't have an 'ids' filter, so we might need to fetch them 
+          // or use the 'search' if those are names, but usually they are IDs.
+          // For now, let's assume we can fetch all and filter, or fetch by IDs if the API supports it.
+          // Since the API doesn't explicitly support 'ids' yet, let's fetch products and filter
+          // OR better, we could add 'ids' to publicProduct.service.js which is much better.
+
+          // For simplicity now, let's fetch a larger set and filter
+          const res = await fetchPublicProducts({ limit: 100 });
+          if (res.success) {
+            const allFetched = res.data.products || [];
+            const filtered = campaign.productIds.map(pId => {
+              const product = allFetched.find(p => (p._id || p.id).toString() === pId.toString());
+              if (product) {
+                return {
+                  ...product,
+                  campaignPrice: campaign.discountType === 'percentage'
+                    ? product.price * (1 - campaign.discountValue / 100)
+                    : product.price - campaign.discountValue,
+                  originalPrice: product.originalPrice || product.price,
+                };
+              }
+              return null;
+            }).filter(Boolean);
+            setProducts(filtered);
+          }
+        } catch (error) {
+          console.error("Error fetching campaign products:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCampaignProducts();
+    } else {
+      setProducts([]);
+      setLoading(false);
+    }
+  }, [campaign]);
+
   // Redirect if campaign not found
-  if (!campaign) {
+  if (!campaign && !loading) {
     return <Navigate to="/" replace />;
   }
 
-  const pageConfig = campaign.pageConfig || {
+  const pageConfig = campaign?.pageConfig || {
     showCountdown: true,
     countdownType: 'campaign_end',
     viewModes: ['grid', 'list'],
@@ -62,34 +109,9 @@ const CampaignPage = () => {
     seconds: 0,
   });
 
-  // Get products for this campaign
-  const campaignProducts = useMemo(() => {
-    if (!campaign.productIds || campaign.productIds.length === 0) {
-      return [];
-    }
-    
-    // Get products from localStorage first, then fallback to static data
-    const savedProducts = localStorage.getItem('admin-products');
-    const allProducts = savedProducts ? JSON.parse(savedProducts) : products;
-    
-    return campaign.productIds
-      .map(productId => {
-        const product = allProducts.find(p => p.id === parseInt(productId));
-        return product ? {
-          ...product,
-          // Apply campaign discount if applicable
-          campaignPrice: campaign.discountType === 'percentage' 
-            ? product.price * (1 - campaign.discountValue / 100)
-            : product.price - campaign.discountValue,
-          originalPrice: product.originalPrice || product.price,
-        } : null;
-      })
-      .filter(Boolean);
-  }, [campaign.productIds, campaign.discountType, campaign.discountValue]);
-
   // Calculate discount for each product
   const productsWithDiscount = useMemo(() => {
-    return campaignProducts.map((product) => {
+    return products.map((product) => {
       const finalPrice = product.campaignPrice || product.price;
       const originalPrice = product.originalPrice || product.price;
       const discount = originalPrice > finalPrice
@@ -97,7 +119,7 @@ const CampaignPage = () => {
         : 0;
       return { ...product, discount, finalPrice };
     });
-  }, [campaignProducts]);
+  }, [products]);
 
   // Countdown timer
   useEffect(() => {
@@ -142,7 +164,7 @@ const CampaignPage = () => {
       return productsWithDiscount;
     }
 
-    let filtered = productsWithDiscount;
+    let filtered = [...productsWithDiscount];
 
     // Apply filters
     if (pageConfig.enableFilters) {
@@ -174,12 +196,14 @@ const CampaignPage = () => {
     return filtered;
   }, [productsWithDiscount, sortBy, minDiscount, maxDiscount, pageConfig]);
 
-  // Infinite scroll hook
-  const { displayedItems, hasMore, isLoading, loadMore, loadMoreRef } = useInfiniteScroll(
-    filteredAndSortedProducts,
-    pageConfig.productsPerPage || 12,
-    pageConfig.productsPerPage || 12
-  );
+  // Infinite scroll logic - Client side because we fetched all for campaign
+  const [visibleCount, setVisibleCount] = useState(pageConfig.productsPerPage || 12);
+  const hasMore = visibleCount < filteredAndSortedProducts.length;
+  const loadMore = () => {
+    setVisibleCount(prev => prev + (pageConfig.productsPerPage || 12));
+  };
+  const displayedItems = filteredAndSortedProducts.slice(0, visibleCount);
+  const isLoading = loading;
 
   const formatTime = (value) => {
     return value.toString().padStart(2, '0');
@@ -257,11 +281,10 @@ const CampaignPage = () => {
                         {pageConfig.viewModes.includes('grid') && (
                           <button
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-lg transition-colors ${
-                              viewMode === 'grid'
-                                ? 'bg-white text-primary-600 shadow-sm'
-                                : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
+                              ? 'bg-white text-primary-600 shadow-sm'
+                              : 'text-gray-600 hover:text-gray-800'
+                              }`}
                           >
                             <FiGrid className="text-lg" />
                           </button>
@@ -269,11 +292,10 @@ const CampaignPage = () => {
                         {pageConfig.viewModes.includes('list') && (
                           <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-lg transition-colors ${
-                              viewMode === 'list'
-                                ? 'bg-white text-primary-600 shadow-sm'
-                                : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
+                              ? 'bg-white text-primary-600 shadow-sm'
+                              : 'text-gray-600 hover:text-gray-800'
+                              }`}
                           >
                             <FiList className="text-lg" />
                           </button>
@@ -310,8 +332,8 @@ const CampaignPage = () => {
                             {pageConfig.countdownType === 'daily_reset' ? 'Deal Ends Today' : 'Campaign Ends In'}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            {pageConfig.countdownType === 'daily_reset' 
-                              ? 'These deals expire at midnight!' 
+                            {pageConfig.countdownType === 'daily_reset'
+                              ? 'These deals expire at midnight!'
                               : 'Hurry up! These deals are going fast!'}
                           </p>
                         </div>
@@ -451,8 +473,12 @@ const CampaignPage = () => {
                 )}
               </div>
 
-              {/* Products Grid/List */}
-              {filteredAndSortedProducts.length === 0 ? (
+              {loading && products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
+                  <FiLoader className="text-4xl text-primary-500 animate-spin mb-4" />
+                  <p className="font-bold text-gray-500 uppercase tracking-widest text-xs">Loading Campaign products...</p>
+                </div>
+              ) : filteredAndSortedProducts.length === 0 ? (
                 <div className="glass-card rounded-2xl p-12 text-center">
                   <Icon className="text-6xl text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-800 mb-2">No products available</h3>
@@ -471,7 +497,7 @@ const CampaignPage = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6 relative z-0">
                     {displayedItems.map((product, index) => (
                       <motion.div
-                        key={product.id}
+                        key={product._id || product.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.03 }}
@@ -484,10 +510,10 @@ const CampaignPage = () => {
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Loading indicator and Load More button */}
                   {hasMore && (
-                    <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-4">
+                    <div className="mt-8 flex flex-col items-center gap-4">
                       {isLoading && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <FiTrendingDown className="animate-spin text-xl" />
@@ -509,7 +535,7 @@ const CampaignPage = () => {
                   <div className="space-y-4">
                     {displayedItems.map((product, index) => (
                       <motion.div
-                        key={product.id}
+                        key={product._id || product.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
@@ -568,10 +594,10 @@ const CampaignPage = () => {
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Loading indicator and Load More button */}
                   {hasMore && (
-                    <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-4">
+                    <div className="mt-8 flex flex-col items-center gap-4">
                       {isLoading && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <FiTrendingDown className="animate-spin text-xl" />

@@ -4,58 +4,41 @@ import { motion } from 'framer-motion';
 import DataTable from '../../../components/Admin/DataTable';
 import Badge from '../../../components/Badge';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
+import * as adminCustomerApi from '../../../services/adminCustomerApi';
 import { formatCurrency, formatDateTime } from '../../../utils/adminHelpers';
-import { mockOrders } from '../../../data/adminMockData';
+import toast from 'react-hot-toast';
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const fetchTransactions = async () => {
+    setIsLoading(true);
+    try {
+      const response = await adminCustomerApi.getAllCustomerTransactions({
+        search: searchQuery,
+        status: statusFilter
+      });
+      if (response?.data?.transactions) {
+        setTransactions(response.data.transactions);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to fetch transactions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Generate transactions from orders
-    const generatedTransactions = mockOrders.flatMap((order) => [
-      {
-        id: `TXN-${order.id}-1`,
-        orderId: order.id,
-        customerName: order.customer.name,
-        customerEmail: order.customer.email,
-        amount: order.total,
-        type: 'payment',
-        status: order.status === 'cancelled' ? 'failed' : 'completed',
-        method: 'Credit Card',
-        date: order.date,
-      },
-      ...(order.status === 'cancelled'
-        ? [
-            {
-              id: `TXN-${order.id}-2`,
-              orderId: order.id,
-              customerName: order.customer.name,
-              customerEmail: order.customer.email,
-              amount: order.total,
-              type: 'refund',
-              status: 'completed',
-              method: 'Original Payment Method',
-              date: new Date(new Date(order.date).getTime() + 86400000).toISOString(),
-            },
-          ]
-        : []),
-    ]);
-    setTransactions(generatedTransactions);
-  }, []);
+    fetchTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, statusFilter]);
 
-  const filteredTransactions = transactions.filter((txn) => {
-    const matchesSearch =
-      !searchQuery ||
-      txn.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.customerEmail.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
+  // Backend handles filtering
+  const filteredTransactions = transactions;
 
   const columns = [
     {
@@ -86,12 +69,10 @@ const Transactions = () => {
       sortable: true,
       render: (value, row) => (
         <div className="flex items-center gap-2">
-          <FiDollarSign className={`text-sm ${
-            row.type === 'refund' ? 'text-red-600' : 'text-green-600'
-          }`} />
-          <span className={`font-bold ${
-            row.type === 'refund' ? 'text-red-600' : 'text-green-600'
-          }`}>
+          <FiDollarSign className={`text-sm ${row.type === 'refund' ? 'text-red-600' : 'text-green-600'
+            }`} />
+          <span className={`font-bold ${row.type === 'refund' ? 'text-red-600' : 'text-green-600'
+            }`}>
             {row.type === 'refund' ? '-' : '+'}{formatCurrency(value)}
           </span>
         </div>
@@ -102,9 +83,8 @@ const Transactions = () => {
       label: 'Type',
       sortable: true,
       render: (value) => (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value === 'payment' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
-        }`}>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${value === 'payment' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+          }`}>
           {value}
         </span>
       ),

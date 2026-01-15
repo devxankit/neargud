@@ -1,55 +1,54 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiBarChart2, FiTrendingUp, FiDollarSign, FiShoppingBag, FiPackage } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { formatPrice } from "../../../utils/helpers";
-import { useVendorStore } from '../../../modules/vendor/store/vendorStore';
-import { useOrderStore } from "../../../store/orderStore";
-import { useCommissionStore } from "../../../store/commissionStore";
+import { 
+  fetchVendorAnalytics 
+} from "../../../services/vendorApi";
+import toast from "react-hot-toast";
 
 const VendorAnalytics = () => {
   const navigate = useNavigate();
-  const { vendors } = useVendorStore();
-  const { orders } = useOrderStore();
-  const { getVendorEarningsSummary } = useCommissionStore();
+  
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const approvedVendors = vendors.filter((v) => v.status === "approved");
+  const loadAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchVendorAnalytics();
+      if (response) {
+        setAnalyticsData(response);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Calculate vendor statistics
-  const vendorStats = useMemo(() => {
-    return approvedVendors.map((vendor) => {
-      const vendorOrders = orders.filter((order) => {
-        if (order.vendorItems && Array.isArray(order.vendorItems)) {
-          return order.vendorItems.some((vi) => vi.vendorId === vendor.id);
-        }
-        return false;
-      });
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
 
-      const earningsSummary = getVendorEarningsSummary(vendor.id);
-      const totalRevenue = vendorOrders.reduce((sum, order) => {
-        const vendorItem = order.vendorItems?.find((vi) => vi.vendorId === vendor.id);
-        return sum + (vendorItem?.subtotal || 0);
-      }, 0);
+  const overallStats = analyticsData?.overall || {
+    totalVendors: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalEarnings: 0,
+  };
 
-      return {
-        ...vendor,
-        totalOrders: vendorOrders.length,
-        totalRevenue,
-        totalEarnings: earningsSummary?.totalEarnings || 0,
-        pendingEarnings: earningsSummary?.pendingEarnings || 0,
-        paidEarnings: earningsSummary?.paidEarnings || 0,
-      };
-    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
-  }, [approvedVendors, orders, getVendorEarningsSummary]);
+  const vendorStats = analyticsData?.vendors || [];
 
-  const overallStats = useMemo(() => {
-    return {
-      totalVendors: approvedVendors.length,
-      totalOrders: vendorStats.reduce((sum, v) => sum + v.totalOrders, 0),
-      totalRevenue: vendorStats.reduce((sum, v) => sum + v.totalRevenue, 0),
-      totalEarnings: vendorStats.reduce((sum, v) => sum + v.totalEarnings, 0),
-    };
-  }, [approvedVendors.length, vendorStats]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -122,40 +121,40 @@ const VendorAnalytics = () => {
               </tr>
             </thead>
             <tbody>
-              {vendorStats.map((vendor) => (
+              {vendorStats.map((item) => (
                 <tr
-                  key={vendor.id}
+                  key={item.vendor.id}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/ admin / vendors / ${vendor.id} `)}>
+                  onClick={() => navigate(`/admin/vendors/${item.vendor.id}`)}>
                   <td className="py-3 px-4">
                     <div>
-                      <p className="font-semibold text-gray-800">{vendor.storeName || vendor.name}</p>
-                      <p className="text-xs text-gray-500">{vendor.email}</p>
+                      <p className="font-semibold text-gray-800">{item.vendor.storeName || item.vendor.name}</p>
+                      <p className="text-xs text-gray-500">{item.vendor.email}</p>
                     </div>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <span className="font-semibold text-gray-800">{vendor.totalOrders}</span>
+                    <span className="font-semibold text-gray-800">{item.stats.totalOrders}</span>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="font-semibold text-gray-800">
-                      {formatPrice(vendor.totalRevenue)}
+                      {formatPrice(item.stats.totalRevenue)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="font-semibold text-green-600">
-                      {formatPrice(vendor.totalEarnings)}
+                      {formatPrice(item.stats.totalEarnings)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="font-semibold text-yellow-600">
-                      {formatPrice(vendor.pendingEarnings)}
+                      {formatPrice(item.stats.pendingEarnings)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-center">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/ admin / vendors / ${vendor.id} `);
+                        navigate(`/admin/vendors/${item.vendor.id}`);
                       }}
                       className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                       View

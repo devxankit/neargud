@@ -8,65 +8,86 @@ import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { formatDateTime } from '../../../utils/adminHelpers';
 import toast from 'react-hot-toast';
 
+import { fetchRatings, updateRatingStatus, deleteRating } from '../../../services/ratingApi';
+
 const ProductRatings = () => {
-  const [ratings, setRatings] = useState([
-    {
-      id: 1,
-      productId: 1,
-      productName: 'Sample Product',
-      customerName: 'John Doe',
-      rating: 5,
-      review: 'Great product! Highly recommended.',
-      date: new Date().toISOString(),
-      status: 'approved',
-    },
-    {
-      id: 2,
-      productId: 2,
-      productName: 'Another Product',
-      customerName: 'Jane Smith',
-      rating: 4,
-      review: 'Good quality, fast shipping.',
-      date: new Date(Date.now() - 86400000).toISOString(),
-      status: 'pending',
-    },
-    {
-      id: 3,
-      productId: 3,
-      productName: 'Third Product',
-      customerName: 'Bob Johnson',
-      rating: 3,
-      review: 'Average product, could be better.',
-      date: new Date(Date.now() - 172800000).toISOString(),
-      status: 'approved',
-    },
-  ]);
+  const [ratings, setRatings] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedRating, setSelectedRating] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, ratingId: null });
-
-  const filteredRatings = ratings.filter((rating) => {
-    const matchesSearch =
-      !searchQuery ||
-      rating.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rating.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rating.review.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || rating.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
   });
 
-  const handleStatusChange = (id, newStatus) => {
-    setRatings(ratings.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+  const loadRatings = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchRatings({
+        page: pagination.page,
+        limit: pagination.limit,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchQuery || undefined,
+      });
+
+      if (response?.reviews) {
+        setRatings(response.reviews.map(r => ({
+          ...r,
+          id: r._id,
+          productName: r.productId?.name || 'N/A',
+          customerName: r.userId?.name || 'Unknown',
+        })));
+        setPagination(prev => ({
+          ...prev,
+          total: response.total,
+          totalPages: response.totalPages
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load ratings');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = () => {
+  useEffect(() => {
+    loadRatings();
+  }, [pagination.page, statusFilter]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      if (searchQuery !== '') loadRatings();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await updateRatingStatus(id, { status: newStatus });
+      toast.success('Rating status updated');
+      loadRatings();
+    } catch (error) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleDelete = async () => {
     if (deleteModal.ratingId) {
-      setRatings(ratings.filter((r) => r.id !== deleteModal.ratingId));
-      toast.success('Rating deleted successfully');
-      setDeleteModal({ isOpen: false, ratingId: null });
+      try {
+        await deleteRating(deleteModal.ratingId);
+        toast.success('Rating deleted successfully');
+        loadRatings();
+        setDeleteModal({ isOpen: false, ratingId: null });
+      } catch (error) {
+        toast.error('Failed to delete rating');
+      }
     }
   };
 
@@ -210,10 +231,14 @@ const ProductRatings = () => {
           </div>
         </div>
         <DataTable
-          data={filteredRatings}
+          data={ratings}
+          loading={loading}
           columns={columns}
           pagination={true}
-          itemsPerPage={10}
+          itemsPerPage={pagination.limit}
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
         />
       </div>
 

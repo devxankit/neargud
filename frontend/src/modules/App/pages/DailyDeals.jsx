@@ -5,82 +5,70 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import ProductCard from '../../../components/ProductCard';
 import ProductListItem from '../components/ProductListItem';
-import { getDailyDeals } from '../../../data/products';
+import { fetchPublicProducts } from '../../../services/publicApi';
 import PageTransition from '../../../components/PageTransition';
-import useInfiniteScroll from '../../../hooks/useInfiniteScroll';
+import ProductSkeleton from '../../../components/Skeletons/ProductCardSkeleton';
 
 const MobileDailyDeals = () => {
   const navigate = useNavigate();
-  // Memoize the items array to prevent infinite loops in useInfiniteScroll
-  const allDeals = useMemo(() => getDailyDeals(), []);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [filters, setFilters] = useState({
-    category: '',
     minPrice: '',
     maxPrice: '',
     minRating: '',
   });
 
-  const filteredProducts = useMemo(() => {
-    let result = allDeals;
-
-    if (filters.minPrice) {
-      result = result.filter((product) => product.price >= parseFloat(filters.minPrice));
+  const fetchData = async (pageNum = 1, append = false) => {
+    try {
+      setLoading(true);
+      const params = {
+        isDailyDeal: true,
+        page: pageNum,
+        limit: 10,
+        ...filters
+      };
+      const res = await fetchPublicProducts(params);
+      if (res.success) {
+        const newProducts = res.data.products;
+        setProducts(prev => append ? [...prev, ...newProducts] : newProducts);
+        setHasMore(newProducts.length === 10);
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error("Error fetching daily deals:", error);
+    } finally {
+      setLoading(false);
     }
-    if (filters.maxPrice) {
-      result = result.filter((product) => product.price <= parseFloat(filters.maxPrice));
-    }
-    if (filters.minRating) {
-      result = result.filter(
-        (product) => product.rating >= parseFloat(filters.minRating)
-      );
-    }
+  };
 
-    return result;
-  }, [allDeals, filters]);
+  useEffect(() => {
+    fetchData(1, false);
+  }, [filters]);
 
-  const { displayedItems, hasMore, isLoading, loadMore, loadMoreRef } = useInfiniteScroll(
-    filteredProducts,
-    10,
-    10
-  );
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      fetchData(page + 1, true);
+    }
+  };
 
   const filterButtonRef = useRef(null);
+  const handleFilterChange = (name, value) => setFilters({ ...filters, [name]: value });
+  const clearFilters = () => setFilters({ minPrice: '', maxPrice: '', minRating: '' });
+  const hasActiveFilters = filters.minPrice || filters.maxPrice || filters.minRating;
 
-  const handleFilterChange = (name, value) => {
-    setFilters({ ...filters, [name]: value });
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      category: '',
-      minPrice: '',
-      maxPrice: '',
-      minRating: '',
-    });
-  };
-
-  // Check if any filter is active
-  const hasActiveFilters =
-    filters.minPrice || filters.maxPrice || filters.minRating || filters.category;
-
-  // Close filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        showFilters &&
-        filterButtonRef.current &&
-        !filterButtonRef.current.contains(event.target) &&
-        !event.target.closest(".filter-dropdown")
-      ) {
+      if (showFilters && filterButtonRef.current && !filterButtonRef.current.contains(event.target) && !event.target.closest(".filter-dropdown")) {
         setShowFilters(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
@@ -91,180 +79,33 @@ const MobileDailyDeals = () => {
     <PageTransition>
       <MobileLayout showBottomNav={true} showCartBar={true}>
         <div className="w-full pb-24">
-          {/* Header */}
           <div className="px-4 py-4 bg-gradient-to-r from-red-50 to-orange-50 border-b border-gray-200 sticky top-1 z-30">
             <div className="flex items-center gap-3 mb-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-white/50 rounded-full transition-colors"
-              >
-                <FiArrowLeft className="text-xl text-gray-700" />
-              </button>
+              <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/50 rounded-full"><FiArrowLeft className="text-xl" /></button>
               <div className="flex-1">
                 <h1 className="text-xl font-bold text-gray-800">Daily Deals</h1>
-                <p className="text-sm text-gray-600">
-                  {filteredProducts.length} {filteredProducts.length === 1 ? 'deal' : 'deals'} available
-                </p>
+                <p className="text-sm text-gray-600">{products.length} deals loaded</p>
               </div>
               <div className="flex items-center gap-2">
-                {/* View Toggle Buttons */}
                 <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded transition-colors ${
-                      viewMode === 'list'
-                        ? 'bg-white text-primary-600 shadow-sm'
-                        : 'text-gray-600'
-                    }`}
-                  >
-                    <FiList className="text-lg" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded transition-colors ${
-                      viewMode === 'grid'
-                        ? 'bg-white text-primary-600 shadow-sm'
-                        : 'text-gray-600'
-                    }`}
-                  >
-                    <FiGrid className="text-lg" />
-                  </button>
+                  <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white text-primary-600' : 'text-gray-600'}`}><FiList className="text-lg" /></button>
+                  <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white text-primary-600' : 'text-gray-600'}`}><FiGrid className="text-lg" /></button>
                 </div>
                 <div ref={filterButtonRef} className="relative">
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`p-2 glass-card rounded-xl hover:bg-white/80 transition-colors ${
-                      showFilters ? "bg-white/80" : ""
-                    }`}
-                  >
-                    <FiFilter
-                      className={`text-lg transition-colors ${
-                        hasActiveFilters ? "text-blue-600" : "text-gray-600"
-                      }`}
-                    />
-                  </button>
-
-                  {/* Filter Dropdown */}
+                  <button onClick={() => setShowFilters(!showFilters)} className={`p-2 glass-card rounded-xl ${showFilters ? "bg-white/80" : ""}`}><FiFilter className={`text-lg ${hasActiveFilters ? "text-blue-600" : "text-gray-600"}`} /></button>
                   <AnimatePresence>
                     {showFilters && (
                       <>
-                        {/* Backdrop */}
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setShowFilters(false)}
-                          className="fixed inset-0 bg-black/20 z-[10000]"
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 30,
-                          }}
-                          className="filter-dropdown absolute right-0 top-full w-56 bg-white rounded-xl shadow-2xl border border-gray-200 z-[10001] overflow-hidden"
-                          style={{ marginTop: "-50px" }}>
-                          {/* Header */}
-                          <div className="flex items-center justify-between px-2 py-1.5 border-b border-gray-200 bg-gray-50">
-                            <div className="flex items-center gap-1.5">
-                              <FiFilter className="text-sm text-gray-700" />
-                              <h3 className="text-sm font-bold text-gray-800">
-                                Filters
-                              </h3>
-                            </div>
-                            <button
-                              onClick={() => setShowFilters(false)}
-                              className="p-0.5 hover:bg-gray-200 rounded-full transition-colors">
-                              <FiX className="text-sm text-gray-600" />
-                            </button>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowFilters(false)} className="fixed inset-0 bg-black/20 z-[10000]" />
+                        <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="filter-dropdown absolute right-0 top-full w-56 bg-white rounded-xl shadow-2xl z-[10001] overflow-hidden" style={{ marginTop: "-50px" }}>
+                          <div className="p-3 border-b bg-gray-50 flex justify-between items-center"><span className="font-bold text-sm">Filters</span><button onClick={() => setShowFilters(false)}><FiX /></button></div>
+                          <div className="p-3 space-y-3">
+                            <input type="number" placeholder="Min Price" value={filters.minPrice} onChange={e => handleFilterChange('minPrice', e.target.value)} className="w-full border p-2 rounded text-xs" />
+                            <input type="number" placeholder="Max Price" value={filters.maxPrice} onChange={e => handleFilterChange('maxPrice', e.target.value)} className="w-full border p-2 rounded text-xs" />
                           </div>
-
-                          {/* Filter Content */}
-                          <div className="max-h-[50vh] overflow-y-auto scrollbar-hide">
-                            <div className="p-2 space-y-2">
-                              {/* Price Range */}
-                              <div>
-                                <h4 className="font-semibold text-gray-700 mb-1 text-xs">
-                                  Price Range
-                                </h4>
-                                <div className="space-y-1.5">
-                                  <input
-                                    type="number"
-                                    placeholder="Min Price"
-                                    value={filters.minPrice}
-                                    onChange={(e) =>
-                                      handleFilterChange("minPrice", e.target.value)
-                                    }
-                                    className="w-full px-2 py-1.5 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-xs"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Max Price"
-                                    value={filters.maxPrice}
-                                    onChange={(e) =>
-                                      handleFilterChange("maxPrice", e.target.value)
-                                    }
-                                    className="w-full px-2 py-1.5 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-xs"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Rating Filter */}
-                              <div>
-                                <h4 className="font-semibold text-gray-700 mb-1 text-xs">
-                                  Minimum Rating
-                                </h4>
-                                <div className="space-y-0.5">
-                                  {[4, 3, 2, 1].map((rating) => (
-                                    <label
-                                      key={rating}
-                                      className="flex items-center gap-1.5 cursor-pointer p-1 rounded-md hover:bg-gray-50 transition-colors">
-                                      <input
-                                        type="radio"
-                                        name="minRating"
-                                        value={rating}
-                                        checked={
-                                          filters.minRating === rating.toString()
-                                        }
-                                        onChange={(e) =>
-                                          handleFilterChange(
-                                            "minRating",
-                                            e.target.value
-                                          )
-                                        }
-                                        className="w-3 h-3 appearance-none rounded-full border-2 border-gray-300 bg-white checked:bg-white checked:border-primary-500 relative cursor-pointer"
-                                        style={{
-                                          backgroundImage:
-                                            filters.minRating === rating.toString()
-                                              ? "radial-gradient(circle, #10b981 40%, transparent 40%)"
-                                              : "none",
-                                        }}
-                                      />
-                                      <span className="text-xs text-gray-700">
-                                        {rating}+ Stars
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Footer */}
-                          <div className="border-t border-gray-200 p-2 bg-gray-50 space-y-1.5">
-                            <button
-                              onClick={clearFilters}
-                              className="w-full py-1.5 bg-gray-200 text-gray-700 rounded-md font-semibold text-xs hover:bg-gray-300 transition-colors">
-                              Clear All
-                            </button>
-                            <button
-                              onClick={() => setShowFilters(false)}
-                              className="w-full py-1.5 gradient-green text-white rounded-md font-semibold text-xs hover:shadow-glow-green transition-all">
-                              Apply Filters
-                            </button>
+                          <div className="p-3 bg-gray-50 flex gap-2">
+                            <button onClick={clearFilters} className="flex-1 bg-gray-200 py-2 rounded text-xs font-bold">Clear</button>
+                            <button onClick={() => setShowFilters(false)} className="flex-1 gradient-green text-white py-2 rounded text-xs font-bold">Apply</button>
                           </div>
                         </motion.div>
                       </>
@@ -275,75 +116,27 @@ const MobileDailyDeals = () => {
             </div>
           </div>
 
-          {/* Products List */}
           <div className="px-4 py-4">
-            {filteredProducts.length === 0 ? (
+            {products.length === 0 && !loading ? (
               <div className="text-center py-12">
-                <div className="text-6xl text-gray-300 mx-auto mb-4">⚡</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">No deals found</h3>
-                <p className="text-gray-600">Check back tomorrow for new deals!</p>
+                <div className="text-6xl mx-auto mb-4">⚡</div>
+                <h3 className="text-xl font-bold mb-2">No deals found</h3>
+                <p className="text-gray-600">Check back tomorrow!</p>
               </div>
             ) : viewMode === 'grid' ? (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  {displayedItems.map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <ProductCard product={product} />
-                    </motion.div>
-                  ))}
+                  {products.map((p, idx) => <motion.div key={p._id || p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}><ProductCard product={p} /></motion.div>)}
+                  {loading && [1, 2, 3, 4].map(i => <ProductSkeleton key={i} />)}
                 </div>
-
-                {hasMore && (
-                  <div ref={loadMoreRef} className="mt-6 flex flex-col items-center gap-4">
-                    {isLoading && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="text-sm">Loading more products...</span>
-                      </div>
-                    )}
-                    <button
-                      onClick={loadMore}
-                      disabled={isLoading}
-                      className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? 'Loading...' : 'Load More'}
-                    </button>
-                  </div>
-                )}
+                {hasMore && !loading && <div className="mt-8 text-center"><button onClick={loadMore} className="px-8 py-3 gradient-green text-white rounded-xl font-bold">Load More</button></div>}
               </>
             ) : (
-              <>
-                <div className="space-y-3">
-                  {displayedItems.map((product, index) => (
-                    <ProductListItem
-                      key={product.id}
-                      product={product}
-                      index={index}
-                    />
-                  ))}
-                </div>
-
-                {hasMore && (
-                  <div ref={loadMoreRef} className="mt-6 flex flex-col items-center gap-4">
-                    {isLoading && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="text-sm">Loading more products...</span>
-                      </div>
-                    )}
-                    <button
-                      onClick={loadMore}
-                      disabled={isLoading}
-                      className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? 'Loading...' : 'Load More'}
-                    </button>
-                  </div>
-                )}
-              </>
+              <div className="space-y-3">
+                {products.map((p, idx) => <ProductListItem key={p._id || p.id} product={p} index={idx} />)}
+                {loading && [1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-xl" />)}
+                {hasMore && !loading && <div className="mt-8 text-center"><button onClick={loadMore} className="px-8 py-3 gradient-green text-white rounded-xl font-bold">Load More</button></div>}
+              </div>
             )}
           </div>
         </div>
@@ -353,4 +146,3 @@ const MobileDailyDeals = () => {
 };
 
 export default MobileDailyDeals;
-

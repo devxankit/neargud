@@ -8,22 +8,20 @@ import Badge from "../../../../components/Badge";
 import ConfirmModal from "../../../../components/Admin/ConfirmModal";
 import AnimatedSelect from "../../../../components/Admin/AnimatedSelect";
 import { formatPrice } from "../../../../utils/helpers";
-import { products as initialProducts } from "../../../../data/products";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
-import { useVendorStore } from "../../store/vendorStore";
 import { useCategoryStore } from "../../../../store/categoryStore";
 import { useBrandStore } from "../../../../store/brandStore";
-import { initializeFashionHubProducts } from "../../../../utils/initializeFashionHubProducts";
 import toast from "react-hot-toast";
+import { getVendorProducts, deleteVendorProduct } from "../../services/productService";
 
 const ManageProducts = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { getVendorProducts } = useVendorStore();
-  const { categories, initialize: initCategories } = useCategoryStore();
-  const { brands, initialize: initBrands } = useBrandStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { brands, fetchBrands } = useBrandStore();
 
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -33,63 +31,52 @@ const ManageProducts = () => {
     productId: null,
   });
 
-  const vendorId = vendor?.id;
+  const vendorId = vendor?._id || vendor?.id;
 
   useEffect(() => {
-    initCategories();
-    initBrands();
+    fetchCategories();
+    fetchBrands();
+  }, [fetchCategories, fetchBrands]);
 
-    // Initialize dummy products for Fashion Hub vendor (id: 1) on first load
-    if (vendorId === 1) {
-      const hasInitialized = localStorage.getItem('fashionhub-products-initialized');
-      if (!hasInitialized) {
-        initializeFashionHubProducts();
-        localStorage.setItem('fashionhub-products-initialized', 'true');
-      }
-    }
-
+  useEffect(() => {
     loadProducts();
-  }, [vendorId]);
+  }, [vendorId, selectedStatus, selectedCategory, selectedBrand]);
 
-  const loadProducts = () => {
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadProducts();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadProducts = async () => {
     if (!vendorId) return;
 
-    // Get all products (from localStorage or initial data)
-    const savedProducts = localStorage.getItem("admin-products");
-    const allProducts = savedProducts ? JSON.parse(savedProducts) : initialProducts;
+    setLoading(true);
+    try {
+      const response = await getVendorProducts({
+        search: searchQuery,
+        stock: selectedStatus !== "all" ? selectedStatus : undefined,
+        categoryId: selectedCategory !== "all" ? selectedCategory : undefined,
+        brandId: selectedBrand !== "all" ? selectedBrand : undefined,
+      });
 
-    // Filter by vendor
-    const vendorProducts = allProducts.filter((p) => p.vendorId === parseInt(vendorId));
-    setProducts(vendorProducts);
+      const prodData = response.data?.products || response.products || [];
+      const normalized = prodData.map((p) => ({
+        ...p,
+        id: p._id || p.id,
+      }));
+      setProducts(normalized);
+    } catch (error) {
+      console.error("Load products error:", error);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-
-    if (searchQuery) {
-      filtered = filtered.filter((product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter((product) => product.stock === selectedStatus);
-    }
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (product) => product.categoryId === parseInt(selectedCategory)
-      );
-    }
-
-    if (selectedBrand !== "all") {
-      filtered = filtered.filter(
-        (product) => product.brandId === parseInt(selectedBrand)
-      );
-    }
-
-    return filtered;
-  }, [products, searchQuery, selectedStatus, selectedCategory, selectedBrand]);
+  const filteredProducts = products; // Filtering now handled by API
 
   const columns = [
     {
@@ -171,22 +158,18 @@ const ManageProducts = () => {
     },
   ];
 
-  const confirmDelete = () => {
-    if (!vendorId) return;
+  const confirmDelete = async () => {
+    if (!deleteModal.productId) return;
 
-    // Get all products
-    const savedProducts = localStorage.getItem("admin-products");
-    const allProducts = savedProducts ? JSON.parse(savedProducts) : initialProducts;
-
-    // Remove the product
-    const updatedProducts = allProducts.filter((p) => p.id !== deleteModal.productId);
-    localStorage.setItem("admin-products", JSON.stringify(updatedProducts));
-
-    // Reload vendor products
-    loadProducts();
-
-    setDeleteModal({ isOpen: false, productId: null });
-    toast.success("Product deleted successfully");
+    try {
+      await deleteVendorProduct(deleteModal.productId);
+      toast.success("Product deleted successfully");
+      loadProducts();
+      setDeleteModal({ isOpen: false, productId: null });
+    } catch (error) {
+      console.error("Delete product error:", error);
+      toast.error("Failed to delete product");
+    }
   };
 
   if (!vendorId) {
@@ -275,9 +258,13 @@ const ManageProducts = () => {
         </div>
 
         {/* DataTable */}
-        {filteredProducts.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : products.length > 0 ? (
           <DataTable
-            data={filteredProducts}
+            data={products}
             columns={columns}
             pagination={true}
             itemsPerPage={10}

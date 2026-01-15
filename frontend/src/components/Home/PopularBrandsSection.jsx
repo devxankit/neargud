@@ -1,17 +1,10 @@
-import { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { gsapAnimations } from '../../utils/animations';
+import { useScrollAnimation } from '../../hooks/useAnimation';
 import BrandCard from '../BrandCard';
 import { brands } from '../../data/brands';
 
 const PopularBrandsSection = () => {
-  const sectionRef = useRef(null);
-
-  useEffect(() => {
-    if (sectionRef.current) {
-      gsapAnimations.scrollReveal(sectionRef.current);
-    }
-  }, []);
+  const sectionRef = useScrollAnimation();
 
   return (
     <section ref={sectionRef} className="py-16 md:py-0 bg-transparent relative">
@@ -64,4 +57,3 @@ const PopularBrandsSection = () => {
 };
 
 export default PopularBrandsSection;
-

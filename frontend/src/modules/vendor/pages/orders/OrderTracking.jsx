@@ -1,48 +1,40 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiMapPin, FiPackage, FiTruck, FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Badge from "../../../../components/Badge";
 import { formatPrice } from "../../../../utils/helpers";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
-import { useOrderStore } from "../../../../store/orderStore";
+import { useVendorOrderStore } from "../../store/vendorOrderStore";
 
 const OrderTracking = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { orders } = useOrderStore();
-  const [vendorOrders, setVendorOrders] = useState([]);
+  const {
+    orders,
+    fetchOrders,
+    isLoading
+  } = useVendorOrderStore();
+
   const [searchQuery, setSearchQuery] = useState('');
 
-  const vendorId = vendor?.id;
+  const vendorId = vendor?.id || vendor?._id;
 
-  // Filter orders to only show those containing vendor's products
+  // Fetch orders from API
   useEffect(() => {
-    if (!vendorId || !orders) {
-      setVendorOrders([]);
-      return;
+    if (vendorId) {
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+
+      const debounceTimer = setTimeout(() => {
+        fetchOrders(params);
+      }, searchQuery ? 500 : 0);
+
+      return () => clearTimeout(debounceTimer);
     }
+  }, [vendorId, searchQuery, fetchOrders]);
 
-    const filtered = orders.filter((order) => {
-      if (order.vendorItems && Array.isArray(order.vendorItems)) {
-        return order.vendorItems.some((vi) => vi.vendorId === vendorId);
-      }
-      if (order.items && Array.isArray(order.items)) {
-        return order.items.some((item) => item.vendorId === vendorId);
-      }
-      return false;
-    });
-
-    setVendorOrders(filtered);
-  }, [vendorId, orders]);
-
-  const filteredOrders = useMemo(() => {
-    if (!searchQuery) return vendorOrders;
-    return vendorOrders.filter((order) =>
-      order.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.trackingNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [vendorOrders, searchQuery]);
+  const filteredOrders = orders;
 
   // Get status icon
   const getStatusIcon = (status) => {
@@ -90,6 +82,7 @@ const OrderTracking = () => {
         return {
           itemCount: vendorItem.items?.length || 0,
           subtotal: vendorItem.subtotal || 0,
+          firstItem: vendorItem.items?.[0] || null,
         };
       }
     }
@@ -97,6 +90,7 @@ const OrderTracking = () => {
     return {
       itemCount: vendorItems.length,
       subtotal: vendorItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      firstItem: vendorItems[0] || null,
     };
   };
 
@@ -148,71 +142,117 @@ const OrderTracking = () => {
                 key={order.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                onClick={() => navigate(`/vendor/orders/${order.id}`)}
-                className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  {/* Order Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`p-2 rounded-lg ${getStatusColor(order.status)}`}>
-                        {getStatusIcon(order.status)}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-800">{order.id}</h3>
-                        <p className="text-xs text-gray-500">
-                          {new Date(order.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Items: </span>
-                        <span className="font-semibold text-gray-800">
-                          {vendorData.itemCount}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Amount: </span>
-                        <span className="font-semibold text-gray-800">
-                          {formatPrice(vendorData.subtotal)}
-                        </span>
-                      </div>
-                      {order.trackingNumber && (
-                        <div>
-                          <span className="text-gray-600">Tracking: </span>
-                          <span className="font-semibold text-gray-800">
-                            {order.trackingNumber}
-                          </span>
+                {/* Header Section */}
+                <div
+                  onClick={() => navigate(`/vendor/orders/${order.id}`)}
+                  className="p-4 sm:p-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`p-2 rounded-lg ${getStatusColor(order.status)}`}>
+                          {getStatusIcon(order.status)}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-gray-800 truncate">{order.orderCode || order.id}</h3>
+                          <p className="text-xs text-gray-500">
+                            {new Date(order.date).toLocaleDateString()} at {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
 
-                  {/* Status Badge */}
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant={
-                        order.status === 'delivered'
-                          ? 'success'
-                          : order.status === 'pending'
-                            ? 'warning'
-                            : order.status === 'cancelled' || order.status === 'canceled'
-                              ? 'error'
-                              : 'info'
-                      }>
-                      {order.status?.toUpperCase() || 'N/A'}
-                    </Badge>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/vendor/orders/${order.id}`);
-                      }}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold">
-                      View Details
-                    </button>
+                      {/* Product Content Preview */}
+                      <div className="flex items-center gap-3 mt-4">
+                        {vendorData.firstItem?.image ? (
+                          <img
+                            src={vendorData.firstItem.image}
+                            alt={vendorData.firstItem.name}
+                            className="w-12 h-12 rounded-lg object-cover border border-gray-100"
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/48x48?text=P'; }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <FiPackage className="text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">
+                            {vendorData.firstItem?.name || 'Order Details'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {vendorData.itemCount} items • {formatPrice(vendorData.subtotal)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge
+                        variant={
+                          order.status === 'delivered'
+                            ? 'success'
+                            : order.status === 'pending'
+                              ? 'warning'
+                              : order.status === 'cancelled' || order.status === 'canceled'
+                                ? 'error'
+                                : 'info'
+                        }>
+                        {order.status?.toUpperCase() || 'N/A'}
+                      </Badge>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/vendor/orders/${order.id}`);
+                        }}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs font-semibold">
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Timeline Section */}
+                {order.statusHistory && order.statusHistory.length > 0 && (
+                  <div className="bg-gray-50/50 p-4 sm:p-6">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Status History</h4>
+                    <div className="relative space-y-4">
+                      {/* Vertical Line */}
+                      <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-gray-200"></div>
+
+                      {order.statusHistory.slice().reverse().map((history, idx) => (
+                        <div key={idx} className="relative flex gap-4 pl-8">
+                          {/* Dot */}
+                          <div className={`absolute left-0 top-1.5 w-[20px] h-[20px] rounded-full border-4 border-white z-10 ${idx === 0 ? 'bg-primary-500' : 'bg-gray-300'
+                            }`}></div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                              <p className={`text-sm font-bold capitalize ${idx === 0 ? 'text-primary-700' : 'text-gray-700'}`}>
+                                {history.status.replace(/_/g, ' ')}
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium">
+                                {new Date(history.timestamp).toLocaleString([], {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            {history.note && (
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed italic">
+                                "{history.note}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             );
           })

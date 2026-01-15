@@ -6,12 +6,12 @@ import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import toast from 'react-hot-toast';
 
 const GeneralSettings = () => {
-  const { settings, updateSettings, initialize } = useSettingsStore();
+  const { settings, updateSettings, fetchFullSettings } = useSettingsStore();
   const [formData, setFormData] = useState({});
   const [activeSection, setActiveSection] = useState('identity');
 
   useEffect(() => {
-    initialize();
+    fetchFullSettings();
     if (settings && settings.general) {
       setFormData({
         ...settings.general,
@@ -30,8 +30,23 @@ const GeneralSettings = () => {
   }, [settings]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    const name = e.target.name;
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, [name]: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSocialMediaChange = (platform, value) => {
@@ -44,31 +59,33 @@ const GeneralSettings = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const { primaryColor, secondaryColor, accentColor, fontFamily, socialMedia, storeDescription, ...generalData } = formData;
-    
-    updateSettings('general', {
-      ...generalData,
-      socialMedia: socialMedia || {},
-      storeDescription: storeDescription || '',
-    });
-    
-    updateSettings('theme', {
-      primaryColor: primaryColor || '#10B981',
-      secondaryColor: secondaryColor || '#3B82F6',
-      accentColor: accentColor || '#FFE11B',
-      fontFamily: fontFamily || 'Inter',
-    });
-    
-    toast.success('Settings saved successfully');
+
+    try {
+      await updateSettings('general', {
+        ...generalData,
+        socialMedia: socialMedia || {},
+        storeDescription: storeDescription || '',
+      });
+
+      await updateSettings('theme', {
+        primaryColor: primaryColor || '#10B981',
+        secondaryColor: secondaryColor || '#3B82F6',
+        accentColor: accentColor || '#FFE11B',
+        fontFamily: fontFamily || 'Inter',
+      });
+
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      console.error('Update failed:', error);
+    }
   };
 
   const sections = [
-    { id: 'identity', label: 'Store Identity', icon: FiSettings },
     { id: 'contact', label: 'Contact Info', icon: FiGlobe },
-    { id: 'theme', label: 'Theme & Colors', icon: FiImage },
-    { id: 'vendors', label: 'Vendor Settings', icon: FiSettings },
+    { id: 'identity', label: 'Store Identity', icon: FiSettings },
   ];
 
   return (
@@ -92,11 +109,10 @@ const GeneralSettings = () => {
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${
-                    activeSection === section.id
-                      ? 'border-primary-600 text-primary-600 font-semibold'
-                      : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${activeSection === section.id
+                    ? 'border-primary-600 text-primary-600 font-semibold'
+                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                    }`}
                 >
                   <Icon className="text-base sm:text-lg" />
                   <span>{section.label}</span>
@@ -127,28 +143,56 @@ const GeneralSettings = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Store Logo URL
+                    Store Logo
                   </label>
-                  <input
-                    type="text"
-                    name="storeLogo"
-                    value={formData.storeLogo || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {formData.storeLogo ? (
+                        <img src={formData.storeLogo} alt="Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <FiImage className="text-gray-400 text-2xl" />
+                      )}
+                    </div>
+                    <label className="flex-1">
+                      <div className="relative cursor-pointer px-4 py-2 border border-primary-600 rounded-lg text-primary-600 font-semibold hover:bg-primary-50 transition-colors text-center text-sm">
+                        Choose Logo
+                        <input
+                          type="file"
+                          name="storeLogo"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Favicon URL
+                    Favicon
                   </label>
-                  <input
-                    type="text"
-                    name="favicon"
-                    value={formData.favicon || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {formData.favicon ? (
+                        <img src={formData.favicon} alt="Favicon" className="w-full h-full object-contain" />
+                      ) : (
+                        <FiImage className="text-gray-400 text-xl" />
+                      )}
+                    </div>
+                    <label className="flex-1">
+                      <div className="relative cursor-pointer px-4 py-2 border border-primary-600 rounded-lg text-primary-600 font-semibold hover:bg-primary-50 transition-colors text-center text-sm">
+                        Choose Favicon
+                        <input
+                          type="file"
+                          name="favicon"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 <div>
@@ -329,115 +373,6 @@ const GeneralSettings = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Theme & Colors Section */}
-          {activeSection === 'theme' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Primary Color
-                  </label>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <input
-                      type="color"
-                      name="primaryColor"
-                      value={formData.primaryColor || '#10B981'}
-                      onChange={handleChange}
-                      className="w-12 sm:w-16 h-9 sm:h-10 border border-gray-300 rounded cursor-pointer flex-shrink-0"
-                    />
-                    <input
-                      type="text"
-                      name="primaryColor"
-                      value={formData.primaryColor || '#10B981'}
-                      onChange={handleChange}
-                      className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Secondary Color
-                  </label>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <input
-                      type="color"
-                      name="secondaryColor"
-                      value={formData.secondaryColor || '#3B82F6'}
-                      onChange={handleChange}
-                      className="w-12 sm:w-16 h-9 sm:h-10 border border-gray-300 rounded cursor-pointer flex-shrink-0"
-                    />
-                    <input
-                      type="text"
-                      name="secondaryColor"
-                      value={formData.secondaryColor || '#3B82F6'}
-                      onChange={handleChange}
-                      className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Accent Color
-                  </label>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <input
-                      type="color"
-                      name="accentColor"
-                      value={formData.accentColor || '#FFE11B'}
-                      onChange={handleChange}
-                      className="w-12 sm:w-16 h-9 sm:h-10 border border-gray-300 rounded cursor-pointer flex-shrink-0"
-                    />
-                    <input
-                      type="text"
-                      name="accentColor"
-                      value={formData.accentColor || '#FFE11B'}
-                      onChange={handleChange}
-                      className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Font Family
-                  </label>
-                  <AnimatedSelect
-                    name="fontFamily"
-                    value={formData.fontFamily || 'Inter'}
-                    onChange={handleChange}
-                    options={[
-                      { value: 'Inter', label: 'Inter' },
-                      { value: 'Roboto', label: 'Roboto' },
-                      { value: 'Open Sans', label: 'Open Sans' },
-                      { value: 'Poppins', label: 'Poppins' },
-                      { value: 'Lato', label: 'Lato' },
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-2">Color Preview:</p>
-                <div className="flex gap-2">
-                  <div
-                    className="w-20 h-20 rounded-lg"
-                    style={{ backgroundColor: formData.primaryColor || '#10B981' }}
-                  />
-                  <div
-                    className="w-20 h-20 rounded-lg"
-                    style={{ backgroundColor: formData.secondaryColor || '#3B82F6' }}
-                  />
-                  <div
-                    className="w-20 h-20 rounded-lg"
-                    style={{ backgroundColor: formData.accentColor || '#FFE11B' }}
-                  />
                 </div>
               </div>
             </div>

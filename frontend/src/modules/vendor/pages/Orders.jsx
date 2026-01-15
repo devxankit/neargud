@@ -12,76 +12,57 @@ import {
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
-import { useOrderStore } from '../../../store/orderStore';
+import { useVendorOrderStore } from '../store/vendorOrderStore';
 
 const Orders = () => {
   const navigate = useNavigate();
-  const { vendor } = useVendorAuthStore();
-  const { orders } = useOrderStore();
-  const [vendorOrders, setVendorOrders] = useState([]);
+  const {
+    orders,
+    stats,
+    fetchOrders,
+    fetchStats,
+    isLoading
+  } = useVendorOrderStore();
 
-  const vendorId = vendor?.id;
+  const vendorId = vendor?.id || vendor?._id;
 
-  // Filter orders to only show those containing vendor's products
   useEffect(() => {
-    if (!vendorId || !orders) {
-      setVendorOrders([]);
-      return;
+    if (vendorId) {
+      fetchOrders();
+      fetchStats();
+    }
+  }, [vendorId, fetchOrders, fetchStats]);
+
+  // Use real stats from store or calculate from local orders if stats not yet loaded
+  const orderStats = useMemo(() => {
+    if (stats) {
+      return {
+        ...stats,
+        totalRevenue: 0, // Fallback for revenue if not in stats
+      };
     }
 
-    const filtered = orders.filter((order) => {
-      // Check if order has vendorItems array
-      if (order.vendorItems && Array.isArray(order.vendorItems)) {
-        return order.vendorItems.some((vi) => vi.vendorId === vendorId);
-      }
-      // Fallback: check if items have vendorId
-      if (order.items && Array.isArray(order.items)) {
-        return order.items.some((item) => item.vendorId === vendorId);
-      }
-      return false;
-    });
-
-    setVendorOrders(filtered);
-  }, [vendorId, orders]);
-
-  // Calculate order statistics for vendor
-  const orderStats = useMemo(() => {
-    const stats = {
+    const s = {
       pending: 0,
       processing: 0,
       shipped: 0,
       delivered: 0,
       cancelled: 0,
-      total: vendorOrders.length,
+      total: orders.length,
       totalRevenue: 0,
     };
 
-    vendorOrders.forEach((order) => {
+    orders.forEach((order) => {
       const status = order.status?.toLowerCase() || '';
-
-      if (status === 'pending') {
-        stats.pending++;
-      } else if (status === 'processing') {
-        stats.processing++;
-      } else if (status === 'shipped') {
-        stats.shipped++;
-      } else if (status === 'delivered') {
-        stats.delivered++;
-      } else if (status === 'cancelled' || status === 'canceled') {
-        stats.cancelled++;
-      }
-
-      // Calculate vendor revenue from delivered orders
-      if (status === 'delivered' && order.vendorItems) {
-        const vendorItem = order.vendorItems.find((vi) => vi.vendorId === vendorId);
-        if (vendorItem) {
-          stats.totalRevenue += vendorItem.subtotal || 0;
-        }
-      }
+      if (status === 'pending') s.pending++;
+      else if (status === 'processing') s.processing++;
+      else if (status === 'shipped') s.shipped++;
+      else if (status === 'delivered') s.delivered++;
+      else if (status === 'cancelled' || status === 'canceled') s.cancelled++;
     });
 
-    return stats;
-  }, [vendorOrders, vendorId]);
+    return s;
+  }, [orders, stats]);
 
   // Analytics cards configuration
   const analyticsCards = [

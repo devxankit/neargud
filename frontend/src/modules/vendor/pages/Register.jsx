@@ -24,6 +24,8 @@ const VendorRegister = () => {
       zipCode: '',
       country: 'USA',
     },
+    businessLicense: null,
+    panCard: null,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -39,6 +41,11 @@ const VendorRegister = () => {
           ...formData.address,
           [addressField]: value,
         },
+      });
+    } else if (e.target.type === 'file') {
+      setFormData({
+        ...formData,
+        [name]: e.target.files[0],
       });
     } else {
       setFormData({
@@ -68,14 +75,23 @@ const VendorRegister = () => {
     }
 
     try {
-      const result = await registerVendor({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        storeName: formData.storeName,
-        storeDescription: formData.storeDescription,
-        address: formData.address,
-      });
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('email', formData.email);
+      data.append('phone', formData.phone);
+      data.append('password', formData.password);
+      data.append('storeName', formData.storeName);
+      data.append('storeDescription', formData.storeDescription);
+      data.append('address', JSON.stringify(formData.address));
+      
+      if (formData.businessLicense) {
+        data.append('businessLicense', formData.businessLicense);
+      }
+      if (formData.panCard) {
+        data.append('panCard', formData.panCard);
+      }
+
+      const result = await registerVendor(data);
 
       toast.success(result.message || 'Registration successful!');
       // Navigate to verification page
@@ -267,6 +283,38 @@ const VendorRegister = () => {
                   onChange={handleChange}
                   placeholder="USA"
                   className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800 placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Business Documents */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Business Documents</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Business License (Image/PDF)
+                </label>
+                <input
+                  type="file"
+                  name="businessLicense"
+                  onChange={handleChange}
+                  accept="image/*,.pdf"
+                  className="w-full px-4 py-2 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  PAN Card (Image/PDF)
+                </label>
+                <input
+                  type="file"
+                  name="panCard"
+                  onChange={handleChange}
+                  accept="image/*,.pdf"
+                  className="w-full px-4 py-2 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800"
                 />
               </div>
             </div>

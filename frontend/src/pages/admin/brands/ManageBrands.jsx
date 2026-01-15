@@ -10,7 +10,7 @@ import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
 import toast from "react-hot-toast";
 
 const ManageBrands = () => {
-  const { brands, initialize, deleteBrand } = useBrandStore();
+  const { brands, fetchBrands, deleteBrand } = useBrandStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [showForm, setShowForm] = useState(false);
@@ -18,7 +18,7 @@ const ManageBrands = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
   useEffect(() => {
-    initialize();
+    fetchBrands();
   }, []);
 
   const filteredBrands = brands.filter((brand) => {
@@ -186,7 +186,7 @@ const ManageBrands = () => {
             setEditingBrand(null);
           }}
           onSave={() => {
-            initialize();
+            fetchBrands();
             setShowForm(false);
             setEditingBrand(null);
           }}

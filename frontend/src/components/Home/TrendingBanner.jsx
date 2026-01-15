@@ -1,16 +1,9 @@
-import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { gsapAnimations } from "../../utils/animations";
+import { useScrollAnimation } from "../../hooks/useAnimation";
 import LazyImage from "../LazyImage";
 
 const TrendingBanner = () => {
-  const sectionRef = useRef(null);
-
-  useEffect(() => {
-    if (sectionRef.current) {
-      gsapAnimations.scrollReveal(sectionRef.current);
-    }
-  }, []);
+  const sectionRef = useScrollAnimation();
 
   return (
     <section ref={sectionRef} className="py-4 sm:py-8 md:py-0 bg-transparent">

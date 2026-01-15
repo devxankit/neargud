@@ -6,8 +6,6 @@ import { useCartStore } from '../store/useStore';
 import { useWishlistStore } from '../store/wishlistStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useReviewsStore } from '../store/reviewsStore';
-import { getProductById, getSimilarProducts } from '../data/products';
-import { getVendorById } from '../modules/vendor/data/vendors';
 import { formatPrice } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import Badge from '../components/Badge';
@@ -28,39 +26,94 @@ import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = getProductById(id);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { responsivePadding } = useResponsiveHeaderPadding();
-  const vendor = product ? getVendorById(product.vendorId) : null;
+  const [vendor, setVendor] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [reviewSortBy, setReviewSortBy] = useState('newest');
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState([]);
 
   const addItem = useCartStore((state) => state.addItem);
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
   const { addProduct: addToFavorites, removeProduct: removeFromFavorites, isInProducts } = useFavoritesStore();
   const { getReviews, addReview, sortReviews, voteHelpful, voteNotHelpful, hasVoted } = useReviewsStore();
 
-  const isWishlisted = product ? isInWishlist(product.id) : false;
-  const isLiked = product ? isInProducts(product.id) : false;
-  const productReviews = product ? sortReviews(product.id, reviewSortBy) : [];
+  const isWishlisted = product ? isInWishlist(product._id || product.id) : false;
+  const isLiked = product ? isInProducts(product._id || product.id) : false;
+  const productReviews = product ? sortReviews(product._id || product.id, reviewSortBy) : [];
 
-  // Initialize variant if product has variants
+  // Fetch product data
   useEffect(() => {
-    if (product?.variants?.defaultVariant) {
-      setSelectedVariant(product.variants.defaultVariant);
-    }
-  }, [product]);
+    const fetchProductData = async () => {
+      try {
+        setLoading(true);
+        const { fetchPublicProductById, fetchPublicProducts } = await import('../services/publicApi');
+        const res = await fetchPublicProductById(id);
 
-  if (!product) {
+        if (res.success && res.data.product) {
+          const productData = res.data.product;
+          setProduct(productData);
+          setVendor(productData.vendorId);
+
+          // Set default variant if available
+          if (productData.variants?.defaultVariant) {
+            setSelectedVariant(productData.variants.defaultVariant);
+          }
+
+          // Fetch similar products (same category)
+          if (productData.categoryId) {
+            const similarRes = await fetchPublicProducts({
+              categoryId: productData.categoryId._id || productData.categoryId,
+              limit: 6
+            });
+            if (similarRes.success) {
+              setSimilarProducts((similarRes.data.products || []).filter(p => (p._id || p.id) !== id));
+            }
+          }
+        } else {
+          setError('Product not found');
+        }
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError('Failed to fetch product details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchProductData();
+  }, [id]);
+  if (loading) {
     return (
       <PageTransition>
         <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
           <Header />
           <Navbar />
-          <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]">
+          <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]" style={{ paddingTop: `${responsivePadding}px` }}>
+            <div className="flex flex-col items-center gap-4">
+              <FiLoader className="text-4xl text-primary-500 animate-spin" />
+              <p className="text-gray-600 animate-pulse font-medium">Loading product details...</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </PageTransition>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
+          <Header />
+          <Navbar />
+          <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]" style={{ paddingTop: `${responsivePadding}px` }}>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">{error || 'Product Not Found'}</h2>
               <Link to="/" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
                 Go Back Home
               </Link>
@@ -92,9 +145,12 @@ const ProductDetail = () => {
       id: product.id,
       name: product.name,
       price: finalPrice,
+      originalPrice: product.originalPrice,
       image: product.image,
       quantity: quantity,
       variant: selectedVariant,
+      applicableCoupons: product.applicableCoupons,
+      isCouponEligible: product.isCouponEligible,
     });
     toast.success(`Added ${quantity} item(s) to cart!`);
   };
@@ -108,6 +164,7 @@ const ProductDetail = () => {
         id: product.id,
         name: product.name,
         price: product.price,
+        originalPrice: product.originalPrice,
         image: product.image,
       });
       toast.success('Added to wishlist');
@@ -123,6 +180,7 @@ const ProductDetail = () => {
         id: product.id,
         name: product.name,
         price: product.price,
+        originalPrice: product.originalPrice,
         image: product.image,
       });
       toast.success('Added to liked items');
@@ -148,11 +206,6 @@ const ProductDetail = () => {
     }
   };
 
-  // Get similar/recommended products
-  const similarProducts = useMemo(() => {
-    if (!product) return [];
-    return getSimilarProducts(product.id, 6);
-  }, [product?.id]);
 
   // Get product images for ImageGallery
   const productImages = useMemo(() => {
@@ -216,18 +269,18 @@ const ProductDetail = () => {
                     {vendor && (
                       <div className="mb-4 flex flex-wrap gap-3">
                         <Link
-                          to={`/vendor/${vendor.id}`}
+                          to={`/vendor/${vendor._id || vendor.id}`}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg transition-colors"
                         >
                           <FiShoppingBag />
-                          <span className="font-semibold">{vendor.storeName || vendor.name}</span>
+                          <span className="font-semibold">{vendor.storeName || vendor.businessName || vendor.name}</span>
                           {vendor.isVerified && (
                             <FiCheckCircle className="text-green-600" title="Verified Vendor" />
                           )}
                           <span className="text-sm text-primary-600">→ View Store</span>
                         </Link>
                         <Link
-                          to={`/app/chat?vendorId=${vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.name)}`}
+                          to={`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}`}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-primary-100 hover:border-primary-200 text-primary-700 rounded-lg transition-colors"
                         >
                           <FiMessageCircle />
@@ -343,27 +396,27 @@ const ProductDetail = () => {
                     >
                       <FiShoppingBag className="text-xl" />
                       <span>
-                      {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
-                    </span>
-                  </button>
-                  <button
-                    onClick={handleLike}
-                    className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isLiked
-                      ? 'bg-yellow-50 text-yellow-600 border-2 border-yellow-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    <FiStar className={`text-xl ${isLiked ? 'fill-yellow-600' : ''}`} />
-                  </button>
-                  <button
-                    onClick={handleWishlist}
-                    className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isWishlisted
-                      ? 'bg-red-50 text-red-600 border-2 border-red-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    <FiHeart className={`text-xl ${isWishlisted ? 'fill-red-600' : ''}`} />
-                  </button>
+                        {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleLike}
+                      className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isLiked
+                        ? 'bg-yellow-50 text-yellow-600 border-2 border-yellow-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                      <FiStar className={`text-xl ${isLiked ? 'fill-yellow-600' : ''}`} />
+                    </button>
+                    <button
+                      onClick={handleWishlist}
+                      className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isWishlisted
+                        ? 'bg-red-50 text-red-600 border-2 border-red-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                      <FiHeart className={`text-xl ${isWishlisted ? 'fill-red-600' : ''}`} />
+                    </button>
                     <div className="flex items-center">
                       <SocialShare
                         productName={product.name}

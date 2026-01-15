@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,33 +6,74 @@ import DataTable from '../../../components/Admin/DataTable';
 import ConfirmModal from '../../../components/Admin/ConfirmModal';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import toast from 'react-hot-toast';
+import {
+  getAllTicketTypes,
+  createTicketType,
+  updateTicketType,
+  deleteTicketType
+} from '../../../services/adminSupportTicketApi';
 
 const TicketTypes = () => {
   const location = useLocation();
   const isAppRoute = location.pathname.startsWith('/app');
-  const [ticketTypes, setTicketTypes] = useState([
-    { id: 1, name: 'Technical Support', description: 'Technical issues and bugs', status: 'active' },
-    { id: 2, name: 'Billing Inquiry', description: 'Payment and billing questions', status: 'active' },
-    { id: 3, name: 'Product Inquiry', description: 'Questions about products', status: 'active' },
-  ]);
+  const [ticketTypes, setTicketTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editingType, setEditingType] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
-  const handleSave = (typeData) => {
-    if (editingType && editingType.id) {
-      setTicketTypes(ticketTypes.map((t) => (t.id === editingType.id ? { ...typeData, id: editingType.id } : t)));
-      toast.success('Ticket type updated');
-    } else {
-      setTicketTypes([...ticketTypes, { ...typeData, id: ticketTypes.length + 1 }]);
-      toast.success('Ticket type added');
+  useEffect(() => {
+    fetchTicketTypes();
+  }, []);
+
+  const fetchTicketTypes = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllTicketTypes();
+      if (response.success) {
+        setTicketTypes(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching ticket types:', error);
+      toast.error('Failed to fetch ticket types');
+    } finally {
+      setLoading(false);
     }
-    setEditingType(null);
   };
 
-  const handleDelete = () => {
-    setTicketTypes(ticketTypes.filter((t) => t.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Ticket type deleted');
+  const handleSave = async (typeData) => {
+    try {
+      if (editingType && editingType._id) {
+        const response = await updateTicketType(editingType._id, typeData);
+        if (response.success) {
+          toast.success('Ticket type updated');
+          fetchTicketTypes();
+        }
+      } else {
+        const response = await createTicketType(typeData);
+        if (response.success) {
+          toast.success('Ticket type added');
+          fetchTicketTypes();
+        }
+      }
+      setEditingType(null);
+    } catch (error) {
+      console.error('Error saving ticket type:', error);
+      toast.error(error.response?.data?.message || 'Failed to save ticket type');
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await deleteTicketType(deleteModal.id);
+      if (response.success) {
+        toast.success('Ticket type deleted');
+        fetchTicketTypes();
+      }
+      setDeleteModal({ isOpen: false, id: null });
+    } catch (error) {
+      console.error('Error deleting ticket type:', error);
+      toast.error('Failed to delete ticket type');
+    }
   };
 
   const columns = [
@@ -49,14 +90,13 @@ const TicketTypes = () => {
       render: (value) => <p className="text-sm text-gray-600">{value}</p>,
     },
     {
-      key: 'status',
+      key: 'isActive',
       label: 'Status',
       sortable: true,
       render: (value) => (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
+        <span className={`px-2 py-1 rounded text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}>
+          {value ? 'Active' : 'Inactive'}
         </span>
       ),
     },
@@ -73,7 +113,7 @@ const TicketTypes = () => {
             <FiEdit />
           </button>
           <button
-            onClick={() => setDeleteModal({ isOpen: true, id: row.id })}
+            onClick={() => setDeleteModal({ isOpen: true, id: row._id })}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <FiTrash2 />
@@ -124,7 +164,7 @@ const TicketTypes = () => {
               onClick={() => setEditingType(null)}
               className="fixed inset-0 bg-black/50 z-[10000]"
             />
-            
+
             {/* Modal Content - Mobile: Slide up from bottom, Desktop: Center with scale */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -134,27 +174,27 @@ const TicketTypes = () => {
             >
               <motion.div
                 variants={{
-                  hidden: { 
+                  hidden: {
                     y: isAppRoute ? '-100%' : '100%',
                     scale: 0.95,
                     opacity: 0
                   },
-                  visible: { 
+                  visible: {
                     y: 0,
                     scale: 1,
                     opacity: 1,
-                    transition: { 
+                    transition: {
                       type: 'spring',
                       damping: 22,
                       stiffness: 350,
                       mass: 0.7
                     }
                   },
-                  exit: { 
+                  exit: {
                     y: isAppRoute ? '-100%' : '100%',
                     scale: 0.95,
                     opacity: 0,
-                    transition: { 
+                    transition: {
                       type: 'spring',
                       damping: 30,
                       stiffness: 400
@@ -169,67 +209,61 @@ const TicketTypes = () => {
                 style={{ willChange: 'transform' }}
               >
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingType.id ? 'Edit Ticket Type' : 'Add Ticket Type'}
+                  {editingType._id ? 'Edit Ticket Type' : 'Add Ticket Type'}
                 </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                handleSave({
-                  name: formData.get('name'),
-                  description: formData.get('description'),
-                  status: formData.get('status'),
-                });
-              }}
-              className="space-y-4"
-            >
-              <input
-                type="text"
-                name="name"
-                defaultValue={editingType.name || ''}
-                placeholder="Type Name"
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <textarea
-                name="description"
-                defaultValue={editingType.description || ''}
-                placeholder="Description"
-                required
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-              <AnimatedSelect
-                name="status"
-                value={editingType.status || 'active'}
-                onChange={(e) => {
-                  const form = e.target.closest('form');
-                  if (form) {
-                    const statusInput = form.querySelector('[name="status"]');
-                    if (statusInput) statusInput.value = e.target.value;
-                  }
-                }}
-                options={[
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
-                ]}
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    handleSave({
+                      name: formData.get('name'),
+                      description: formData.get('description'),
+                      isActive: formData.get('isActive') === 'active',
+                    });
+                  }}
+                  className="space-y-4"
                 >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingType(null)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={editingType.name || ''}
+                    placeholder="Type Name"
+                    required
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <textarea
+                    name="description"
+                    defaultValue={editingType.description || ''}
+                    placeholder="Description"
+                    required
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <AnimatedSelect
+                    name="isActive"
+                    value={editingType.isActive === false ? 'inactive' : 'active'}
+                    onChange={(e) => setEditingType({ ...editingType, isActive: e.target.value === 'active' })}
+                    options={[
+                      { value: 'active', label: 'Active' },
+                      { value: 'inactive', label: 'Inactive' },
+                    ]}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingType(null)}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             </motion.div>
           </>

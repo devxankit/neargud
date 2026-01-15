@@ -17,8 +17,7 @@ const RevenueVsOrdersChart = ({ data, period = 'month' }) => {
   const filteredData = useMemo(() => {
     const range = getDateRange(period);
     const filtered = filterByDateRange(data, range.start, range.end);
-    // Show last 7 days for better visibility
-    const daysToShow = 7;
+    const daysToShow = filtered.length;
     return filtered.slice(-daysToShow).map((item) => ({
       ...item,
       dateLabel: formatDate(item.date, { month: 'short', day: 'numeric' }),
@@ -68,66 +67,66 @@ const RevenueVsOrdersChart = ({ data, period = 'month' }) => {
       <div className="w-full overflow-x-auto scrollbar-admin">
         <ResponsiveContainer width="100%" height={250} minHeight={200}>
           <ComposedChart data={filteredData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorRevenueBar" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0.4} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-          <XAxis
-            dataKey="dateLabel"
-            stroke="#6b7280"
-            fontSize={10}
-            tickLine={false}
-            axisLine={false}
-            angle={-45}
-            textAnchor="end"
-            height={60}
-          />
-          <YAxis
-            yAxisId="left"
-            stroke="#6b7280"
-            fontSize={10}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
-            width={50}
-          />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            stroke="#6b7280"
-            fontSize={10}
-            tickLine={false}
-            axisLine={false}
-            width={50}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            iconType="circle"
-            formatter={(value) => (
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>{value}</span>
-            )}
-          />
-          <Bar
-            yAxisId="left"
-            dataKey="revenue"
-            fill="url(#colorRevenueBar)"
-            radius={[8, 8, 0, 0]}
-            name="Revenue"
-          />
-          <Line
-            yAxisId="right"
-            type="monotone"
-            dataKey="orders"
-            stroke="#f59e0b"
-            strokeWidth={2}
-            dot={{ fill: '#f59e0b', r: 3 }}
-            activeDot={{ r: 5 }}
-            name="Orders"
-          />
-        </ComposedChart>
+            <defs>
+              <linearGradient id="colorRevenueBar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.4} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+            <XAxis
+              dataKey="dateLabel"
+              stroke="#6b7280"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
+            <YAxis
+              yAxisId="left"
+              stroke="#6b7280"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+              width={50}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              stroke="#6b7280"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={50}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              iconType="circle"
+              formatter={(value) => (
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>{value}</span>
+              )}
+            />
+            <Bar
+              yAxisId="left"
+              dataKey="revenue"
+              fill="url(#colorRevenueBar)"
+              radius={[8, 8, 0, 0]}
+              name="Revenue"
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="orders"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              dot={{ fill: '#f59e0b', r: 3 }}
+              activeDot={{ r: 5 }}
+              name="Orders"
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </motion.div>

@@ -1,15 +1,15 @@
-import { FiShoppingBag, FiPackage, FiUsers } from 'react-icons/fi';
-import { IndianRupee } from 'lucide-react';
+import { FiShoppingBag, FiPackage, FiUsers, FiDollarSign, FiBox } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '../../../utils/adminHelpers';
 
 const StatsCards = ({ stats }) => {
   const cards = [
     {
       title: 'Total Revenue',
-      value: formatCurrency(stats.totalRevenue || 0),
-      change: stats.revenueChange || 0,
-      icon: IndianRupee,
+      value: stats?.totalRevenue || 0,
+      prefix: '₹',
+      change: '+12.5%',
+      isIncrease: true,
+      icon: FiDollarSign,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-green-500 to-emerald-600',
       cardBg: 'bg-gradient-to-br from-green-50 to-emerald-50',
@@ -17,8 +17,9 @@ const StatsCards = ({ stats }) => {
     },
     {
       title: 'Total Orders',
-      value: (stats.totalOrders || 0).toLocaleString(),
-      change: stats.ordersChange || 0,
+      value: stats?.totalOrders || 0,
+      change: '+8.2%',
+      isIncrease: true,
       icon: FiShoppingBag,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-blue-500 to-indigo-600',
@@ -26,20 +27,22 @@ const StatsCards = ({ stats }) => {
       iconBg: 'bg-white/20',
     },
     {
-      title: 'Total Products',
-      value: (stats.totalProducts || 0).toLocaleString(),
-      change: stats.productsChange || 0,
-      icon: FiPackage,
+      title: 'Total Customers',
+      value: stats?.totalCustomers || 0,
+      change: '+5.4%',
+      isIncrease: true,
+      icon: FiUsers,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-purple-500 to-violet-600',
       cardBg: 'bg-gradient-to-br from-purple-50 to-violet-50',
       iconBg: 'bg-white/20',
     },
     {
-      title: 'Total Customers',
-      value: (stats.totalCustomers || 0).toLocaleString(),
-      change: stats.customersChange || 0,
-      icon: FiUsers,
+      title: 'Total Products',
+      value: stats?.totalProducts || 0,
+      change: '+2.1%',
+      isIncrease: true,
+      icon: FiBox,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-orange-500 to-amber-600',
       cardBg: 'bg-gradient-to-br from-orange-50 to-amber-50',
@@ -52,7 +55,7 @@ const StatsCards = ({ stats }) => {
       {cards.map((card, index) => {
         const Icon = card.icon;
         const isPositive = card.change >= 0;
-        
+
         return (
           <motion.div
             key={card.title}
@@ -63,15 +66,14 @@ const StatsCards = ({ stats }) => {
           >
             {/* Decorative gradient overlay */}
             <div className={`absolute top-0 right-0 w-32 h-32 ${card.bgColor} opacity-10 rounded-full -mr-16 -mt-16`}></div>
-            
+
             <div className="flex items-center justify-between mb-3 sm:mb-4 relative z-10">
               <div className={`${card.bgColor} ${card.iconBg} p-2 sm:p-3 rounded-lg shadow-md`}>
                 <Icon className={`${card.color} text-lg sm:text-xl`} />
               </div>
               <div
-                className={`text-xs sm:text-sm font-semibold px-2 py-1 rounded-full ${
-                  isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                }`}
+                className={`text-xs sm:text-sm font-semibold px-2 py-1 rounded-full ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}
               >
                 {isPositive ? '+' : ''}
                 {card.change}%

@@ -10,7 +10,7 @@ import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { formatCurrency } from '../../../utils/adminHelpers';
 
 const ViewCustomers = () => {
-  const { customers, initialize } = useCustomerStore();
+  const { customers, fetchCustomers, pagination, isLoading } = useCustomerStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
@@ -20,39 +20,23 @@ const ViewCustomers = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    initialize();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchCustomers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchQuery,
+        status: selectedStatus
+      });
+    }, 500);
 
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((customer) => {
-      const matchesSearch =
-        !searchQuery ||
-        customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (customer.phone && customer.phone.includes(searchQuery));
-
-      const matchesStatus =
-        selectedStatus === 'all' ||
-        (selectedStatus === 'active' && customer.status === 'active') ||
-        (selectedStatus === 'blocked' && customer.status === 'blocked');
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [customers, searchQuery, selectedStatus]);
-
-  // Pagination for grid view
-  const paginatedCustomers = useMemo(() => {
-    if (viewMode !== 'grid') return filteredCustomers;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredCustomers.slice(startIndex, endIndex);
-  }, [filteredCustomers, currentPage, itemsPerPage, viewMode]);
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+    return () => clearTimeout(timer);
+  }, [currentPage, searchQuery, selectedStatus]);
 
   // Reset page when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
   }, [searchQuery, selectedStatus]);
 
   const handleViewCustomer = (customer) => {
@@ -67,9 +51,10 @@ const ViewCustomers = () => {
 
   const columns = [
     {
-      key: 'id',
+      key: '_id',
       label: 'ID',
       sortable: true,
+      render: (value) => <span>{value || 'N/A'}</span>
     },
     {
       key: 'name',
@@ -77,7 +62,7 @@ const ViewCustomers = () => {
       sortable: true,
       render: (value, row) => (
         <div>
-          <p className="font-semibold text-gray-800">{value}</p>
+          <p className="font-semibold text-gray-800">{value || row.email?.split('@')[0] || 'N/A'}</p>
           <p className="text-xs text-gray-500">{row.email}</p>
         </div>
       ),
@@ -106,11 +91,10 @@ const ViewCustomers = () => {
       sortable: true,
       render: (value) => (
         <span
-          className={`px-2 py-1 rounded text-xs font-semibold ${
-            value === 'active'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
+          className={`px-2 py-1 rounded text-xs font-semibold ${value === 'active'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+            }`}
         >
           {value}
         </span>
@@ -171,21 +155,19 @@ const ViewCustomers = () => {
           <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('grid')}
-              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600'
-              }`}
+              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${viewMode === 'grid'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-600'
+                }`}
             >
               Grid
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${
-                viewMode === 'table'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600'
-              }`}
+              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${viewMode === 'table'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-600'
+                }`}
             >
               Table
             </button>
@@ -193,17 +175,22 @@ const ViewCustomers = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        {filteredCustomers.length === 0 ? (
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 min-h-[400px]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+            <p className="text-gray-500">Loading customers...</p>
+          </div>
+        ) : customers.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">No customers found</p>
           </div>
         ) : viewMode === 'grid' ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {paginatedCustomers.map((customer) => (
+              {customers.map((customer) => (
                 <CustomerCard
-                  key={customer.id}
+                  key={customer._id || customer.id}
                   customer={customer}
                   onView={handleViewCustomer}
                 />
@@ -211,8 +198,8 @@ const ViewCustomers = () => {
             </div>
             <Pagination
               currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredCustomers.length}
+              totalPages={pagination?.pages || 0}
+              totalItems={pagination?.total || 0}
               itemsPerPage={itemsPerPage}
               onPageChange={setCurrentPage}
               className="mt-6"
@@ -220,10 +207,11 @@ const ViewCustomers = () => {
           </>
         ) : (
           <DataTable
-            data={filteredCustomers}
+            data={customers}
             columns={columns}
             pagination={true}
             itemsPerPage={10}
+            onRowClick={handleViewCustomer}
           />
         )}
       </div>
@@ -233,7 +221,12 @@ const ViewCustomers = () => {
           customer={selectedCustomer}
           onClose={handleCloseDetail}
           onUpdate={() => {
-            initialize();
+            fetchCustomers({
+              page: currentPage,
+              limit: itemsPerPage,
+              search: searchQuery,
+              status: selectedStatus
+            });
           }}
         />
       )}

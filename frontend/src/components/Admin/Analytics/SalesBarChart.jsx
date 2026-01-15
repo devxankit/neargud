@@ -16,8 +16,7 @@ const SalesBarChart = ({ data, period = 'month' }) => {
   const filteredData = useMemo(() => {
     const range = getDateRange(period);
     const filtered = filterByDateRange(data, range.start, range.end);
-    // Group by week or show last 7 days based on period
-    const daysToShow = period === 'week' ? 7 : period === 'month' ? 7 : filtered.length;
+    const daysToShow = filtered.length;
     return filtered.slice(-daysToShow).map((item) => ({
       ...item,
       dateLabel: formatDate(item.date, { month: 'short', day: 'numeric' }),

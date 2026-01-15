@@ -1,11 +1,13 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
+import { fetchPolicy, updatePolicy } from '../services/policyApi';
+import { fetchContent, updateContentApi } from '../services/contentApi';
 
 // Default content structure
 const defaultContent = {
     homepage: {
         heroTitle: 'Welcome to Our Store',
         heroSubtitle: 'Discover Amazing Products',
-        aboutUs: 'About us content...',
         promoStrip: {
             housefullText: 'HOUSEFULL',
             saleDateText: '30TH NOV, 2025 - 7TH DEC, 2025',
@@ -18,97 +20,197 @@ const defaultContent = {
             title: 'LOWEST PRICES EVER'
         }
     },
+    about: 'About us content...',
     terms: 'Terms and conditions content...',
     privacy: 'Privacy policy content...',
+    refund: 'Refund policy content...',
     faq: [],
 };
 
-const getInitialContent = () => {
-    try {
-        const saved = localStorage.getItem('admin-content');
-        if (saved) {
-            // Merge saved content with default content structure to ensure new fields exist
-            const parsed = JSON.parse(saved);
-            return {
-                ...defaultContent,
-                ...parsed,
-                homepage: {
-                    ...defaultContent.homepage,
-                    ...(parsed.homepage || {}),
-                    promoStrip: {
-                        ...defaultContent.homepage.promoStrip,
-                        ...(parsed.homepage?.promoStrip || {})
-                    },
-                    lowestPrices: {
-                        ...defaultContent.homepage.lowestPrices,
-                        ...(parsed.homepage?.lowestPrices || {})
+export const useContentStore = create((set, get) => ({
+    content: defaultContent,
+    isLoading: false,
+
+    // Fetch All Content
+    fetchAllContent: async () => {
+        set({ isLoading: true });
+        try {
+            await Promise.all([
+                get().fetchHomepageContent(),
+                get().fetchAboutContent(),
+                get().fetchFAQContent(),
+                get().fetchPolicyContent('terms'),
+                get().fetchPolicyContent('privacy')
+            ]);
+            set({ isLoading: false });
+        } catch (error) {
+            console.error('Failed to fetch all content:', error);
+            set({ isLoading: false });
+        }
+    },
+
+    // Fetch Homepage Content
+    fetchHomepageContent: async () => {
+        try {
+            const response = await fetchContent('homepage');
+            const fetchedData = response?.data || {};
+
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    homepage: {
+                        ...state.content.homepage,
+                        ...fetchedData,
                     }
                 }
-            };
+            }));
+        } catch (error) {
+            console.error('Failed to fetch homepage content:', error);
         }
-    } catch (e) {
-        console.error('Failed to load content settings', e);
-    }
-    return defaultContent;
-};
+    },
 
-export const useContentStore = create((set, get) => ({
-    content: getInitialContent(),
+    // Update Homepage Content
+    updateHomepageContent: async (data) => {
+        set({ isLoading: true });
+        try {
+            await updateContentApi('homepage', data);
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    homepage: {
+                        ...state.content.homepage,
+                        ...data,
+                    }
+                },
+                isLoading: false,
+            }));
+            toast.success('Homepage content updated successfully');
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error('Failed to update homepage content');
+            throw error;
+        }
+    },
 
+    // Fetch About Us Content
+    fetchAboutContent: async () => {
+        try {
+            const response = await fetchContent('about');
+            const aboutContent = response?.data || '';
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    about: aboutContent
+                }
+            }));
+        } catch (error) {
+            console.error('Failed to fetch about content:', error);
+        }
+    },
+
+    // Update About Us Content
+    updateAboutContent: async (data) => {
+        set({ isLoading: true });
+        try {
+            await updateContentApi('about', data);
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    about: data
+                },
+                isLoading: false,
+            }));
+            toast.success('About Us content updated successfully');
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error('Failed to update About Us content');
+            throw error;
+        }
+    },
+
+    // Fetch FAQ Content
+    fetchFAQContent: async () => {
+        try {
+            const response = await fetchContent('faq');
+            const faqContent = response?.data || [];
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    faq: Array.isArray(faqContent) ? faqContent : []
+                }
+            }));
+        } catch (error) {
+            console.error('Failed to fetch FAQ content:', error);
+        }
+    },
+
+    // Update FAQ Content
+    updateFAQContent: async (data) => {
+        set({ isLoading: true });
+        try {
+            await updateContentApi('faq', data);
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    faq: data
+                },
+                isLoading: false,
+            }));
+            toast.success('FAQ content updated successfully');
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error('Failed to update FAQ content');
+            throw error;
+        }
+    },
+
+    // Fetch Policy (Privacy, Terms, Refund)
+    fetchPolicyContent: async (key) => {
+        try {
+            const response = await fetchPolicy(key);
+            const policyContent = response?.policy?.content || '';
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    [key]: policyContent,
+                }
+            }));
+            return policyContent;
+        } catch (error) {
+            console.error(`Failed to fetch ${key} policy:`, error);
+            return '';
+        }
+    },
+
+    // Update Policy
+    updatePolicyContent: async (key, content) => {
+        set({ isLoading: true });
+        try {
+            await updatePolicy(key, content);
+            set((state) => ({
+                content: {
+                    ...state.content,
+                    [key]: content,
+                },
+                isLoading: false,
+            }));
+            toast.success(`${key.charAt(0).toUpperCase() + key.slice(1)} policy updated successfully`);
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(`Failed to update ${key} policy`);
+            throw error;
+        }
+    },
+
+    // Legacy support
     updateContent: (newContent) => {
-        // Deep merge or replacement strategy
-        // For simplicity, we assume the caller provides the updated partial or full structure.
-        // But since state updates are usually shallow merged in React, here we update the whole object.
-        set((state) => {
-            const updated = { ...state.content, ...newContent };
-            try {
-                localStorage.setItem('admin-content', JSON.stringify(updated));
-            } catch (e) {
-                console.error('Failed to save content settings', e);
-            }
-            return { content: updated };
-        });
-    },
-
-    updateSection: (section, data) => {
-        set((state) => {
-            const updated = {
-                ...state.content,
-                [section]: {
-                    ...state.content[section],
-                    ...data
-                }
-            };
-            try {
-                localStorage.setItem('admin-content', JSON.stringify(updated));
-            } catch (e) {
-                console.error('Failed to save content settings', e);
-            }
-            return { content: updated };
-        });
-    },
-
-    updateHomepageSection: (sectionKey, data) => {
-        set((state) => {
-            const updatedHomepage = {
-                ...state.content.homepage,
-                [sectionKey]: {
-                    ...state.content.homepage[sectionKey],
-                    ...data
-                }
-            };
-            const updated = { ...state.content, homepage: updatedHomepage };
-            try {
-                localStorage.setItem('admin-content', JSON.stringify(updated));
-            } catch (e) {
-                console.error('Failed to save content settings', e);
-            }
-            return { content: updated };
-        });
+        set((state) => ({
+            content: { ...state.content, ...newContent }
+        }));
     },
 
     reset: () => {
         set({ content: defaultContent });
-        localStorage.removeItem('admin-content');
     }
 }));
+

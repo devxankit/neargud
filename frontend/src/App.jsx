@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "/src/context/ThemeContext";
+import "./utils/animations"; // Initialize GSAP settings early
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
@@ -13,6 +14,7 @@ import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
 import Addresses from "./pages/Addresses";
 import Wishlist from "./pages/Wishlist";
+import ForgotPassword from "./pages/ForgotPassword";
 import Offers from "./pages/Offers";
 import DailyDeals from "./pages/DailyDeals";
 import FlashSale from "./pages/FlashSale";
@@ -89,6 +91,7 @@ import FestivalOffers from "./pages/admin/offers/FestivalOffers";
 // Notifications child pages
 import PushNotifications from "./pages/admin/notifications/PushNotifications";
 import CustomMessages from "./pages/admin/notifications/CustomMessages";
+import SendCustomNotification from "./pages/admin/notifications/SendCustomNotification";
 // Support Desk child pages
 import LiveChat from "./pages/admin/support/LiveChat";
 import TicketTypes from "./pages/admin/support/TicketTypes";
@@ -103,8 +106,8 @@ import OrderTrends from "./pages/admin/finance/OrderTrends";
 import PaymentBreakdown from "./pages/admin/finance/PaymentBreakdown";
 import TaxReports from "./pages/admin/finance/TaxReports";
 import RefundReports from "./pages/admin/finance/RefundReports";
+import VendorWithdrawals from "./pages/admin/finance/VendorWithdrawals";
 // Consolidated Settings pages
-import GeneralSettings from "./pages/admin/settings/GeneralSettings";
 import PaymentShippingSettings from "./pages/admin/settings/PaymentShippingSettings";
 import OrdersCustomersSettings from "./pages/admin/settings/OrdersCustomersSettings";
 import ProductsInventorySettings from "./pages/admin/settings/ProductsInventorySettings";
@@ -146,8 +149,14 @@ import MobileTrackOrder from "./modules/App/pages/TrackOrder";
 import MobileOrderConfirmation from "./modules/App/pages/OrderConfirmation";
 import MobilePolicies from "./modules/App/pages/Policies";
 import MobileSavedCards from "./modules/App/pages/SavedCards";
+import Wallet from "./modules/App/pages/Wallet";
+import MobileNotifications from "./modules/App/pages/Notifications";
+import BrandManager from "./components/BrandManager";
 // Delivery Routes
 import DeliveryLogin from "./pages/delivery/Login";
+import DeliveryRegister from "./pages/delivery/Register";
+import DeliveryVerification from "./pages/delivery/Verification";
+import DeliveryForgotPassword from "./pages/delivery/ForgotPassword";
 import DeliveryProtectedRoute from "./components/Delivery/DeliveryProtectedRoute";
 import DeliveryLayout from "./components/Delivery/Layout/DeliveryLayout";
 import DeliveryDashboard from "./pages/delivery/Dashboard";
@@ -158,6 +167,7 @@ import DeliveryProfile from "./pages/delivery/Profile";
 import VendorLogin from "./modules/vendor/pages/Login";
 import VendorRegister from "./modules/vendor/pages/Register";
 import VendorVerification from "./modules/vendor/pages/Verification";
+import VendorForgotPassword from "./modules/vendor/pages/ForgotPassword";
 import VendorProtectedRoute from "./modules/vendor/components/VendorProtectedRoute";
 import VendorLayout from "./modules/vendor/components/Layout/VendorLayout";
 import VendorDashboard from "./modules/vendor/pages/Dashboard";
@@ -182,10 +192,11 @@ import VendorReturnRequestDetail from "./modules/vendor/pages/returns/ReturnRequ
 import VendorProductReviews from "./modules/vendor/pages/ProductReviews";
 import VendorPromotions from "./modules/vendor/pages/Promotions";
 import VendorNotifications from "./modules/vendor/pages/Notifications";
-import VendorProductFAQs from "./modules/vendor/pages/ProductFAQs";
+import VendorProductFAQs from "./modules/vendor/pages/products/ProductFAQs";
 import VendorTaxPricing from "./modules/vendor/pages/TaxPricing";
 import VendorShippingManagement from "./modules/vendor/pages/ShippingManagement";
 import VendorCustomers from "./modules/vendor/pages/Customers";
+import VendorCustomerDetail from "./modules/vendor/pages/CustomerDetail";
 import VendorSupportTickets from "./modules/vendor/pages/SupportTickets";
 import VendorProductAttributes from "./modules/vendor/pages/ProductAttributes";
 import VendorInventoryReports from "./modules/vendor/pages/InventoryReports";
@@ -211,6 +222,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<RouteWrapper><MobileLogin /></RouteWrapper>} />
       <Route path="/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
       <Route path="/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />
+      <Route path="/forgot-password" element={<RouteWrapper><ForgotPassword /></RouteWrapper>} />
       <Route path="/wishlist" element={<RouteWrapper><MobileWishlist /></RouteWrapper>} />
       <Route path="/offers" element={<RouteWrapper><MobileOffers /></RouteWrapper>} />
       <Route path="/daily-deals" element={<RouteWrapper><MobileDailyDeals /></RouteWrapper>} />
@@ -246,6 +258,26 @@ const AppRoutes = () => {
           <RouteWrapper>
             <ProtectedRoute>
               <MobileAddresses />
+            </ProtectedRoute>
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/wallet"
+        element={
+          <RouteWrapper>
+            <ProtectedRoute>
+              <Wallet />
+            </ProtectedRoute>
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/notifications"
+        element={
+          <RouteWrapper>
+            <ProtectedRoute>
+              <MobileNotifications />
             </ProtectedRoute>
           </RouteWrapper>
         }
@@ -304,7 +336,9 @@ const AppRoutes = () => {
         <Route path="vendors/commission-rates" element={<CommissionRates />} />
         <Route path="vendors/vendor-analytics" element={<AdminVendorAnalytics />} />
         <Route path="vendors/:id" element={<VendorDetail />} />
-        <Route path="locations" element={<Cities />} />
+
+        {/* Location Routes */}
+        <Route path="locations" element={<Navigate to="/admin/locations/cities" replace />} />
         <Route path="locations/cities" element={<Cities />} />
         <Route path="locations/zipcodes" element={<Zipcodes />} />
         <Route path="offers" element={<HomeSliders />} />
@@ -314,6 +348,7 @@ const AppRoutes = () => {
         <Route path="notifications" element={<PushNotifications />} />
         <Route path="notifications/push-notifications" element={<PushNotifications />} />
         <Route path="notifications/custom-messages" element={<CustomMessages />} />
+        <Route path="notifications/send-custom" element={<SendCustomNotification />} />
         <Route path="support" element={<Tickets />} />
         <Route path="support/live-chat" element={<LiveChat />} />
         <Route path="support/ticket-types" element={<TicketTypes />} />
@@ -328,10 +363,13 @@ const AppRoutes = () => {
         <Route path="finance/payment-breakdown" element={<PaymentBreakdown />} />
         <Route path="finance/tax-reports" element={<TaxReports />} />
         <Route path="finance/refund-reports" element={<RefundReports />} />
+        <Route path="finance/vendor-withdrawals" element={<VendorWithdrawals />} />
         <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<Navigate to="/admin/settings/general" replace />} />
-        <Route path="settings/general" element={<Settings />} />
-        <Route path="settings/payment-shipping" element={<Settings />} />
+        <Route path="settings" element={<Navigate to="/admin/settings/store" replace />} />
+        <Route path="settings/store" element={<Settings />} />
+        <Route path="settings/contact" element={<Settings />} />
+        <Route path="settings/delivery" element={<Settings />} />
+        <Route path="settings/tax" element={<Settings />} />
         <Route path="settings/orders-customers" element={<Settings />} />
         <Route path="settings/products-inventory" element={<Settings />} />
         <Route path="settings/content-features" element={<Settings />} />
@@ -350,6 +388,9 @@ const AppRoutes = () => {
       </Route>
       {/* Delivery Routes */}
       <Route path="/delivery/login" element={<DeliveryLogin />} />
+      {/* <Route path="/delivery/register" element={<DeliveryRegister />} /> */}
+      <Route path="/delivery/verify" element={<DeliveryVerification />} />
+      <Route path="/delivery/forgot-password" element={<DeliveryForgotPassword />} />
       <Route
         path="/delivery"
         element={
@@ -368,6 +409,7 @@ const AppRoutes = () => {
       <Route path="/vendor/login" element={<VendorLogin />} />
       <Route path="/vendor/register" element={<VendorRegister />} />
       <Route path="/vendor/verification" element={<VendorVerification />} />
+      <Route path="/vendor/forgot-password" element={<VendorForgotPassword />} />
       <Route
         path="/vendor"
         element={
@@ -395,6 +437,7 @@ const AppRoutes = () => {
         <Route path="earnings/overview" element={<VendorEarnings />} />
         <Route path="earnings/commission-history" element={<VendorEarnings />} />
         <Route path="earnings/settlement-history" element={<VendorEarnings />} />
+        <Route path="earnings/withdrawals" element={<VendorEarnings />} />
         <Route path="stock-management" element={<VendorStockManagement />} />
         <Route path="wallet-history" element={<VendorWalletHistory />} />
         <Route path="pickup-locations" element={<VendorPickupLocations />} />
@@ -402,7 +445,7 @@ const AppRoutes = () => {
         <Route path="return-requests" element={<VendorReturnRequests />} />
         <Route path="return-requests/:id" element={<VendorReturnRequestDetail />} />
         <Route path="product-reviews" element={<VendorProductReviews />} />
-        <Route path="promotions" element={<VendorPromotions />} />
+        <Route path="promocode" element={<VendorPromotions />} />
         <Route path="reels" element={<VendorReels />} />
         <Route path="reels/all-reels" element={<VendorAllReels />} />
         <Route path="reels/add-reel" element={<VendorAddReel />} />
@@ -410,17 +453,22 @@ const AppRoutes = () => {
         <Route path="notifications" element={<VendorNotifications />} />
         <Route path="shipping-management" element={<VendorShippingManagement />} />
         <Route path="customers" element={<VendorCustomers />} />
+        <Route path="customers/:id" element={<VendorCustomerDetail />} />
         <Route path="support-tickets" element={<VendorSupportTickets />} />
         <Route path="support-tickets/:id" element={<VendorSupportTickets />} />
         <Route path="inventory-reports" element={<VendorInventoryReports />} />
         <Route path="performance-metrics" element={<VendorPerformanceMetrics />} />
         <Route path="documents" element={<VendorDocuments />} />
         <Route path="settings" element={<VendorSettings />} />
+        <Route path="settings/store-identity" element={<VendorSettings />} />
+        <Route path="settings/contact-info" element={<VendorSettings />} />
+        <Route path="settings/social-media" element={<VendorSettings />} />
         <Route path="settings/store" element={<VendorSettings />} />
         <Route path="settings/payment" element={<VendorSettings />} />
         <Route path="settings/payment-settings" element={<VendorSettings />} />
         <Route path="settings/shipping" element={<VendorSettings />} />
         <Route path="settings/shipping-settings" element={<VendorSettings />} />
+        <Route path="settings/shipping-delivery" element={<VendorSettings />} />
         <Route path="profile" element={<VendorSettings />} />
         <Route path="social" element={<VendorSocial />} />
       </Route>
@@ -437,6 +485,7 @@ const AppRoutes = () => {
       <Route path="/app/login" element={<RouteWrapper><MobileLogin /></RouteWrapper>} />
       <Route path="/app/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
       <Route path="/app/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />
+      <Route path="/app/forgot-password" element={<RouteWrapper><ForgotPassword /></RouteWrapper>} />
       <Route path="/app/wishlist" element={<RouteWrapper><MobileWishlist /></RouteWrapper>} />
       <Route path="/app/favorites" element={<RouteWrapper><MobileFavorites /></RouteWrapper>} />
       <Route path="/app/offers" element={<RouteWrapper><MobileOffers /></RouteWrapper>} />
@@ -478,11 +527,59 @@ const AppRoutes = () => {
       <Route path="/app/cards" element={<RouteWrapper><MobileSavedCards /></RouteWrapper>} />
       <Route path="/app/help" element={<RouteWrapper><Chat /></RouteWrapper>} />
       <Route path="/app/policies" element={<RouteWrapper><MobilePolicies /></RouteWrapper>} />
+      <Route
+        path="/app/notifications"
+        element={
+          <RouteWrapper>
+            <ProtectedRoute>
+              <MobileNotifications />
+            </ProtectedRoute>
+          </RouteWrapper>
+        }
+      />
     </Routes>
   );
 };
 
+import { useAdminAuthStore } from "./store/adminAuthStore";
+import { useVendorAuthStore } from "./modules/vendor/store/vendorAuthStore";
+import { useDeliveryAuthStore } from "./store/deliveryAuthStore";
+import { useAuthStore } from "./store/authStore";
+import { useLocationStore } from "./store/locationStore";
+import { useAddressStore } from "./store/addressStore";
+import { useEffect } from "react";
+import { requestNotificationPermission, onMessageListener } from "./utils/notification";
+
 function App() {
+  const { initialize: initializeAdminAuth } = useAdminAuthStore();
+  const { initialize: initializeVendorAuth } = useVendorAuthStore();
+  const { initialize: initializeDeliveryAuth } = useDeliveryAuthStore();
+  const { initialize: initializeLocation, currentCity, selectCity } = useLocationStore();
+
+  useEffect(() => {
+    initializeAdminAuth();
+    initializeVendorAuth();
+    initializeDeliveryAuth();
+    initializeLocation();
+  }, [initializeAdminAuth, initializeVendorAuth, initializeDeliveryAuth, initializeLocation]);
+
+  // Default-select user's city from their default address if no city is selected
+
+  // Notification initialization
+  const { isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    // Avoid calling notification registration on login/auth pages
+    const isAuthPage = ['/login', '/vendor/login', '/admin/login', '/delivery/login', '/register', '/vendor/register', '/verification'].some(
+      path => window.location.pathname.includes(path)
+    );
+
+    if (isAuthenticated && !isAuthPage) {
+      requestNotificationPermission().catch(err => console.error("Notification permission error", err));
+      onMessageListener();
+    }
+  }, [isAuthenticated]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -493,6 +590,7 @@ function App() {
           }}
         >
           <ScrollToTop />
+          <BrandManager />
           <AppRoutes />
           <CartDrawer />
           <Toaster

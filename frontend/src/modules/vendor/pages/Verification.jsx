@@ -3,22 +3,28 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { FiArrowLeft, FiCheck, FiMail } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useVendorAuthStore } from '../store/vendorAuthStore';
 
 const VendorVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { verifyEmail, resendOTP } = useVendorAuthStore();
   const [codes, setCodes] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef([]);
   
-  const email = location.state?.email || 'your email';
+  const email = location.state?.email;
 
   // Focus first input on mount
   useEffect(() => {
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
-  }, []);
+    if (!email) {
+      toast.error("Email not found. Please register again.");
+      navigate('/vendor/register');
+    }
+  }, [email, navigate]);
 
   const handleChange = (index, value) => {
     // Only allow single digit
@@ -62,19 +68,23 @@ const VendorVerification = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Verification successful! Your account is pending admin approval.');
+      const response = await verifyEmail({ email, otp: verificationCode });
+      toast.success(response.message || 'Verification successful! Your account is pending admin approval.');
       navigate('/vendor/login');
     } catch (error) {
-      toast.error('Invalid verification code. Please try again.');
+      toast.error(error.message || 'Invalid verification code. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResend = () => {
-    toast.success('Verification code sent to your email');
+  const handleResend = async () => {
+    try {
+        await resendOTP(email);
+        toast.success('Verification code sent to your email');
+    } catch(error) {
+        toast.error(error.message || 'Failed to resend OTP');
+    }
   };
 
   return (

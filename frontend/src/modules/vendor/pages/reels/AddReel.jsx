@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiSave, FiX, FiUpload, FiVideo } from "react-icons/fi";
+import { FiSave, FiX, FiUpload, FiVideo, FiImage } from "react-icons/fi";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
 import { createVendorReel } from "../../services/reelService";
 import { getVendorProducts } from "../../services/productService";
@@ -12,104 +12,127 @@ const AddReel = () => {
   const { vendor } = useVendorAuthStore();
   const [loading, setLoading] = useState(false);
   const [vendorProducts, setVendorProducts] = useState([]);
+
+  // File states
+  const [videoFile, setVideoFile] = useState(null);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+
+  // Preview states
+  const [videoPreview, setVideoPreview] = useState("");
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
+
   const [formData, setFormData] = useState({
-    videoUrl: "",
-    thumbnail: "",
     productId: "",
     productName: "",
     productPrice: "",
-    vendorName: vendor?.storeName || vendor?.name || "",
-    vendorId: vendor?.id || null,
     status: "draft",
-    likes: 0,
-    comments: 0,
-    shares: 0,
+    description: "",
   });
+
+  const videoInputRef = useRef(null);
+  const thumbnailInputRef = useRef(null);
 
   useEffect(() => {
     loadVendorProducts();
-  }, [vendor?.id]);
+    // Cleanup previews on unmount
+    return () => {
+      if (videoPreview) URL.revokeObjectURL(videoPreview);
+      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    };
+  }, []);
 
   const loadVendorProducts = async () => {
-    // If no vendor ID, we might skip or load all in mock mode.
-    // In real app we need vendor ID.
-    // if (!vendor?.id) return; 
-
     try {
       const response = await getVendorProducts({ limit: 1000 });
-      // Handle both response structures
-      if (response?.data?.products) {
-        setVendorProducts(response.data.products);
-      } else if (response?.products) {
+      // Depending on API structure, products might be in data.products or just data
+      const prodList = response?.data?.products || response?.data || response;
+      if (Array.isArray(prodList)) {
+        setVendorProducts(prodList);
+      } else if (response?.products && Array.isArray(response.products)) {
         setVendorProducts(response.products);
-      } else if (Array.isArray(response)) {
-        setVendorProducts(response);
       }
     } catch (error) {
       console.error("Error loading products:", error);
+      toast.error("Failed to load products");
     }
   };
 
-  useEffect(() => {
-    if (formData.productId) {
-      const product = vendorProducts.find((p) => (p._id || p.id)?.toString() === formData.productId);
-      if (product) {
-        setFormData((prev) => ({
-          ...prev,
-          productName: product.name,
-          productPrice: product.price,
-          thumbnail: product.image || prev.thumbnail,
-        }));
+  const handleProductChange = (productId) => {
+    const product = vendorProducts.find((p) => (p._id || p.id) === productId);
+    if (product) {
+      setFormData(prev => ({
+        ...prev,
+        productId: productId,
+        productName: product.name,
+        productPrice: product.price
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        productId: productId,
+        productName: "",
+        productPrice: ""
+      }));
+    }
+  };
+
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (type === 'video') {
+        // Basic validation
+        if (file.size > 50 * 1024 * 1024) { // 50MB
+          toast.error("Video file is too large (Max 50MB)");
+          return;
+        }
+        const url = URL.createObjectURL(file);
+        setVideoFile(file);
+        setVideoPreview(url);
+      } else if (type === 'thumbnail') {
+        const url = URL.createObjectURL(file);
+        setThumbnailFile(file);
+        setThumbnailPreview(url);
       }
     }
-  }, [formData.productId, vendorProducts]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!videoFile) {
+      toast.error("Please upload a video file");
+      return;
+    }
+
+    if (!formData.productId) {
+      toast.error("Please select a product");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      if (!formData.videoUrl) {
-        toast.error("Please provide a video URL");
-        setLoading(false);
-        return;
+      const data = new FormData();
+      data.append("video", videoFile);
+      if (thumbnailFile) {
+        data.append("thumbnail", thumbnailFile);
       }
 
-      if (!formData.productId) {
-        toast.error("Please select a product");
-        setLoading(false);
-        return;
+      data.append("productId", formData.productId);
+      data.append("productName", formData.productName);
+      data.append("productPrice", formData.productPrice);
+      data.append("status", formData.status);
+      if (formData.description) data.append("description", formData.description);
+
+      const response = await createVendorReel(data);
+
+      if (response.success) {
+        toast.success("Reel created successfully!");
+        navigate("/vendor/reels/all-reels");
       }
-
-      const reelData = {
-        videoUrl: formData.videoUrl,
-        thumbnail: formData.thumbnail || null,
-        productId: parseInt(formData.productId) || formData.productId,
-        productName: formData.productName,
-        productPrice: formData.productPrice,
-        vendorId: vendor?.id || 1, // Mock fallback
-        vendorName: vendor?.storeName || "Vendor Store",
-        status: formData.status,
-        likes: parseInt(formData.likes) || 0,
-        comments: parseInt(formData.comments) || 0,
-        shares: parseInt(formData.shares) || 0,
-        views: 0,
-      };
-
-      await createVendorReel(reelData);
-      toast.success("Reel added successfully!");
-      navigate("/vendor/reels/all-reels");
     } catch (error) {
       console.error("Error adding reel:", error);
-      toast.error(error.response?.data?.message || "Failed to add reel. Please try again.");
+      toast.error(error.response?.data?.message || "Failed to add reel");
     } finally {
       setLoading(false);
     }
@@ -136,8 +159,8 @@ const AddReel = () => {
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Form Inputs */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex items-center gap-3">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex items-center gap-3 rounded-t-2xl">
               <span className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                 <FiVideo className="text-xl" />
               </span>
@@ -152,53 +175,121 @@ const AddReel = () => {
                 </label>
                 <AnimatedSelect
                   value={formData.productId}
-                  onChange={(value) => setFormData((prev) => ({ ...prev, productId: value }))}
+                  onChange={(e) => handleProductChange(e.target.value)}
                   options={[
                     { value: "", label: "Select a product to feature" },
                     ...vendorProducts.map((product) => ({
-                      value: (product._id || product.id).toString(),
+                      value: product._id || product.id,
                       label: `${product.name} - ₹${product.price}`,
                     })),
                   ]}
                   className="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                 />
+                {/* Selected Product Details Card */}
+                {vendorProducts.find(p => (p._id || p.id) === formData.productId) && (() => {
+                  const prod = vendorProducts.find(p => (p._id || p.id) === formData.productId);
+                  const img = prod.images?.[0] || prod.image || "https://via.placeholder.com/150";
+                  return (
+                    <div className="mt-4 flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <div className="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-700">
+                        <img
+                          src={img}
+                          alt={prod.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 dark:text-white line-clamp-1">{prod.name}</h4>
+                        <p className="text-sm font-semibold text-purple-600 dark:text-purple-400">₹{prod.price?.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
+                          {prod.description || "No description available"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Video & Thumbnail */}
+              {/* Video Upload */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Video URL <span className="text-red-500">*</span>
+                    Video File <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
+                  <div
+                    onClick={() => videoInputRef.current?.click()}
+                    className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-purple-500 transition-colors bg-gray-50 dark:bg-gray-900 h-40"
+                  >
                     <input
-                      type="url"
-                      name="videoUrl"
-                      value={formData.videoUrl}
-                      onChange={handleChange}
-                      placeholder="https://example.com/video.mp4"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder:text-gray-400"
-                      required
+                      type="file"
+                      ref={videoInputRef}
+                      accept="video/mp4,video/webm,video/quicktime"
+                      onChange={(e) => handleFileChange(e, 'video')}
+                      className="hidden"
                     />
-                    <FiVideo className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    {videoPreview ? (
+                      <div className="absolute inset-0 w-full h-full rounded-xl overflow-hidden bg-black">
+                        <video src={videoPreview} className="w-full h-full object-cover opacity-60" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs">Video Selected</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <FiUpload className="text-2xl text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-500">Click to upload video</span>
+                        <span className="text-xs text-gray-400 mt-1">MP4, WebM (Max 50MB)</span>
+                      </>
+                    )}
                   </div>
                 </div>
+
+                {/* Thumbnail Upload */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Thumbnail URL
+                    Thumbnail Image (Optional)
                   </label>
-                  <div className="relative">
+                  <div
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-purple-500 transition-colors bg-gray-50 dark:bg-gray-900 h-40"
+                  >
                     <input
-                      type="url"
-                      name="thumbnail"
-                      value={formData.thumbnail}
-                      onChange={handleChange}
-                      placeholder="https://example.com/thumb.jpg"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder:text-gray-400"
+                      type="file"
+                      ref={thumbnailInputRef}
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, 'thumbnail')}
+                      className="hidden"
                     />
-                    <FiUpload className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    {thumbnailPreview ? (
+                      <div className="absolute inset-0 w-full h-full rounded-xl overflow-hidden">
+                        <img src={thumbnailPreview} className="w-full h-full object-cover" alt="Thumbnail Preview" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs">Change</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <FiImage className="text-2xl text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-500">Click to upload cover</span>
+                        <span className="text-xs text-gray-400 mt-1">JPG, PNG</span>
+                      </>
+                    )}
                   </div>
                 </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Description / Caption
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe your reel..."
+                  rows="3"
+                  className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
 
               {/* Status */}
@@ -206,59 +297,18 @@ const AddReel = () => {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Publication Status
                 </label>
-                <div className="w-full md:w-1/2">
-                  <AnimatedSelect
-                    value={formData.status}
-                    onChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
-                    options={[
-                      { value: "draft", label: "Save as Draft" },
-                      { value: "active", label: "Publish Immediately" },
-                      { value: "archived", label: "Archived" },
-                    ]}
-                    className="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
-                  />
-                </div>
+                <AnimatedSelect
+                  value={formData.status}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
+                  options={[
+                    { value: "draft", label: "Save as Draft" },
+                    { value: "active", label: "Publish Immediately" },
+                    { value: "archived", label: "Archived" },
+                  ]}
+                  className="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                />
               </div>
 
-              {/* Social Proof Seeding */}
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Initial Engagement (Optional)</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Likes</label>
-                    <input
-                      type="number"
-                      name="likes"
-                      value={formData.likes}
-                      onChange={handleChange}
-                      min="0"
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Comments</label>
-                    <input
-                      type="number"
-                      name="comments"
-                      value={formData.comments}
-                      onChange={handleChange}
-                      min="0"
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Shares</label>
-                    <input
-                      type="number"
-                      name="shares"
-                      value={formData.shares}
-                      onChange={handleChange}
-                      min="0"
-                      className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -276,7 +326,7 @@ const AddReel = () => {
               className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-purple-600/20 transition-all active:scale-95 flex items-center gap-2"
             >
               <FiSave />
-              {loading ? "Saving..." : "Publish Reel"}
+              {loading ? "Uploading..." : "Publish Reel"}
             </button>
           </div>
         </div>
@@ -290,19 +340,24 @@ const AddReel = () => {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-xl z-20"></div>
 
               {/* Video Content */}
-              {formData.videoUrl || formData.thumbnail ? (
+              {(videoPreview || thumbnailPreview || (formData.productId && vendorProducts.find(p => (p._id || p.id) === formData.productId))) ? (
                 <div className="relative w-full h-full">
-                  {formData.videoUrl ? (
+                  {videoPreview ? (
                     <video
-                      src={formData.videoUrl}
+                      src={videoPreview}
                       className="w-full h-full object-cover"
                       autoPlay
                       muted
                       loop
                       playsInline
+                      poster={thumbnailPreview || (vendorProducts.find(p => (p._id || p.id) === formData.productId)?.images?.[0])}
                     />
                   ) : (
-                    <img src={formData.thumbnail} className="w-full h-full object-cover" alt="Preview" />
+                    <img
+                      src={thumbnailPreview || (vendorProducts.find(p => (p._id || p.id) === formData.productId)?.images?.[0]) || "https://via.placeholder.com/300x600?text=No+Preview"}
+                      className="w-full h-full object-cover"
+                      alt="Preview"
+                    />
                   )}
 
                   {/* Overlay Gradient */}
@@ -314,19 +369,13 @@ const AddReel = () => {
                       <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
                         <span className="text-xl">❤️</span>
                       </div>
-                      <span className="text-white text-xs font-medium">{formData.likes || 0}</span>
+                      <span className="text-white text-xs font-medium">0</span>
                     </div>
                     <div className="flex flex-col items-center gap-1">
                       <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
                         <span className="text-xl">💬</span>
                       </div>
-                      <span className="text-white text-xs font-medium">{formData.comments || 0}</span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
-                        <span className="text-xl">↗️</span>
-                      </div>
-                      <span className="text-white text-xs font-medium">{formData.shares || 0}</span>
+                      <span className="text-white text-xs font-medium">0</span>
                     </div>
                   </div>
 
@@ -339,7 +388,7 @@ const AddReel = () => {
                       <span className="font-semibold text-sm shadow-sm">{vendor?.storeName || 'Your Store'}</span>
                     </div>
                     <p className="text-sm line-clamp-2 leading-snug opacity-90">
-                      {formData.productName ? `Check out ${formData.productName}!` : 'Product description will appear here...'}
+                      {formData.description || (formData.productName ? `Check out ${formData.productName}!` : 'Description...')}
                     </p>
                     {formData.productPrice && (
                       <div className="mt-2 inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold">

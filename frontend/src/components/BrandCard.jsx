@@ -11,9 +11,9 @@ const BrandCard = ({ brand }) => {
           src={brand.logo}
           alt={brand.name}
           className="max-w-full max-h-full object-contain scale-60 group-hover:scale-75 transition-transform duration-300 filter group-hover:brightness-110"
-          onError={(e) => {
-            e.target.src = 'https://via.placeholder.com/150x80?text=Brand';
-          }}
+          // onError={(e) => {
+          //   e.target.src = 'https://via.placeholder.com/150x80?text=Brand';
+          // }}
         />
       </div>
       <p className="text-xs font-bold text-gray-800 text-center group-hover:text-gradient transition-colors">{brand.name}</p>

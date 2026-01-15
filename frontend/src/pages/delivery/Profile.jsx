@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useDeliveryAuthStore } from '../../store/deliveryAuthStore';
+import { useDeliveryStore } from '../../store/deliveryStore'; // Added
 import { FiUser, FiMail, FiPhone, FiTruck, FiEdit2, FiSave, FiX, FiLogOut } from 'react-icons/fi';
 import PageTransition from '../../components/PageTransition';
 import toast from 'react-hot-toast';
@@ -10,9 +11,22 @@ import { formatPrice } from '../../utils/helpers';
 const DeliveryProfile = () => {
   const navigate = useNavigate();
   const { deliveryBoy, updateStatus, logout } = useDeliveryAuthStore();
+  const { stats, fetchStats } = useDeliveryStore(); // Added
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const displayStats = stats || {
+    activeOrders: 0,
+    completedToday: 0,
+    totalDelivered: 0,
+    earnings: 0
+  };
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: deliveryBoy?.name || '',
+    firstName: deliveryBoy?.firstName || '',
+    lastName: deliveryBoy?.lastName || '',
     email: deliveryBoy?.email || '',
     phone: deliveryBoy?.phone || '',
     vehicleType: deliveryBoy?.vehicleType || '',
@@ -34,7 +48,8 @@ const DeliveryProfile = () => {
 
   const handleCancel = () => {
     setFormData({
-      name: deliveryBoy?.name || '',
+      firstName: deliveryBoy?.firstName || '',
+      lastName: deliveryBoy?.lastName || '',
       email: deliveryBoy?.email || '',
       phone: deliveryBoy?.phone || '',
       vehicleType: deliveryBoy?.vehicleType || '',
@@ -49,11 +64,11 @@ const DeliveryProfile = () => {
     navigate('/delivery/login');
   };
 
-  const stats = [
-    { label: 'Total Deliveries', value: '156' },
-    { label: 'Completed Today', value: '8' },
-    { label: 'Rating', value: '4.8' },
-    { label: 'Earnings', value: formatPrice(2450) },
+  const statsData = [
+    { label: 'Total Deliveries', value: (displayStats.totalDelivered || 0).toString() },
+    { label: 'Completed Today', value: (displayStats.completedToday || 0).toString() },
+    { label: 'Rating', value: '4.8' }, // Rating might need backend support later
+    { label: 'Earnings', value: formatPrice(displayStats.earnings || 0) },
   ];
 
   return (
@@ -93,10 +108,10 @@ const DeliveryProfile = () => {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 gradient-green rounded-full flex items-center justify-center text-3xl font-bold">
-              {deliveryBoy?.name?.charAt(0) || 'D'}
+              {deliveryBoy?.firstName?.charAt(0) || 'D'}
             </div>
             <div>
-              <p className="text-xl font-semibold">{deliveryBoy?.name || 'Delivery Boy'}</p>
+              <p className="text-xl font-semibold">{deliveryBoy ? `${deliveryBoy.firstName} ${deliveryBoy.lastName}` : 'Delivery Boy'}</p>
               <p className="text-primary-100 text-sm">{deliveryBoy?.email || 'email@example.com'}</p>
             </div>
           </div>
@@ -104,7 +119,7 @@ const DeliveryProfile = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -128,22 +143,40 @@ const DeliveryProfile = () => {
           <h2 className="text-lg font-bold text-gray-800 mb-4">Personal Information</h2>
 
           {/* Name */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <FiUser />
-              Full Name
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
-              />
-            ) : (
-              <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.name}</p>
-            )}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <FiUser />
+                First Name
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
+                />
+              ) : (
+                <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.firstName}</p>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Last Name
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
+                />
+              ) : (
+                <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.lastName}</p>
+              )}
+            </div>
           </div>
 
           {/* Email */}

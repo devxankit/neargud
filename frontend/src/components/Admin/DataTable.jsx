@@ -11,9 +11,16 @@ const DataTable = ({
   sortable = true,
   onRowClick,
   className = '',
+  currentPage: propCurrentPage,
+  totalPages: propTotalPages,
+  onPageChange,
+  totalItems,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+  const isServerSide = typeof onPageChange === 'function';
+  const currentPage = isServerSide ? propCurrentPage : internalCurrentPage;
 
   // Sorting
   const sortedData = useMemo(() => {
@@ -36,13 +43,16 @@ const DataTable = ({
   // Pagination
   const paginatedData = useMemo(() => {
     if (!pagination) return sortedData;
+    if (isServerSide) return sortedData;
     
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return sortedData.slice(startIndex, endIndex);
-  }, [sortedData, currentPage, itemsPerPage, pagination]);
+  }, [sortedData, currentPage, itemsPerPage, pagination, isServerSide]);
 
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  const totalPages = isServerSide 
+    ? propTotalPages 
+    : Math.ceil(sortedData.length / itemsPerPage);
 
   const handleSort = (key) => {
     if (!sortable) return;
@@ -55,7 +65,12 @@ const DataTable = ({
   };
 
   const handlePageChange = (page) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    const newPage = Math.max(1, Math.min(page, totalPages));
+    if (isServerSide) {
+      onPageChange(newPage);
+    } else {
+      setInternalCurrentPage(newPage);
+    }
   };
 
   // Get primary columns (exclude actions for mobile card view)
@@ -211,8 +226,8 @@ const DataTable = ({
         <div className="bg-gray-50 px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 border-t border-gray-200">
           <div className="text-xs sm:text-sm text-gray-700">
             Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-            {Math.min(currentPage * itemsPerPage, sortedData.length)} of{' '}
-            {sortedData.length} results
+            {Math.min(currentPage * itemsPerPage, isServerSide ? (totalItems || 0) : sortedData.length)} of{' '}
+            {isServerSide ? (totalItems || 0) : sortedData.length} results
           </div>
           <div className="flex items-center gap-2">
             <Button

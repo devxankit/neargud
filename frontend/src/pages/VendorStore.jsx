@@ -1,11 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
-import { FiArrowLeft, FiStar, FiShoppingBag, FiCheckCircle, FiFilter, FiGrid, FiList, FiShare2, FiHeart, FiGlobe, FiInfo, FiSearch, FiMessageCircle, FiPhone, FiMapPin } from 'react-icons/fi';
+import { FiArrowLeft, FiStar, FiShoppingBag, FiCheckCircle, FiClock, FiMail, FiFilter, FiGrid, FiList, FiShare2, FiHeart, FiGlobe, FiInfo, FiSearch, FiMessageCircle, FiPhone, FiMapPin, FiLoader, FiUser } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { motion } from 'framer-motion';
-import { getVendorById } from '../modules/vendor/data/vendors';
-import { getVendorReels } from '../utils/reelHelpers';
-import { products } from '../data/products';
 import { formatPrice } from '../utils/helpers';
 import ProductCard from '../components/ProductCard';
 import ProductListItem from '../modules/App/components/ProductListItem';
@@ -16,7 +13,6 @@ import MobileLayout from '../components/Layout/Mobile/MobileLayout';
 import PageTransition from '../components/PageTransition';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
-import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import Badge from '../components/Badge';
 
 const VendorStore = () => {
@@ -25,31 +21,73 @@ const VendorStore = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { responsivePadding } = useResponsiveHeaderPadding();
-  const vendor = getVendorById(id);
+  const [vendor, setVendor] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const productIdRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   // Follower Logic
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followers, setFollowers] = useState(vendor?.followers || 50);
+  const [followers, setFollowers] = useState(0);
+  const [activeTab, setActiveTab] = useState('shop');
 
+  // Fetch Vendor and Products
   useEffect(() => {
-    if (vendor) {
-      const followed = JSON.parse(localStorage.getItem('user_followed_vendors') || '[]');
-      if (followed.includes(vendor.id)) {
-        setIsFollowing(true);
+    const fetchVendorData = async () => {
+      try {
+        setLoading(true);
+        const { fetchPublicVendorById, fetchPublicProducts } = await import('../services/publicApi');
+        const res = await fetchPublicVendorById(id);
+
+        if (res.success && res.data.vendor) {
+          const vendorData = res.data.vendor;
+          setVendor(vendorData);
+          setFollowers(vendorData.followers || 50);
+
+          // Check following status
+          const followed = JSON.parse(localStorage.getItem('user_followed_vendors') || '[]');
+          if (followed.includes(vendorData._id || vendorData.id)) {
+            setIsFollowing(true);
+          }
+
+          // Fetch Products
+          const productsRes = await fetchPublicProducts({
+            vendorId: id,
+            page,
+            limit: 12
+          });
+          if (productsRes.success) {
+            if (page === 1) {
+              setProducts(productsRes.data.products || []);
+            } else {
+              setProducts(prev => [...prev, ...(productsRes.data.products || [])]);
+            }
+            setTotalPages(productsRes.data.totalPages || 1);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching vendor data:", error);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [vendor]);
+    };
+
+    fetchVendorData();
+  }, [id, page]);
 
   const handleFollow = () => {
     const followed = JSON.parse(localStorage.getItem('user_followed_vendors') || '[]');
     let newFollowed;
+    const vendorId = vendor._id || vendor.id;
     if (isFollowing) {
-      newFollowed = followed.filter(id => id !== vendor.id);
+      newFollowed = followed.filter(vId => vId !== vendorId);
       setFollowers(prev => prev - 1);
       setIsFollowing(false);
     } else {
-      newFollowed = [...followed, vendor.id];
+      newFollowed = [...followed, vendorId];
       setFollowers(prev => prev + 1);
       setIsFollowing(true);
     }
@@ -72,23 +110,9 @@ const VendorStore = () => {
     inStock: false,
   });
 
-  // Get vendor products
-  const vendorProducts = useMemo(() => {
-    if (!vendor) return [];
-    return products.filter((p) => {
-      const productVendorId = typeof p.vendorId === 'string'
-        ? parseInt(p.vendorId.replace('vendor-', ''))
-        : p.vendorId;
-      const vendorIdNum = typeof vendor.id === 'string'
-        ? parseInt(vendor.id)
-        : vendor.id;
-      return productVendorId === vendorIdNum || p.vendorId === vendor.id || p.vendorId === vendorIdNum;
-    });
-  }, [vendor]);
-
-  // Filter and sort products
+  // Filter and sort products (Client-side for now, can be moved to API)
   const filteredProducts = useMemo(() => {
-    let filtered = [...vendorProducts];
+    let filtered = [...products];
 
     // Apply filters
     if (filters.minPrice) {
@@ -116,25 +140,42 @@ const VendorStore = () => {
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case 'newest':
-        filtered.sort((a, b) => b.id - a.id);
+        filtered.sort((a, b) => b.createdAt?.localeCompare(a.createdAt));
         break;
       default:
-        // Popular (by rating and review count)
-        filtered.sort((a, b) => {
-          const scoreA = (a.rating || 0) * (a.reviewCount || 0);
-          const scoreB = (b.rating || 0) * (b.reviewCount || 0);
-          return scoreB - scoreA;
-        });
+        // Popular
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
 
     return filtered;
-  }, [vendorProducts, filters, sortBy]);
+  }, [products, filters, sortBy]);
 
-  const { displayedItems, hasMore, loadMore, loadMoreRef } = useInfiniteScroll(
-    filteredProducts,
-    12,
-    12
-  );
+  // Infinite scroll logic
+  const hasMore = page < totalPages;
+  const isLoading = loading;
+  const loadMore = () => {
+    if (hasMore && !isLoading) {
+      setPage(prev => prev + 1);
+    }
+  };
+  const displayedItems = filteredProducts;
+
+  // Infinite scroll observer for mobile
+  useEffect(() => {
+    if (!hasMore || isLoading || !isMobileApp) return;
+
+    const currentRef = loadMoreRef.current;
+    if (!currentRef) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        loadMore();
+      }
+    }, { threshold: 0.1 });
+
+    observer.observe(currentRef);
+    return () => observer.disconnect();
+  }, [hasMore, isLoading, isMobileApp, loadMore]);
 
   // Scroll to product if productId is in query params
   useEffect(() => {
@@ -145,11 +186,49 @@ const VendorStore = () => {
           behavior: 'smooth',
           block: 'center'
         });
-      }, 300);
+      }, 500);
     }
   }, [productIdFromQuery, displayedItems, isMobileApp]);
 
-  if (!vendor) {
+  if (loading && !vendor) {
+    return (
+      <PageTransition>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
+          <div className="w-full bg-slate-50 min-h-screen">
+            {/* Banner Skeleton */}
+            <div className="relative h-56 bg-slate-200 animate-pulse overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }}></div>
+            </div>
+            {/* Profile Skeleton */}
+            <div className="px-4 -mt-16 relative z-10">
+              <div className="bg-white rounded-[2.5rem] p-6 shadow-xl shadow-slate-200/50 border border-white">
+                <div className="w-24 h-24 -mt-14 rounded-2xl bg-slate-100 animate-pulse border-[6px] border-white shadow-lg" />
+                <div className="mt-5 space-y-4">
+                  <div className="h-8 bg-slate-100 rounded-xl w-1/2 animate-pulse" />
+                  <div className="h-4 bg-slate-50 rounded-lg w-3/4 animate-pulse" />
+                  <div className="h-16 bg-slate-50 rounded-2xl w-full animate-pulse mt-4" />
+                </div>
+              </div>
+            </div>
+            {/* Grid Skeleton */}
+            <div className="px-4 mt-8 grid grid-cols-2 gap-4 pb-20">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-white rounded-[1.5rem] border border-slate-100 p-2 space-y-3 shadow-sm">
+                  <div className="w-full aspect-square bg-slate-50 rounded-2xl animate-pulse" />
+                  <div className="px-1 space-y-2">
+                    <div className="h-3 bg-slate-50 rounded w-5/6 animate-pulse" />
+                    <div className="h-3 bg-slate-50 rounded w-1/2 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </MobileLayout>
+      </PageTransition>
+    );
+  }
+
+  if (!loading && !vendor) {
     if (isMobileApp) {
       return (
         <PageTransition>
@@ -191,108 +270,103 @@ const VendorStore = () => {
 
   // Mobile App Layout
   if (isMobileApp) {
-    const [activeTab, setActiveTab] = useState('shop');
 
     const handleChatClick = () => {
-      navigate(`/app/chat?vendorId=${vendor.id}&vendorName=${encodeURIComponent(vendor.storeName)}`);
+      navigate(`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}`);
     };
 
     return (
       <PageTransition>
         <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
-          <div className="w-full pb-24 bg-gray-50 min-h-screen">
+          <div className="w-full pb-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 min-h-screen">
             {/* Banner Section */}
-            <div className="relative h-48 bg-gradient-to-r from-primary-600 to-primary-800">
+            <div className="relative h-56 bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 overflow-hidden">
               {/* Back Button & Share */}
               <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-10">
                 <button
                   onClick={() => navigate(-1)}
-                  className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white"
+                  className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all"
                 >
                   <FiArrowLeft size={20} />
                 </button>
                 <div className="flex gap-2">
-                  <button className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white">
+                  <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
                     <FiSearch size={20} />
                   </button>
-                  <button className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white">
+                  <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
                     <FiShare2 size={20} />
                   </button>
                 </div>
               </div>
 
-              {/* Cover Image (if supported later) */}
-              <div className="absolute inset-0 opacity-20 pattern-dots"></div>
+              {/* Cover Image/Overlay */}
+              <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/asfalt-dark.png')]"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             </div>
 
             {/* Profile Section */}
-            <div className="px-4 -mt-12 relative z-10">
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div className="px-4 -mt-16 relative z-10">
+              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-5 shadow-xl shadow-gray-200/50 border border-white">
                 <div className="flex justify-between items-start">
-                  <div className="w-20 h-20 -mt-10 rounded-xl border-4 border-white bg-white shadow-sm overflow-hidden">
+                  <div className="w-24 h-24 -mt-14 rounded-2xl border-[6px] border-white bg-white shadow-lg overflow-hidden flex-shrink-0">
                     {vendor.storeLogo ? (
                       <img
                         src={vendor.storeLogo}
                         alt={vendor.storeName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = '/images/logos/logo.png';
+                          e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(vendor.storeName) + '&background=random';
                         }}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
-                        <FiShoppingBag size={24} />
+                      <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300">
+                        <FiShoppingBag size={28} />
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 -mt-2">
-                    <button
-                      onClick={handleFollow}
-                      className={`px-6 py-2 rounded-full text-sm font-semibold shadow-lg transition-all ${isFollowing
-                        ? 'bg-gray-100 text-gray-800 border border-gray-200'
-                        : 'bg-black text-white shadow-gray-200'
-                        }`}
-                    >
-                      {isFollowing ? 'Following' : '+ Follow'}
-                    </button>
-                  </div>
+
                 </div>
 
-                <div className="mt-3">
+                <div className="mt-4">
                   <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold text-gray-900">{vendor.storeName}</h1>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">{vendor.storeName}</h1>
                     {vendor.isVerified && (
-                      <FiCheckCircle className="text-blue-500" title="Verified Vendor" />
+                      <div className="bg-blue-50 text-blue-600 p-1 rounded-full border border-blue-100">
+                        <FiCheckCircle size={14} fill="currentColor" className="text-white" />
+                      </div>
                     )}
                   </div>
                   {vendor.storeDescription && (
-                    <p className="text-gray-500 text-sm mt-1 line-clamp-2">{vendor.storeDescription}</p>
+                    <p className="text-slate-500 text-sm mt-1.5 leading-relaxed line-clamp-2">{vendor.storeDescription}</p>
                   )}
 
-                  <div className="flex items-center gap-4 mt-3 text-sm">
-                    <div className="flex items-center gap-1">
-                      <FiStar className="text-yellow-400 fill-yellow-400" />
-                      <span className="font-bold text-gray-900">{vendor.rating || '4.8'}</span>
-                      <span className="text-gray-500">({vendor.reviewCount || 124} reviews)</span>
+                  <div className="flex items-center justify-between mt-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-100/50">
+                    <div className="flex flex-col items-center flex-1">
+                      <div className="flex items-center gap-1">
+                        <FiStar className="text-orange-400 fill-orange-400" size={14} />
+                        <span className="font-extrabold text-slate-900 text-base">{vendor.rating || '4.8'}</span>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Average Rating</span>
                     </div>
-                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                    <div className="font-semibold text-gray-900">
-                      {followers} <span className="font-normal text-gray-500">Followers</span>
+                    <div className="w-px h-8 bg-slate-200/60"></div>
+
+                    <div className="w-px h-8 bg-slate-200/60"></div>
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="font-extrabold text-slate-900 text-base">{vendor.totalProducts || products.length}</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Products</span>
                     </div>
-                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                    <span className="text-gray-500">{vendor.totalProducts || vendorProducts.length} Items</span>
                   </div>
 
                   {/* Action Buttons Row */}
-                  <div className="grid grid-cols-4 gap-2 mt-6 mb-2">
+                  <div className="grid grid-cols-4 gap-3 mt-7 mb-1">
                     <a
                       href={`tel:${vendor.phone || '+919876543210'}`}
                       className="flex flex-col items-center gap-2 group"
                     >
-                      <div className="w-12 h-12 rounded-xl border border-red-100 bg-white flex items-center justify-center text-red-500 shadow-sm group-active:scale-95 transition-transform">
-                        <FiPhone size={20} />
+                      <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shadow-sm shadow-rose-100/50 group-hover:scale-105 active:scale-95 transition-all">
+                        <FiPhone size={22} strokeWidth={2.5} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700">Call</span>
+                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">Call</span>
                     </a>
 
                     <a
@@ -301,20 +375,20 @@ const VendorStore = () => {
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
-                      <div className="w-12 h-12 rounded-xl border border-green-100 bg-white flex items-center justify-center text-green-500 shadow-sm group-active:scale-95 transition-transform">
-                        <FaWhatsapp size={22} />
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shadow-sm shadow-emerald-100/50 group-hover:scale-105 active:scale-95 transition-all">
+                        <FaWhatsapp size={26} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700">WhatsApp</span>
+                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">WhatsApp</span>
                     </a>
 
                     <button
                       onClick={handleChatClick}
                       className="flex flex-col items-center gap-2 group"
                     >
-                      <div className="w-12 h-12 rounded-xl border border-orange-100 bg-white flex items-center justify-center text-orange-500 shadow-sm group-active:scale-95 transition-transform">
-                        <FiMessageCircle size={22} />
+                      <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 shadow-sm shadow-indigo-100/50 group-hover:scale-105 active:scale-95 transition-all">
+                        <FiMessageCircle size={24} strokeWidth={2.5} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700">Chat</span>
+                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">Chat</span>
                     </button>
 
                     <a
@@ -323,10 +397,10 @@ const VendorStore = () => {
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
-                      <div className="w-12 h-12 rounded-xl border border-blue-100 bg-white flex items-center justify-center text-blue-500 shadow-sm group-active:scale-95 transition-transform">
-                        <FiMapPin size={20} />
+                      <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm shadow-amber-100/50 group-hover:scale-105 active:scale-95 transition-all">
+                        <FiMapPin size={22} strokeWidth={2.5} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700">Navigate</span>
+                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">Road</span>
                     </a>
                   </div>
                 </div>
@@ -334,18 +408,25 @@ const VendorStore = () => {
             </div>
 
             {/* Tabs */}
-            <div className="sticky top-[60px] md:top-[70px] z-20 bg-gray-50 pt-2 pb-1 px-4">
-              <div className="flex bg-white rounded-xl p-1 shadow-sm border border-gray-100">
-                {['Shop', 'Photos', 'Videos', 'Reviews'].map((tab) => (
+            <div className="sticky top-[60px] md:top-[70px] z-20 bg-slate-50/80 backdrop-blur-lg py-3 px-4 shadow-sm shadow-slate-200/20 border-b border-slate-100/10">
+              <div className="flex bg-slate-200/50 rounded-2xl p-1 items-center relative gap-1">
+                {['Shop', 'About', 'Photos', 'Reviews'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === tab.toLowerCase()
-                      ? 'bg-gray-900 text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-900'
+                    className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all relative z-10 ${activeTab === tab.toLowerCase()
+                      ? 'text-primary-600'
+                      : 'text-slate-500 hover:text-slate-800'
                       }`}
                   >
-                    {tab}
+                    {activeTab === tab.toLowerCase() && (
+                      <motion.div
+                        layoutId="activeTabPill"
+                        className="absolute inset-0 bg-white rounded-xl shadow-sm ring-1 ring-slate-100"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <span className="relative z-20">{tab}</span>
                   </button>
                 ))}
               </div>
@@ -406,14 +487,26 @@ const VendorStore = () => {
                     </motion.div>
                   )}
 
-                  {filteredProducts.length > 0 ? (
+                  {loading && displayedItems.length === 0 ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-white rounded-[1.5rem] border border-slate-100 p-2 space-y-3 shadow-sm animate-pulse">
+                          <div className="w-full aspect-square bg-slate-50 rounded-2xl" />
+                          <div className="px-1 space-y-2">
+                            <div className="h-3 bg-slate-50 rounded w-5/6" />
+                            <div className="h-3 bg-slate-50 rounded w-1/2" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : displayedItems.length > 0 ? (
                     <>
                       <div className="grid grid-cols-2 gap-4">
                         {displayedItems.map((product) => (
                           <div
-                            key={product.id}
-                            ref={productIdFromQuery && parseInt(productIdFromQuery) === product.id ? productIdRef : null}
-                            className={productIdFromQuery && parseInt(productIdFromQuery) === product.id ? 'ring-2 ring-primary-500 rounded-lg' : ''}>
+                            key={product._id || product.id}
+                            ref={productIdFromQuery && String(productIdFromQuery) === String(product._id || product.id) ? productIdRef : null}
+                            className={productIdFromQuery && String(productIdFromQuery) === String(product._id || product.id) ? 'ring-2 ring-primary-500 rounded-lg' : ''}>
                             <ProductCard product={product} />
                           </div>
                         ))}
@@ -439,68 +532,119 @@ const VendorStore = () => {
               {activeTab === 'photos' && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 min-h-[200px]">
                   <h3 className="font-bold text-gray-900 mb-4">Photos</h3>
-                  {/* Placeholder for photos */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                        <img
-                          src={`https://source.unsplash.com/random/300x300/?store,shop,${i}`}
-                          alt="Store Photo"
-                          className="w-full h-full object-cover"
-                          onError={(e) => e.target.style.display = 'none'}
-                        />
+                  {products.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {products.map((product) => (
+                        <div key={product._id || product.id} onClick={() => navigate(`/app/product/${product._id || product.id}`)} className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer">
+                          <img
+                            src={product.image || product.imageUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = 'https://via.placeholder.com/300x300?text=Product';
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiGrid className="text-2xl text-gray-300" />
                       </div>
-                    ))}
-                  </div>
-                  <p className="text-center text-gray-500 text-sm mt-8">More photos coming soon!</p>
-                </div>
-              )}
-
-              {activeTab === 'videos' && (
-                <div className="pb-20">
-                  <h3 className="font-bold text-gray-900 mb-4 px-1">Videos</h3>
-                  {(() => {
-                    const reels = getVendorReels(vendor.id);
-                    if (reels.length > 0) {
-                      return (
-                        <div className="grid grid-cols-3 gap-2">
-                          {reels.map((reel) => (
-                            <div key={reel.id} onClick={() => navigate(`/app/reels?reel=${reel.id}`)} className="aspect-[9/16] bg-black rounded-lg overflow-hidden relative cursor-pointer">
-                              <img src={reel.thumbnail} alt={reel.title} className="w-full h-full object-cover opacity-80" />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                  <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
-                                </div>
-                              </div>
-                              <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px]">
-                                <FiHeart size={10} className="fill-white" /> {reel.likes}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    } else {
-                      return (
-                        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
-                          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <FiMessageCircle className="text-3xl text-gray-300 transform rotate-90" />
-                          </div>
-                          <h3 className="text-lg font-bold text-gray-900">No Videos Yet</h3>
-                          <p className="text-gray-500 text-sm mt-1">This vendor hasn't uploaded any reels.</p>
-                        </div>
-                      );
-                    }
-                  })()}
+                      <p className="text-gray-500 text-sm">No photos available yet.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === 'reviews' && (
-                <div className="bg-white rounded-xl p-4 border border-gray-100 text-center py-8">
-                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <FiStar className="text-gray-300 text-2xl" />
+                <div className="bg-white rounded-xl p-4 border border-gray-100 pb-20">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-3xl font-black text-slate-900">{vendor.rating || '4.8'}</span>
+                        <div className="flex items-center text-orange-400 text-xs gap-0.5">
+                          {[1, 2, 3, 4, 5].map(s => <FiStar key={s} fill="currentColor" />)}
+                        </div>
+                      </div>
+                      <div className="h-10 w-px bg-gray-100"></div>
+                      <div className="text-sm text-gray-500">
+                        <div>Based on</div>
+                        <div className="font-bold text-slate-800">{vendor.reviewCount || 124} Reviews</div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-gray-900">Reviews Coming Soon</h3>
-                  <p className="text-gray-500 text-sm mt-1">Store reviews are not available yet.</p>
+
+                  {/* Since we don't have a direct endpoint for all vendor reviews yet, 
+                        we will display a message or list high-rated products */}
+                  <div className="space-y-4">
+                    {/* Mock Reviews for UI Demo if real data not available, or message */}
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <p className="text-gray-500 font-medium">Customer reviews for this store's products are aggregated.</p>
+                      <button onClick={() => setActiveTab('shop')} className="mt-3 text-primary-600 font-bold text-sm hover:underline">
+                        Browse Products to see reviews
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'about' && (
+                <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40 space-y-8">
+                  <div>
+                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Shop Details</h4>
+                    <div className="space-y-4 text-sm">
+                      <div className="flex gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-orange-100">
+                          <FiUser size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-800 tracking-tight">Owner</p>
+                          <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">
+                            {vendor.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-100">
+                          <FiMapPin size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-800 tracking-tight">Address</p>
+                          <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">
+                            {vendor.address?.street ? `${vendor.address.street}, ` : ''}
+                            {vendor.address?.city}, {vendor.address?.state} {vendor.address?.zipCode}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-purple-100">
+                          <FiMail size={18} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-800 tracking-tight">Email</p>
+                          <p className="text-slate-500 text-xs mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">{vendor.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">About Story</h4>
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100/50">
+                      <p className="text-xs text-slate-600 leading-6 font-medium">
+                        {vendor.storeDescription || 'Welcome to our store! We are dedicated to providing the best quality products and services to our valued customers. Each item in our collection is curated with care.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500">
+                      <FiClock size={12} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Member since {new Date(vendor.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -513,59 +657,123 @@ const VendorStore = () => {
   // Desktop Layout
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
+      <div className="min-h-screen bg-slate-50 w-full overflow-x-hidden">
         <Header />
         <Navbar />
         <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Breadcrumbs */}
-            <Breadcrumbs />
+            <div className="mb-6">
+              <Breadcrumbs />
+            </div>
 
-            {/* Vendor Header */}
-            <div className="glass-card rounded-2xl p-6 mb-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                {/* Vendor Logo */}
-                <div className="flex-shrink-0">
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+            {/* Vendor Header - High End Premium Look */}
+            <div className="relative mb-8 bg-white rounded-[2.5rem] p-8 shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+              {/* Background Decoration */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-primary-100/30 rounded-full -mr-48 -mt-48 blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-72 h-72 bg-indigo-100/20 rounded-full -ml-36 -mb-36 blur-3xl"></div>
+
+              <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8">
+                {/* Vendor Logo Container */}
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-3xl border-[6px] border-white bg-white shadow-xl overflow-hidden group-hover:scale-105 transition-transform duration-500">
                     {vendor.storeLogo ? (
                       <img
                         src={vendor.storeLogo}
                         alt={vendor.storeName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = '/images/logos/logo.png';
+                          e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(vendor.storeName) + '&background=random';
                         }}
                       />
                     ) : (
-                      <FiShoppingBag className="text-3xl text-gray-400" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Vendor Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h1 className="text-2xl font-bold text-gray-800">{vendor.storeName}</h1>
-                    {vendor.isVerified && (
-                      <FiCheckCircle className="text-green-600" title="Verified Vendor" />
-                    )}
-                  </div>
-                  {vendor.storeDescription && (
-                    <p className="text-gray-600 mb-3">{vendor.storeDescription}</p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    {vendor.rating > 0 && (
-                      <div className="flex items-center gap-1">
-                        <FiStar className="text-yellow-400 fill-yellow-400" />
-                        <span className="font-semibold text-gray-800">{vendor.rating}</span>
-                        <span className="text-gray-500">({vendor.reviewCount} reviews)</span>
+                      <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300">
+                        <FiShoppingBag size={40} />
                       </div>
                     )}
-                    <div className="text-gray-600">
-                      <span className="font-semibold">{vendor.totalProducts || vendorProducts.length}</span> Products
+                  </div>
+                  {vendor.isVerified && (
+                    <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-1.5 rounded-full border-4 border-white shadow-lg">
+                      <FiCheckCircle size={14} fill="currentColor" className="text-white" />
                     </div>
-                    <div className="text-gray-600">
-                      <span className="font-semibold">{vendor.totalSales || 0}</span> Sales
+                  )}
+                </div>
+
+                {/* Vendor Info Section */}
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">{vendor.storeName}</h1>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={handleFollow}
+                        className={`px-8 py-3 rounded-2xl text-sm font-bold shadow-lg transition-all active:scale-95 ${isFollowing
+                          ? 'bg-slate-100 text-slate-800 border border-slate-200'
+                          : 'bg-primary-600 text-white shadow-primary-200 hover:bg-primary-700'
+                          }`}
+                      >
+                        {isFollowing ? 'Following' : '+ Follow'}
+                      </button>
+                      <button className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 transition-all">
+                        <FiShare2 size={20} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {vendor.storeDescription && (
+                    <p className="text-slate-500 text-lg mb-6 leading-relaxed max-w-3xl">{vendor.storeDescription}</p>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-8">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <FiStar className="text-orange-400 fill-orange-400" size={18} />
+                        <span className="text-2xl font-black text-slate-900 tracking-tight">{vendor.rating || '4.8'}</span>
+                      </div>
+                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest">{vendor.reviewCount || 124} Reviews</span>
+                    </div>
+
+                    <div className="w-px h-10 bg-slate-200 hidden md:block"></div>
+
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-black text-slate-900 tracking-tight mb-1">{followers}</span>
+                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest">Followers</span>
+                    </div>
+
+                    <div className="w-px h-10 bg-slate-200 hidden md:block"></div>
+
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-black text-slate-900 tracking-tight mb-1">{vendor.totalProducts || products.length}</span>
+                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest">Products Sold</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-8 border-t border-slate-100 flex flex-wrap justify-center md:justify-start gap-8">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">
+                        <FiMail size={20} />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Email ADDRESS</span>
+                        <span className="text-sm font-bold text-slate-700">{vendor.email}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                        <FiPhone size={20} />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-tighter">PHONE Number</span>
+                        <span className="text-sm font-bold text-slate-700">{vendor.phone}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <FiMapPin size={20} />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-tighter">LOCATION</span>
+                        <span className="text-sm font-bold text-slate-700">{vendor.address?.city}, {vendor.address?.state}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -573,48 +781,53 @@ const VendorStore = () => {
             </div>
 
             {/* Filters and View Options */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${showFilters
-                    ? 'bg-primary-50 border-primary-500 text-primary-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl border transition-all font-bold text-sm ${showFilters
+                    ? 'bg-primary-50 border-primary-200 text-primary-700 shadow-inner'
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:shadow-md'
                     }`}
                 >
-                  <FiFilter />
-                  <span className="text-sm font-semibold">Filters</span>
+                  <FiFilter size={18} />
+                  <span>Filters</span>
                 </button>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                >
-                  <option value="popular">Popular</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="newest">Newest</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none pl-6 pr-12 py-2.5 rounded-2xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-100 transition-all font-bold text-sm cursor-pointer hover:border-slate-300"
+                  >
+                    <option value="popular">Popular</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center bg-slate-100 rounded-2xl p-1.5 gap-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                  className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid'
+                    ? 'bg-white text-primary-600 shadow-sm ring-1 ring-slate-200'
+                    : 'text-slate-500 hover:text-slate-800'
                     }`}
                 >
-                  <FiGrid />
+                  <FiGrid size={20} />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                  className={`p-2.5 rounded-xl transition-all ${viewMode === 'list'
+                    ? 'bg-white text-primary-600 shadow-sm ring-1 ring-slate-200'
+                    : 'text-slate-500 hover:text-slate-800'
                     }`}
                 >
-                  <FiList />
+                  <FiList size={20} />
                 </button>
               </div>
             </div>
@@ -690,24 +903,48 @@ const VendorStore = () => {
             )}
 
             {/* Products Grid/List */}
-            {filteredProducts.length > 0 ? (
+            {loading && displayedItems.length === 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 p-3 space-y-4 shadow-sm animate-pulse">
+                    <div className="w-full aspect-square bg-slate-50 rounded-xl" />
+                    <div className="space-y-2">
+                      <div className="h-3 bg-slate-50 rounded w-5/6" />
+                      <div className="h-3 bg-slate-50 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : displayedItems.length > 0 ? (
               <>
                 {viewMode === 'grid' ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                     {displayedItems.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                      <ProductCard key={product._id || product.id} product={product} />
                     ))}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {displayedItems.map((product, index) => (
-                      <ProductListItem key={product.id} product={product} index={index} />
+                      <ProductListItem key={product._id || product.id} product={product} index={index} />
                     ))}
                   </div>
                 )}
                 {hasMore && (
-                  <div ref={loadMoreRef} className="text-center py-8">
-                    <p className="text-gray-500">Loading more products...</p>
+                  <div className="mt-8 flex flex-col items-center gap-4">
+                    {isLoading && (
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <FiLoader className="animate-spin text-xl" />
+                        <span>Loading more products...</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={loadMore}
+                      disabled={isLoading}
+                      className="px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? 'Loading...' : 'Load More'}
+                    </button>
                   </div>
                 )}
               </>

@@ -3,36 +3,24 @@ import { createPortal } from "react-dom";
 import {
   FiShoppingBag,
   FiUser,
-  FiLogOut,
-  FiPackage,
-  FiMapPin,
   FiHeart,
+  FiSearch,
 } from "react-icons/fi";
-import { HiOutlineUserCircle } from "react-icons/hi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCartStore, useUIStore } from "../../../store/useStore";
 import { useAuthStore } from "../../../store/authStore";
 import { useWishlistStore } from "../../../store/wishlistStore";
 import { appLogo } from "../../../data/logos";
+import { useSettingsStore } from "../../../store/settingsStore";
 import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
+import LocationSelector from "../../LocationSelector";
 import { useTheme } from "/src/context/ThemeContext";
 import { getTheme } from "../../../utils/themes";
 
-// Category gradient mapping - Very subtle pastel colors
-const categoryGradients = {
-  1: 'from-pink-50 via-rose-50 to-pink-100', // Clothing - Pinkish
-  2: 'from-amber-50 via-amber-100 to-yellow-50', // Footwear - Brownish
-  3: 'from-orange-50 via-orange-100 to-orange-50', // Bags - Orangeish
-  4: 'from-green-50 via-emerald-50 to-teal-50', // Jewelry - Greenish
-  5: 'from-purple-50 via-purple-100 to-indigo-50', // Accessories - Purple
-  6: 'from-blue-50 via-cyan-50 to-teal-50', // Athletic
-};
-
 const MobileHeader = () => {
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCartAnimation, setShowCartAnimation] = useState(false);
   const [positionsReady, setPositionsReady] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -46,7 +34,6 @@ const MobileHeader = () => {
   const [topRowHeight, setTopRowHeight] = useState(70);
   const lastScrollYRef = useRef(0);
   const topRowRef = useRef(null);
-  const userMenuRef = useRef(null);
   const logoRef = useRef(null);
   const cartRef = useRef(null);
   const navigate = useNavigate();
@@ -54,22 +41,22 @@ const MobileHeader = () => {
 
   const itemCount = useCartStore((state) => state.getItemCount());
   const toggleCart = useUIStore((state) => state.toggleCart);
-  const cartAnimationTrigger = useUIStore(
-    (state) => state.cartAnimationTrigger
-  );
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { settings, initialize: initializeSettings } = useSettingsStore();
+  const { user, isAuthenticated } = useAuthStore();
   const wishlistCount = useWishlistStore((state) => state.getItemCount());
   const { theme, activeTab } = useTheme();
 
-  // Get current category from URL (supports both /category/:id and /app/category/:id)
+  useEffect(() => {
+    initializeSettings();
+  }, []);
+
   const getCurrentCategoryId = () => {
-    const match = location.pathname.match(/\/(?:app\/)?category\/(\d+)/);
-    return match ? parseInt(match[1]) : null;
+    const match = location.pathname.match(/\/(?:app\/)?category\/([a-zA-Z0-9]+)/);
+    return match ? match[1] : null;
   };
 
   const currentCategoryId = getCurrentCategoryId();
 
-  // Get current page from location
   const getCurrentPage = () => {
     const path = location.pathname;
     if (path === '/app' || path === '/app/') return 'home';
@@ -79,7 +66,6 @@ const MobileHeader = () => {
     if (path === '/app/wishlist') return 'wishlist';
     if (path === '/app/profile') return 'profile';
     if (path === '/app/orders') return 'orders';
-    if (path.startsWith('/app/orders/')) return 'orderDetail';
     if (path === '/app/checkout') return 'checkout';
     if (path === '/app/offers') return 'offers';
     if (path === '/app/daily-deals') return 'dailyDeals';
@@ -90,327 +76,176 @@ const MobileHeader = () => {
 
   const currentPage = getCurrentPage();
 
-  // Map category ID to theme tab - each category has a unique color theme (same logic as Category.jsx)
   const getCategoryThemeTab = (catId) => {
     const themeMap = {
-      1: 'fashion', // Clothing - Purple theme
-      2: 'footwear', // Footwear - Brown/leather theme
-      3: 'leather', // Bags - Leather theme
-      4: 'jewelry', // Jewelry - Golden theme
-      5: 'winter', // Accessories - Blue theme
-      6: 'sports', // Athletic - Blue theme
+      1: 'fashion',
+      2: 'footwear',
+      3: 'leather',
+      4: 'jewelry',
+      5: 'winter',
+      6: 'sports',
     };
     return themeMap[catId] || 'all';
   };
 
-  // Memoize gradient background style to prevent unnecessary re-renders
   const headerBackground = useMemo(() => {
-    // Category pages - use theme colors to match PromoStrip below, exactly like home page
     if (currentCategoryId) {
       const categoryThemeTab = getCategoryThemeTab(currentCategoryId);
       const categoryTheme = getTheme(categoryThemeTab);
-      // Gradient flows from lighter at top to primary[0] at bottom to seamlessly connect with PromoStrip
-      return `linear-gradient(to bottom, ${categoryTheme.primary[3]} 0%, ${categoryTheme.primary[2]} 30%, ${categoryTheme.primary[1]} 60%, ${categoryTheme.primary[0]} 100%)`;
+      return `linear-gradient(to bottom, ${categoryTheme.primary[3]} 0%, ${categoryTheme.primary[2]} 50%, ${categoryTheme.primary[1]} 100%)`;
     }
 
-    // Home page - use theme colors to match sections below, ending with primary[0] for seamless blend with PromoStrip
     if (currentPage === 'home') {
-      // Gradient flows from lighter at top to primary[0] at bottom to seamlessly connect with PromoStrip
-      return `linear-gradient(to bottom, ${theme.primary[3]} 0%, ${theme.primary[2]} 30%, ${theme.primary[1]} 60%, ${theme.primary[0]} 100%)`;
+      return `linear-gradient(to bottom, ${theme.primary[3]} 0%, ${theme.primary[2]} 50%, ${theme.primary[1]} 100%)`;
     }
 
-    // Page-specific gradients
     const pageGradients = {
-      product: 'linear-gradient(to bottom, rgb(237, 233, 254) 0%, rgb(245, 243, 255) 50%, rgb(255, 255, 255) 100%)', // Light purple
-      search: 'linear-gradient(to bottom, rgb(249, 115, 22) 0%, rgb(251, 146, 60) 30%, rgb(255, 237, 213) 60%, rgb(255, 255, 255) 100%)', // Orange gradient
-      wishlist: 'linear-gradient(to bottom, rgb(239, 68, 68) 0%, rgb(248, 113, 113) 30%, rgb(254, 226, 226) 60%, rgb(255, 255, 255) 100%)', // Red/pink gradient
-      profile: 'linear-gradient(to bottom, rgb(16, 185, 129) 0%, rgb(52, 211, 153) 30%, rgb(209, 250, 229) 60%, rgb(255, 255, 255) 100%)', // Green gradient
-      orders: 'linear-gradient(to bottom, rgb(59, 130, 246) 0%, rgb(96, 165, 250) 30%, rgb(219, 234, 254) 60%, rgb(255, 255, 255) 100%)', // Blue gradient
-      orderDetail: 'linear-gradient(to bottom, rgb(59, 130, 246) 0%, rgb(96, 165, 250) 30%, rgb(219, 234, 254) 60%, rgb(255, 255, 255) 100%)', // Blue gradient
-      checkout: 'linear-gradient(to bottom, rgb(16, 185, 129) 0%, rgb(52, 211, 153) 30%, rgb(209, 250, 229) 60%, rgb(255, 255, 255) 100%)', // Green gradient
-      offers: 'linear-gradient(to bottom, rgb(249, 115, 22) 0%, rgb(251, 146, 60) 30%, rgb(255, 237, 213) 60%, rgb(255, 255, 255) 100%)', // Orange gradient
-      dailyDeals: 'linear-gradient(to bottom, rgb(234, 179, 8) 0%, rgb(250, 204, 21) 30%, rgb(254, 243, 199) 60%, rgb(255, 255, 255) 100%)', // Yellow gradient
-      flashSale: 'linear-gradient(to bottom, rgb(239, 68, 68) 0%, rgb(248, 113, 113) 30%, rgb(254, 226, 226) 60%, rgb(255, 255, 255) 100%)', // Red gradient
-      vendor: 'linear-gradient(to bottom, rgb(124, 58, 237) 0%, rgb(167, 139, 250) 30%, rgb(237, 233, 254) 60%, rgb(255, 255, 255) 100%)', // Purple gradient
-      default: 'linear-gradient(to bottom, rgb(237, 233, 254) 0%, rgb(245, 243, 255) 50%, rgb(255, 255, 255) 100%)', // Light purple default
+      product: 'linear-gradient(to bottom, #f3f4f6 0%, #ffffff 100%)',
+      search: 'linear-gradient(to bottom, #fff7ed 0%, #ffffff 100%)',
+      wishlist: 'linear-gradient(to bottom, #fef2f2 0%, #ffffff 100%)',
+      profile: 'linear-gradient(to bottom, #f0fdf4 0%, #ffffff 100%)',
+      orders: 'linear-gradient(to bottom, #eff6ff 0%, #ffffff 100%)',
+      default: 'linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%)',
     };
 
     return pageGradients[currentPage] || pageGradients.default;
   }, [currentCategoryId, currentPage, location.pathname, theme, activeTab]);
 
-  // Close menus when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Measure top row height
-  useEffect(() => {
-    const measureTopRow = () => {
+    const measureHeight = () => {
       if (topRowRef.current) {
-        const height = topRowRef.current.offsetHeight;
-        setTopRowHeight(height);
+        // Use a slight delay to ensure everything is rendered
+        setTimeout(() => {
+          const header = document.querySelector('header[key="mobile-header"]');
+          if (header) setTopRowHeight(header.offsetHeight);
+        }, 100);
       }
     };
-
-    measureTopRow();
-    window.addEventListener("resize", measureTopRow);
-    return () => window.removeEventListener("resize", measureTopRow);
+    measureHeight();
+    window.addEventListener("resize", measureHeight);
+    return () => window.removeEventListener("resize", measureHeight);
   }, []);
 
-  // Handle scroll to hide/show top row with smooth throttling
   useEffect(() => {
     let ticking = false;
-
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
           const lastScrollY = lastScrollYRef.current;
-
-          // Show top row when at top or scrolling up
-          if (currentScrollY < 10) {
-            setIsTopRowVisible(true);
-          } else if (currentScrollY < lastScrollY) {
-            // Scrolling up - show top row
-            setIsTopRowVisible(true);
-          } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
-            // Scrolling down and past threshold - hide top row
-            setIsTopRowVisible(false);
-          }
-
+          if (currentScrollY < 10) setIsTopRowVisible(true);
+          else if (currentScrollY < lastScrollY) setIsTopRowVisible(true);
+          else if (currentScrollY > lastScrollY && currentScrollY > 100) setIsTopRowVisible(false);
           lastScrollYRef.current = currentScrollY;
           ticking = false;
         });
         ticking = true;
       }
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Calculate animation positions after component mounts
   useEffect(() => {
     const calculatePositions = () => {
       if (logoRef.current && cartRef.current) {
         const logoRect = logoRef.current.getBoundingClientRect();
         const cartRect = cartRef.current.getBoundingClientRect();
-
         const positions = {
           startX: logoRect.left + logoRect.width / 2,
           startY: logoRect.top + logoRect.height / 2,
           endX: cartRect.left + cartRect.width / 2,
           endY: cartRect.top + cartRect.height / 2,
         };
-
-        // Only set positions if they're valid and animation hasn't played yet
-        if (positions.startX > 0 && positions.endX > 0 && positions.startY > 0 && positions.endY > 0 && !hasPlayed) {
+        if (positions.startX > 0 && positions.endX > 0 && !hasPlayed) {
           setAnimationPositions(positions);
           setPositionsReady(true);
-          // Start animation once positions are ready
           setShowCartAnimation(true);
           setHasPlayed(true);
         }
       }
     };
-
-    // Calculate positions after delays to ensure elements are rendered
-    const timer1 = setTimeout(calculatePositions, 100);
-    const timer2 = setTimeout(calculatePositions, 500);
-    const timer3 = setTimeout(calculatePositions, 1000);
-
-    // Recalculate on resize
-    window.addEventListener("resize", calculatePositions);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      window.removeEventListener("resize", calculatePositions);
-    };
+    const timer = setTimeout(calculatePositions, 500);
+    return () => clearTimeout(timer);
   }, [hasPlayed]);
 
-  const handleLogout = () => {
-    logout();
-    setShowUserMenu(false);
-    navigate("/app");
-  };
-
-  // Animation content - straight line movement only, starting from behind logo
-  const shouldShowAnimation = showCartAnimation && positionsReady && animationPositions.startX > 0 && animationPositions.endX > 0;
-
-  const animationContent = shouldShowAnimation ? (
+  const animationContent = showCartAnimation && positionsReady ? (
     <motion.div
-      className="fixed pointer-events-none"
-      style={{
-        left: 0,
-        top: 0,
-        zIndex: 10000, // Above navbar but will be behind logo due to stacking context
-        willChange: 'transform, opacity',
-        transform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-      }}
-      initial={{
-        x: animationPositions.startX - 24,
-        y: animationPositions.startY - 24,
-        scale: 0.8,
-        opacity: 0,
-      }}
-      animate={{
-        x: animationPositions.endX - 24,
-        y: animationPositions.endY - 24,
-        scale: [0.8, 1, 1.05, 0.95],
-        opacity: [0, 1, 1, 0.8, 0],
-      }}
-      transition={{
-        duration: 4,
-        ease: [0.25, 0.1, 0.25, 1],
-        times: [0, 0.1, 0.7, 0.9, 1],
-        type: "tween",
-      }}
-      onAnimationComplete={() => {
-        setShowCartAnimation(false);
-      }}>
-      <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
-        <DotLottieReact
-          src="https://lottie.host/083a2680-e854-4006-a50b-674276be82cd/oQMRcuZUkS.lottie"
-          autoplay
-          loop={false}
-          style={{ width: '100%', height: '100%' }}
-        />
+      className="fixed pointer-events-none z-[10000]"
+      initial={{ x: animationPositions.startX - 24, y: animationPositions.startY - 24, scale: 0.8, opacity: 0 }}
+      animate={{ x: animationPositions.endX - 24, y: animationPositions.endY - 24, scale: [0.8, 1, 0], opacity: [0, 1, 0] }}
+      transition={{ duration: 3, ease: "easeInOut" }}
+      onAnimationComplete={() => setShowCartAnimation(false)}
+    >
+      <div className="w-12 h-12">
+        <DotLottieReact src="https://lottie.host/083a2680-e854-4006-a50b-674276be82cd/oQMRcuZUkS.lottie" autoplay />
       </div>
     </motion.div>
   ) : null;
 
   const headerContent = (
     <motion.header
-      key="mobile-header" // Stable key to prevent re-mounting
-      className="fixed top-0 left-0 right-0 z-[9999] shadow-lg overflow-visible"
+      key="mobile-header"
+      className="fixed top-0 left-0 right-0 z-[9999] shadow-sm border-b border-gray-100"
       style={{
         background: headerBackground,
-        transition: 'background 0.5s ease-in-out',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
       }}
-      initial={false}
-      animate={{
-        y: isTopRowVisible ? 0 : -(topRowHeight + 12),
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
-        mass: 0.8,
-      }}>
-      <div className="px-4 py-3 overflow-visible">
-        {/* First Row: Logo and Actions */}
+      animate={{ y: isTopRowVisible ? 0 : -80 }} // Partial hide to keep categories mostly visible or hide cleaner
+      transition={{ type: "spring", stiffness: 260, damping: 30 }}
+    >
+      <div className="px-4 pt-4 pb-3 flex flex-col gap-4">
+        {/* Top Row: Branding and Actions */}
         <motion.div
           ref={topRowRef}
-          className="flex items-center justify-between gap-3 mb-3"
-          initial={false}
-          animate={{
-            opacity: isTopRowVisible ? 1 : 0,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 400,
-            damping: 35,
-            mass: 0.6,
-          }}
-          style={{
-            pointerEvents: isTopRowVisible ? "auto" : "none",
-          }}>
-          {/* Logo and Marketplace Badge */}
-          <div className="flex items-center gap-2 flex-shrink-0 overflow-visible relative z-[10001]">
-            <Link
-              to="/app"
-              className="flex items-center overflow-visible relative z-[10002]">
-              <div ref={logoRef} className="overflow-visible relative z-[10003]">
-                <img
-                  src={appLogo.src}
-                  alt={appLogo.alt}
-                  className="h-8 w-auto object-contain origin-left relative z-[10004]"
-                  style={{ transform: "scale(4)", position: "relative" }}
-                  onError={(e) => {
-                    // Fallback to placeholder if logo doesn't exist
-                    e.target.src =
-                      "https://via.placeholder.com/120x40/7C3AED/FFFFFF?text=LOGO";
-                  }}
-                />
-              </div>
+          className="flex items-center justify-between"
+          animate={{ opacity: isTopRowVisible ? 1 : 0 }}
+        >
+          <div className="flex items-center gap-3">
+            <Link to="/app/profile" className="w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 flex items-center justify-center overflow-hidden shadow-sm">
+              {isAuthenticated && user?.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <FiUser className="text-xl text-gray-800" />
+              )}
             </Link>
+            <LocationSelector />
           </div>
 
-          {/* Right Side Actions */}
           <div className="flex items-center gap-2">
-
-            {/* Cart Button */}
-            <motion.button
-              ref={cartRef}
-              data-cart-icon
-              onClick={toggleCart}
-              className="relative p-2.5 hover:bg-white/50 rounded-full transition-all duration-300"
-              animate={
-                cartAnimationTrigger > 0
-                  ? {
-                    scale: [1, 1.2, 1],
-                  }
-                  : {}
-              }
-              transition={{ duration: 0.5, ease: "easeOut" }}>
-              <FiShoppingBag className="text-xl text-gray-700" />
-              {itemCount > 0 && (
-                <motion.span
-                  key={itemCount}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: '#ffc101' }}>
-                  {itemCount > 9 ? "9+" : itemCount}
-                </motion.span>
-              )}
-            </motion.button>
-
-            {/* Wishlist Button */}
-            <Link
-              to="/app/wishlist"
-              className="relative p-2.5 hover:bg-white/50 rounded-full transition-all duration-300">
-              <FiHeart className="text-xl text-gray-700" />
+            <Link to="/app/wishlist" className="p-2.5 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 relative">
+              <FiHeart className="text-xl text-gray-800" />
               {wishlistCount > 0 && (
-                <motion.span
-                  key={wishlistCount}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-md"
-                  style={{ backgroundColor: '#ffc101' }}>
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
                   {wishlistCount > 9 ? "9+" : wishlistCount}
-                </motion.span>
+                </span>
               )}
             </Link>
-
+            <button ref={cartRef} onClick={toggleCart} className="p-2.5 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 relative">
+              <FiShoppingBag className="text-xl text-gray-800" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                  {itemCount > 9 ? "9+" : itemCount}
+                </span>
+              )}
+            </button>
           </div>
         </motion.div>
 
-        {/* Second Row: Search Bar */}
-        <div className="overflow-visible mb-2 relative z-[10005]">
+        {/* Search Bar */}
+        <div className="w-full relative z-10">
           <SearchBar />
         </div>
 
-        {/* Third Row: Category Icons */}
-        <div className="overflow-visible">
+        {/* Categories Section */}
+        <div className="w-full pt-1">
           <MobileCategoryIcons />
         </div>
       </div>
     </motion.header>
   );
 
-  // Use portal to render outside of transformed containers (like PageTransition)
   return (
     <>
       {typeof document !== 'undefined' && createPortal(headerContent, document.body)}

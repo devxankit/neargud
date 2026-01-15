@@ -1,151 +1,219 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { useCommissionStore } from './commissionStore';
+import { orderApi } from '../services/orderApi';
+import toast from 'react-hot-toast';
 
-export const useOrderStore = create(
-  persist(
-    (set, get) => ({
-      orders: [],
+export const useOrderStore = create((set, get) => ({
+  orders: [],
+  currentOrder: null,
+  isLoading: false,
+  error: null,
 
-      // Create a new order
-      createOrder: (orderData) => {
-        const orderId = `ORD-${Date.now()}`;
-        const trackingNumber = `TRK${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
-        
-        // Calculate estimated delivery (5-7 days from now)
-        const estimatedDelivery = new Date();
-        estimatedDelivery.setDate(estimatedDelivery.getDate() + Math.floor(Math.random() * 3) + 5);
-        
-        // Group items by vendor and calculate vendor-specific totals
-        const vendorItems = orderData.vendorItems || [];
-        
-        // If vendorItems not provided, calculate from items
-        let calculatedVendorItems = [];
-        if (vendorItems.length === 0 && orderData.items) {
-          // Group items by vendor
-          const vendorGroups = {};
-          orderData.items.forEach((item) => {
-            const vendorId = item.vendorId || 1; // Default to vendor 1 if not specified
-            const vendorName = item.vendorName || 'Unknown Vendor';
-            
-            if (!vendorGroups[vendorId]) {
-              vendorGroups[vendorId] = {
-                vendorId,
-                vendorName,
-                items: [],
-                subtotal: 0,
-                shipping: 0,
-                tax: 0,
-                discount: 0,
-              };
-            }
-            
-            const itemSubtotal = item.price * item.quantity;
-            vendorGroups[vendorId].items.push(item);
-            vendorGroups[vendorId].subtotal += itemSubtotal;
-          });
-          
-          // Calculate shipping per vendor (split equally or by subtotal ratio)
-          const totalSubtotal = Object.values(vendorGroups).reduce((sum, v) => sum + v.subtotal, 0);
-          const shippingPerVendor = orderData.shipping / Object.keys(vendorGroups).length;
-          
-          calculatedVendorItems = Object.values(vendorGroups).map((vendorGroup) => ({
-            ...vendorGroup,
-            shipping: shippingPerVendor,
-            tax: (vendorGroup.subtotal * (orderData.tax || 0)) / (totalSubtotal || 1),
-            discount: (vendorGroup.subtotal * (orderData.discount || 0)) / (totalSubtotal || 1),
-          }));
-        } else {
-          calculatedVendorItems = vendorItems;
-        }
-        
-        const newOrder = {
-          id: orderId,
-          userId: orderData.userId || null,
-          date: new Date().toISOString(),
-          status: 'pending',
-          items: orderData.items || [],
-          vendorItems: calculatedVendorItems, // Track items grouped by vendor
-          shippingAddress: orderData.shippingAddress || {},
-          paymentMethod: orderData.paymentMethod || 'card',
-          subtotal: orderData.subtotal || 0,
-          shipping: orderData.shipping || 0,
-          tax: orderData.tax || 0,
-          discount: orderData.discount || 0,
-          total: orderData.total || 0,
-          couponCode: orderData.couponCode || null,
-          trackingNumber: trackingNumber,
-          estimatedDelivery: estimatedDelivery.toISOString(),
-        };
+  // Create a new order
+  createOrder: async (orderData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await orderApi.createOrder(orderData);
+      const order = response.data.data || response.data;
 
-        set((state) => ({
-          orders: [newOrder, ...state.orders],
-        }));
+      set((state) => ({
+        orders: [order, ...state.orders],
+        currentOrder: order,
+        isLoading: false,
+      }));
 
-        // Record commissions for this order
-        if (calculatedVendorItems.length > 0) {
-          useCommissionStore.getState().recordCommission(orderId, calculatedVendorItems);
-        }
-
-        return newOrder;
-      },
-
-      // Get a single order by ID
-      getOrder: (orderId) => {
-        const state = get();
-        return state.orders.find((order) => order.id === orderId);
-      },
-
-      // Get all orders for a user (or guest orders if userId is null)
-      getAllOrders: (userId = null) => {
-        const state = get();
-        if (userId === null) {
-          // Return guest orders (where userId is null)
-          return state.orders.filter((order) => order.userId === null);
-        }
-        return state.orders.filter((order) => order.userId === userId);
-      },
-
-      // Get orders for a specific vendor
-      getVendorOrders: (vendorId) => {
-        const state = get();
-        return state.orders.filter((order) => {
-          if (!order.vendorItems) return false;
-          return order.vendorItems.some((vi) => vi.vendorId === parseInt(vendorId));
-        });
-      },
-
-      // Get order items for a specific vendor from an order
-      getVendorOrderItems: (orderId, vendorId) => {
-        const order = get().getOrder(orderId);
-        if (!order || !order.vendorItems) return null;
-        
-        const vendorItem = order.vendorItems.find((vi) => vi.vendorId === parseInt(vendorId));
-        return vendorItem || null;
-      },
-
-      // Update order status
-      updateOrderStatus: (orderId, newStatus) => {
-        set((state) => ({
-          orders: state.orders.map((order) =>
-            order.id === orderId ? { ...order, status: newStatus } : order
-          ),
-        }));
-      },
-
-      // Cancel an order
-      cancelOrder: (orderId) => {
-        set((state) => ({
-          orders: state.orders.map((order) =>
-            order.id === orderId ? { ...order, status: 'cancelled' } : order
-          ),
-        }));
-      },
-    }),
-    {
-      name: 'order-storage',
-      storage: createJSONStorage(() => localStorage),
+      toast.success('Order created successfully!');
+      return order;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      toast.error(error.message || 'Failed to create order');
+      throw error;
     }
-  )
-);
+  },
+
+  // Verify payment
+  verifyPayment: async (paymentData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await orderApi.verifyPayment(paymentData);
+      const result = response.data.data || response.data;
+
+      // Refresh orders after payment verification
+      await get().fetchOrders();
+
+      toast.success('Payment verified successfully!');
+      set({ isLoading: false });
+      return result;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      toast.error(error.message || 'Payment verification failed');
+      throw error;
+    }
+  },
+
+  // Fetch all orders
+  fetchOrders: async (params = {}) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await orderApi.getOrders(params);
+      const ordersData = response.data.data || response.data;
+
+      set({
+        orders: ordersData.orders || ordersData,
+        isLoading: false,
+      });
+
+      return ordersData;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Get a single order by ID
+  fetchOrder: async (orderId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await orderApi.getOrder(orderId);
+      const order = response.data.data || response.data;
+
+      set((state) => ({
+        currentOrder: order,
+        orders: state.orders.some(o => (o._id || o.id) === (order._id || order.id))
+          ? state.orders.map(o => (o._id || o.id) === (order._id || order.id) ? order : o)
+          : [order, ...state.orders],
+        isLoading: false,
+      }));
+
+      return order;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Get order from local state
+  getOrder: (orderId) => {
+    const state = get();
+    return state.orders.find((order) =>
+      order._id === orderId || order.id === orderId
+    );
+  },
+
+  // Get all orders from state, optionally filtered by user ID
+  getAllOrders: (userId) => {
+    const state = get();
+    if (!userId) return state.orders;
+    return state.orders.filter((order) => {
+      const orderUserId = order.userId || order.customerId;
+      const customerId = order.customer?._id || order.customer?.id;
+      return (
+        String(orderUserId) === String(userId) ||
+        String(customerId) === String(userId) ||
+        !orderUserId // If no ID is present on order, include it anyway (legacy/fallback)
+      );
+    });
+  },
+
+  // Cancel an order
+  cancelOrder: async (orderId, reason = '') => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await orderApi.cancelOrder(orderId, reason);
+      const result = response.data.data || response.data;
+
+      // Update order in local state
+      set((state) => ({
+        orders: state.orders.map((order) =>
+          order._id === orderId || order.id === orderId
+            ? { ...order, status: 'cancelled', cancellationReason: reason }
+            : order
+        ),
+        isLoading: false,
+      }));
+
+      toast.success('Order cancelled successfully');
+      return result;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      toast.error(error.message || 'Failed to cancel order');
+      throw error;
+    }
+  },
+
+  // Update order status locally (for real-time updates)
+  updateOrderStatus: (orderId, newStatus) => {
+    set((state) => ({
+      orders: state.orders.map((order) =>
+        order._id === orderId || order.id === orderId
+          ? { ...order, status: newStatus }
+          : order
+      ),
+    }));
+  },
+
+  // Clear current order
+  clearCurrentOrder: () => {
+    set({ currentOrder: null });
+  },
+
+  // Get orders by status
+  getOrdersByStatus: (status) => {
+    const state = get();
+    return state.orders.filter((order) => order.status === status);
+  },
+
+  // Get vendor orders
+  getVendorOrders: (vendorId) => {
+    const state = get();
+    if (!vendorId) return [];
+
+    return state.orders.filter((order) => {
+      // Check order level vendorId
+      if (order.vendorId && String(order.vendorId) === String(vendorId)) return true;
+
+      // Check items level vendorId
+      if (order.items && Array.isArray(order.items)) {
+        return order.items.some(item =>
+          item.vendorId && String(item.vendorId) === String(vendorId)
+        );
+      }
+
+      return false;
+    });
+  },
+
+  // Get order count
+  getOrderCount: () => {
+    const state = get();
+    return state.orders.length;
+  },
+
+  // Check return eligibility
+  checkReturnEligibility: async (orderId) => {
+    try {
+      const response = await orderApi.getReturnEligibility(orderId);
+      return response.data;
+    } catch (error) {
+      console.error('Eligibility check failed:', error);
+      return { eligible: false, reason: error.response?.data?.message || 'Check failed' };
+    }
+  },
+
+  // Create return request
+  createReturnRequest: async (returnData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await orderApi.createReturnRequest(returnData);
+      const result = response.data;
+
+      toast.success('Return request submitted successfully!');
+      set({ isLoading: false });
+      return result;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      toast.error(error.message || 'Failed to submit return request');
+      throw error;
+    }
+  },
+}));
 

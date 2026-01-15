@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,54 +6,86 @@ import DataTable from '../../../components/Admin/DataTable';
 import ConfirmModal from '../../../components/Admin/ConfirmModal';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import toast from 'react-hot-toast';
+import useAttributeStore from '../../../store/attributeStore';
 
 const AttributeValues = () => {
   const location = useLocation();
   const isAppRoute = location.pathname.startsWith('/app');
-  const [attributeValues, setAttributeValues] = useState([
-    { id: 1, attributeId: 1, attributeName: 'Color', value: 'Red', displayOrder: 1, status: 'active' },
-    { id: 2, attributeId: 1, attributeName: 'Color', value: 'Blue', displayOrder: 2, status: 'active' },
-    { id: 3, attributeId: 1, attributeName: 'Color', value: 'Green', displayOrder: 3, status: 'active' },
-    { id: 4, attributeId: 2, attributeName: 'Size', value: 'S', displayOrder: 1, status: 'active' },
-    { id: 5, attributeId: 2, attributeName: 'Size', value: 'M', displayOrder: 2, status: 'active' },
-    { id: 6, attributeId: 2, attributeName: 'Size', value: 'L', displayOrder: 3, status: 'active' },
-  ]);
+  
+  // Store
+  const { 
+      attributeValues, 
+      attributes,
+      fetchAttributeValues, 
+      fetchAttributes,
+      createAttributeValue, 
+      updateAttributeValue, 
+      deleteAttributeValue, 
+      loadingValues 
+  } = useAttributeStore();
+
   const [editingValue, setEditingValue] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [searchQuery, setSearchQuery] = useState('');
   const [attributeFilter, setAttributeFilter] = useState('all');
 
+  // Fetch data on mount
+  useEffect(() => {
+    fetchAttributeValues(); // Fetch all values
+    fetchAttributes();      // Fetch attributes for dropdowns
+  }, [fetchAttributeValues, fetchAttributes]);
+
+  // Client-side filtering (backend support filtering too but for now we filter loaded data or can pass params)
   const filteredValues = attributeValues.filter((val) => {
     const matchesSearch = !searchQuery || val.value.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAttribute = attributeFilter === 'all' || val.attributeId.toString() === attributeFilter;
+    // val.attributeId might be populated object or ID string depending on population. 
+    // Usually backend for values might populate attributeId.
+    // If populated: val.attributeId._id or val.attributeId.name
+    // If not: val.attributeId
+    // Let's assume standard ID for now or check both.
+    const attrId = typeof val.attributeId === 'object' ? val.attributeId?._id : val.attributeId;
+    
+    // Also "attributeName" column might need to be resolved if not directly in object
+    
+    const matchesAttribute = attributeFilter === 'all' || attrId?.toString() === attributeFilter;
     return matchesSearch && matchesAttribute;
   });
 
-  const uniqueAttributes = [...new Set(attributeValues.map((v) => ({ id: v.attributeId, name: v.attributeName })))];
+  // Unique attributes for filter (use fetches attributes instead)
+  // const uniqueAttributes = [...new Set(attributeValues.map((v) => ({ id: v.attributeId, name: v.attributeName })))];
+  // better use 'attributes' from store
 
-  const handleSave = (valueData) => {
-    if (editingValue && editingValue.id) {
-      setAttributeValues(attributeValues.map((v) => (v.id === editingValue.id ? { ...valueData, id: editingValue.id } : v)));
-      toast.success('Attribute value updated');
+  const handleSave = async (valueData) => {
+    if (editingValue && editingValue._id) {
+       const success = await updateAttributeValue(editingValue._id, valueData);
+       if(success) setEditingValue(null);
     } else {
-      setAttributeValues([...attributeValues, { ...valueData, id: attributeValues.length + 1 }]);
-      toast.success('Attribute value added');
+       const success = await createAttributeValue(valueData);
+       if(success) setEditingValue(null);
     }
-    setEditingValue(null);
   };
 
-  const handleDelete = () => {
-    setAttributeValues(attributeValues.filter((v) => v.id !== deleteModal.id));
-    setDeleteModal({ isOpen: false, id: null });
-    toast.success('Attribute value deleted');
+  const handleDelete = async () => {
+    if (deleteModal.id) {
+        await deleteAttributeValue(deleteModal.id);
+        setDeleteModal({ isOpen: false, id: null });
+    }
+  };
+
+  // Helper to get attribute name
+  const getAttributeName = (attrId) => {
+    if(!attrId) return 'Unknown';
+    if(typeof attrId === 'object' && attrId.name) return attrId.name;
+    const attr = attributes.find(a => a._id === attrId);
+    return attr ? attr.name : 'Unknown';
   };
 
   const columns = [
     {
-      key: 'attributeName',
+      key: 'attributeId',
       label: 'Attribute',
       sortable: true,
-      render: (value) => <span className="font-medium text-gray-800">{value}</span>,
+      render: (value) => <span className="font-medium text-gray-800">{getAttributeName(value)}</span>,
     },
     {
       key: 'value',
@@ -91,7 +123,7 @@ const AttributeValues = () => {
             <FiEdit />
           </button>
           <button
-            onClick={() => setDeleteModal({ isOpen: true, id: row.id })}
+            onClick={() => setDeleteModal({ isOpen: true, id: row._id })}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <FiTrash2 />
@@ -138,8 +170,8 @@ const AttributeValues = () => {
             onChange={(e) => setAttributeFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Attributes' },
-              ...uniqueAttributes.map((attr) => ({
-                value: attr.id.toString(),
+              ...attributes.map((attr) => ({
+                value: attr._id,
                 label: attr.name,
               })),
             ]}
@@ -154,6 +186,7 @@ const AttributeValues = () => {
           columns={columns}
           pagination={true}
           itemsPerPage={10}
+          loading={loadingValues}
         />
       </div>
 
@@ -214,15 +247,15 @@ const AttributeValues = () => {
                 style={{ willChange: 'transform' }}
               >
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingValue.id ? 'Edit Attribute Value' : 'Add Attribute Value'}
+                  {editingValue._id ? 'Edit Attribute Value' : 'Add Attribute Value'}
                 </h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 handleSave({
-                  attributeId: parseInt(formData.get('attributeId')),
-                  attributeName: formData.get('attributeName'),
+                  attributeId: formData.get('attributeId'),
+                  // attributeName: formData.get('attributeName'), // Not needed, derived from ID
                   value: formData.get('value'),
                   displayOrder: parseInt(formData.get('displayOrder')),
                   status: formData.get('status'),
@@ -231,25 +264,26 @@ const AttributeValues = () => {
               className="space-y-4"
             >
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attribute ID</label>
-                <input
-                  type="number"
-                  name="attributeId"
-                  defaultValue={editingValue.attributeId || ''}
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attribute</label>
+                <AnimatedSelect
+                    name="attributeId"
+                    value={
+                        // editingValue might have object or ID
+                        editingValue.attributeId 
+                            ? (typeof editingValue.attributeId === 'object' ? editingValue.attributeId._id : editingValue.attributeId) 
+                            : (attributes[0]?._id || '')
+                    } 
+                    onChange={(e) => {
+                        const form = e.target.closest('form');
+                        if (form) {
+                            const input = form.querySelector('[name="attributeId"]');
+                            if (input) input.value = e.target.value;
+                        }
+                    }}
+                    options={attributes.map(a => ({ value: a._id, label: a.name }))}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attribute Name</label>
-                <input
-                  type="text"
-                  name="attributeName"
-                  defaultValue={editingValue.attributeName || ''}
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
                 <input
@@ -293,9 +327,10 @@ const AttributeValues = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                  disabled={loadingValues}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50"
                 >
-                  Save
+                  {loadingValues ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"

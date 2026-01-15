@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiPackage, FiTruck, FiMapPin, FiCreditCard, FiRotateCw, FiDownload, FiX } from 'react-icons/fi';
+import { FiPackage, FiTruck, FiMapPin, FiCreditCard, FiRotateCw, FiDownload, FiX, FiRefreshCcw } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
+import ReturnModal from '../components/Orders/ReturnModal';
 import { useOrderStore } from '../store/orderStore';
 import { useCartStore } from '../store/useStore';
 import { formatPrice } from '../utils/helpers';
@@ -18,15 +20,26 @@ import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 const OrderDetail = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { getOrder, cancelOrder } = useOrderStore();
+  const { getOrder, cancelOrder, checkReturnEligibility } = useOrderStore();
   const { addItem } = useCartStore();
   const { responsivePadding } = useResponsiveHeaderPadding();
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [eligibility, setEligibility] = useState({ eligible: false });
   const order = getOrder(orderId);
 
   useEffect(() => {
     if (!order) {
       navigate('/orders');
+      return;
     }
+
+    const checkEligibility = async () => {
+      if (order.status === 'delivered') {
+        const res = await checkReturnEligibility(order._id || order.id);
+        setEligibility(res);
+      }
+    };
+    checkEligibility();
   }, [order, navigate]);
 
   if (!order) {
@@ -85,13 +98,13 @@ const OrderDetail = () => {
       });
     });
     toast.success('Items added to cart!');
-    navigate('/checkout');
+    navigate('/cart');
   };
 
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel this order?')) {
       if (['pending', 'processing'].includes(order.status)) {
-        cancelOrder(order.id);
+        cancelOrder(order._id || order.id);
         toast.success('Order cancelled successfully');
       } else {
         toast.error('This order cannot be cancelled');
@@ -144,13 +157,13 @@ ${order.shippingAddress.country}
           <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-2">
               <Breadcrumbs />
-              
+
               <div className="max-w-6xl mx-auto">
                 {/* Order Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                      Order #{order.id}
+                      Order #{order.orderCode || order._id || order.id}
                     </h1>
                     <p className="text-gray-600">
                       Placed on {formatDate(order.date)}
@@ -167,6 +180,54 @@ ${order.shippingAddress.country}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Main Content */}
                   <div className="lg:col-span-2 space-y-6">
+                    {/* Return Information (if exists) */}
+                    {order.returnRequest && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass-card rounded-2xl p-6 border-l-4 border-primary-500"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <FiRefreshCcw className="text-primary-600" />
+                            Return Request Details
+                          </h2>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${order.returnRequest.status === 'completed' ? 'bg-green-100 text-green-700' :
+                            order.returnRequest.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}>
+                            {order.returnRequest.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">Return ID</p>
+                            <p className="font-semibold">{order.returnRequest.returnCode}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Reason</p>
+                            <p className="font-semibold capitalize text-primary-700">
+                              {order.returnRequest.reason.replace(/_/g, ' ')}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Refund Amount</p>
+                            <p className="font-bold text-lg text-gray-800">{formatPrice(order.returnRequest.refundAmount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Requested On</p>
+                            <p className="font-semibold">{formatDate(order.returnRequest.createdAt)}</p>
+                          </div>
+                        </div>
+                        {order.returnRequest.note && (
+                          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-400 mb-1">Vendor/Admin Note</p>
+                            <p className="text-gray-700 italic">"{order.returnRequest.note}"</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
                     {/* Order Items */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -232,11 +293,11 @@ ${order.shippingAddress.country}
                       <div className="space-y-2">
                         <p className="text-gray-700 capitalize">
                           <span className="font-semibold">Method:</span>{' '}
-                          {order.paymentMethod === 'card' 
-                            ? 'Credit/Debit Card' 
-                            : order.paymentMethod === 'cash' 
-                            ? 'Cash on Delivery' 
-                            : 'Bank Transfer'}
+                          {order.paymentMethod === 'card'
+                            ? 'Credit/Debit Card'
+                            : order.paymentMethod === 'cash'
+                              ? 'Cash on Delivery'
+                              : 'Bank Transfer'}
                         </p>
                         {order.trackingNumber && (
                           <p className="text-gray-700">
@@ -291,13 +352,24 @@ ${order.shippingAddress.country}
                       {/* Action Buttons */}
                       <div className="space-y-3">
                         {order.status === 'delivered' && (
-                          <button
-                            onClick={handleReorder}
-                            className="w-full flex items-center justify-center gap-2 px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
-                          >
-                            <FiRotateCw />
-                            Reorder
-                          </button>
+                          <div className="flex flex-col gap-3">
+                            <button
+                              onClick={handleReorder}
+                              className="w-full flex items-center justify-center gap-2 px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
+                            >
+                              <FiRotateCw />
+                              Reorder
+                            </button>
+                            {eligibility.eligible && !order.returnRequest && (
+                              <button
+                                onClick={() => setIsReturnModalOpen(true)}
+                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-orange-500 text-orange-500 rounded-xl font-semibold hover:bg-orange-50 transition-colors"
+                              >
+                                <FiRefreshCcw />
+                                Return Items
+                              </button>
+                            )}
+                          </div>
                         )}
                         <button
                           onClick={handleDownloadInvoice}
@@ -316,7 +388,7 @@ ${order.shippingAddress.country}
                           </button>
                         )}
                         <Link
-                          to={`/track-order/${order.id}`}
+                          to={`/track-order/${order._id || order.id}`}
                           className="w-full flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
                         >
                           <FiTruck />
@@ -329,6 +401,11 @@ ${order.shippingAddress.country}
               </div>
             </div>
           </main>
+          <ReturnModal
+            order={order}
+            isOpen={isReturnModalOpen}
+            onClose={() => setIsReturnModalOpen(false)}
+          />
           <Footer />
         </div>
       </PageTransition>

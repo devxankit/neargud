@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { FiArrowLeft, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../../../store/authStore';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import PageTransition from '../../../components/PageTransition';
 
@@ -12,7 +13,7 @@ const MobileVerification = () => {
   const [codes, setCodes] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef([]);
-  
+
   const email = location.state?.email || 'your email';
 
   // Focus first input on mount
@@ -25,7 +26,7 @@ const MobileVerification = () => {
   const handleChange = (index, value) => {
     // Only allow single digit
     if (value.length > 1) return;
-    
+
     const newCodes = [...codes];
     newCodes[index] = value;
     setCodes(newCodes);
@@ -53,10 +54,12 @@ const MobileVerification = () => {
     }
   };
 
+  const { verifyEmail } = useAuthStore();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const verificationCode = codes.join('');
-    
+
     if (verificationCode.length !== 4) {
       toast.error('Please enter the complete verification code');
       return;
@@ -64,12 +67,12 @@ const MobileVerification = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await verifyEmail(email, verificationCode);
       toast.success('Verification successful!');
       navigate('/app');
     } catch (error) {
-      toast.error('Invalid verification code. Please try again.');
+      console.error(error);
+      toast.error(error.response?.data?.message || error.message || 'Invalid verification code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +105,7 @@ const MobileVerification = () => {
               {/* Header */}
               <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold text-gray-900 mb-6">Verification</h1>
-                
+
                 {/* Verification Icon */}
                 <div className="flex justify-center mb-6">
                   <div className="relative">
@@ -137,11 +140,10 @@ const MobileVerification = () => {
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
-                      className={`w-14 h-14 rounded-full border-2 text-center text-xl font-semibold focus:outline-none transition-all ${
-                        code
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-gray-200 focus:border-purple-500 text-gray-900'
-                      }`}
+                      className={`w-14 h-14 rounded-full border-2 text-center text-xl font-semibold focus:outline-none transition-all ${code
+                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 focus:border-purple-500 text-gray-900'
+                        }`}
                     />
                   ))}
                 </div>

@@ -25,7 +25,7 @@ const WishlistGridItem = ({ item, index, onMoveToCart, onRemove }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onRemove(item.id);
+              onRemove(item._id || item.id);
             }}
             className="p-1 glass rounded-full shadow-lg transition-all duration-300 group"
           >
@@ -34,7 +34,7 @@ const WishlistGridItem = ({ item, index, onMoveToCart, onRemove }) => {
         </div>
 
         {/* Product Image */}
-        <Link to={`/app/product/${item.id}`}>
+        <Link to={`/app/product/${item._id || item.id}`}>
           <div className="w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden relative">
             <LazyImage
               src={item.image}
@@ -51,7 +51,7 @@ const WishlistGridItem = ({ item, index, onMoveToCart, onRemove }) => {
 
       {/* Product Info */}
       <div className="p-2 flex-1 flex flex-col">
-        <Link to={`/app/product/${item.id}`}>
+        <Link to={`/app/product/${item._id || item.id}`}>
           <h3 className="font-bold text-gray-800 mb-0.5 line-clamp-2 text-xs transition-colors leading-tight">{item.name}</h3>
         </Link>
         {item.unit && (
@@ -65,11 +65,10 @@ const WishlistGridItem = ({ item, index, onMoveToCart, onRemove }) => {
               {[...Array(5)].map((_, i) => (
                 <FiStar
                   key={i}
-                  className={`text-[8px] ${
-                    i < Math.floor(item.rating)
+                  className={`text-[8px] ${i < Math.floor(item.rating)
                       ? 'text-yellow-400 fill-yellow-400'
                       : 'text-gray-300'
-                  }`}
+                    }`}
                 />
               ))}
             </div>

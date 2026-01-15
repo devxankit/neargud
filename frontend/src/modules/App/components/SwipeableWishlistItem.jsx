@@ -15,25 +15,30 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
   const deletedItemRef = useRef(null);
   const { removeItem, addItem: addToWishlist } = useWishlistStore();
 
-  const handleSwipeRight = () => {
+  const handleSwipeRight = async () => {
     setIsDeleted(true);
     deletedItemRef.current = { ...item };
-    removeItem(item.id);
-    onRemove(item.id);
-    toast.success('Removed from wishlist', {
-      duration: 3000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          if (deletedItemRef.current) {
-            addToWishlist(deletedItemRef.current);
-            setIsDeleted(false);
-            deletedItemRef.current = null;
-            toast.success('Item restored');
-          }
+    const id = item._id || item.id;
+    try {
+      await onRemove(id);
+      toast.success('Removed from wishlist', {
+        duration: 3000,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            if (deletedItemRef.current) {
+              await addToWishlist(deletedItemRef.current);
+              setIsDeleted(false);
+              deletedItemRef.current = null;
+              toast.success('Item restored');
+            }
+          },
         },
-      },
-    });
+      });
+    } catch (err) {
+      setIsDeleted(false);
+      toast.error('Failed to remove item');
+    }
   };
 
   const swipeHandlers = useSwipeGesture({
@@ -80,7 +85,7 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
 
       <div className="flex gap-4 relative z-10">
         {/* Product Image */}
-        <Link to={`/app/product/${item.id}`} className="flex-shrink-0">
+        <Link to={`/app/product/${item._id || item.id}`} className="flex-shrink-0">
           <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100">
             <LazyImage
               src={item.image}
@@ -95,14 +100,21 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
 
         {/* Product Info */}
         <div className="flex-1 min-w-0">
-          <Link to={`/app/product/${item.id}`}>
+          <Link to={`/app/product/${item._id || item.id}`}>
             <h3 className="font-bold text-gray-800 text-sm mb-1 line-clamp-2">
               {item.name}
             </h3>
           </Link>
-          <p className="text-lg font-bold text-primary-600 mb-3">
-            {formatPrice(item.price)}
-          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-lg font-bold text-primary-600">
+              {formatPrice(item.price)}
+            </p>
+            {item.originalPrice && (
+              <p className="text-sm text-gray-400 line-through">
+                {formatPrice(item.originalPrice)}
+              </p>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-2">
@@ -114,7 +126,7 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
               Add to Cart
             </button>
             <button
-              onClick={() => onRemove(item.id)}
+              onClick={() => onRemove(item._id || item.id)}
               className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
             >
               <FiTrash2 className="text-base" />

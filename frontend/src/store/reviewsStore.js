@@ -1,137 +1,65 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { reviewService } from '../services/reviewService';
+import toast from 'react-hot-toast';
 
-export const useReviewsStore = create(
-  persist(
-    (set, get) => ({
-      reviews: {},
-      votes: {},
+export const useReviewsStore = create((set, get) => ({
+  reviewsByProduct: {}, // { productId: { reviews: [], total: 0, page: 1, pages: 1 } }
+  isLoading: false,
+  error: null,
 
-      // Add review for a product
-      addReview: (productId, review) => {
-        set((state) => {
-          const productReviews = state.reviews[productId] || [];
-          const newReview = {
-            ...review,
-            id: Date.now().toString(),
-            helpfulCount: 0,
-            notHelpfulCount: 0,
-          };
-          return {
-            reviews: {
-              ...state.reviews,
-              [productId]: [...productReviews, newReview],
-            },
-          };
-        });
-      },
-
-      // Get reviews for a product
-      getReviews: (productId) => {
-        const state = get();
-        return state.reviews[productId] || [];
-      },
-
-      // Vote on review helpfulness
-      voteHelpful: (productId, reviewId) => {
-        set((state) => {
-          const voteKey = `${productId}_${reviewId}`;
-          if (state.votes[voteKey]) {
-            return state; // Already voted
+  fetchReviews: async (productId, page = 1) => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await reviewService.getProductReviews(productId, page);
+      // data is already the inner data object { reviews, total, page, pages }
+      set((state) => ({
+        reviewsByProduct: {
+          ...state.reviewsByProduct,
+          [productId]: {
+            reviews: data.reviews || [],
+            total: data.total || 0,
+            page: data.page || 1,
+            pages: data.pages || 1
           }
-
-          const productReviews = state.reviews[productId] || [];
-          const updatedReviews = productReviews.map((review) =>
-            review.id === reviewId
-              ? { ...review, helpfulCount: (review.helpfulCount || 0) + 1 }
-              : review
-          );
-
-          return {
-            reviews: {
-              ...state.reviews,
-              [productId]: updatedReviews,
-            },
-            votes: {
-              ...state.votes,
-              [voteKey]: 'helpful',
-            },
-          };
-        });
-      },
-
-      // Vote on review not helpful
-      voteNotHelpful: (productId, reviewId) => {
-        set((state) => {
-          const voteKey = `${productId}_${reviewId}`;
-          if (state.votes[voteKey]) {
-            return state; // Already voted
-          }
-
-          const productReviews = state.reviews[productId] || [];
-          const updatedReviews = productReviews.map((review) =>
-            review.id === reviewId
-              ? { ...review, notHelpfulCount: (review.notHelpfulCount || 0) + 1 }
-              : review
-          );
-
-          return {
-            reviews: {
-              ...state.reviews,
-              [productId]: updatedReviews,
-            },
-            votes: {
-              ...state.votes,
-              [voteKey]: 'not-helpful',
-            },
-          };
-        });
-      },
-
-      // Check if user has voted on a review
-      hasVoted: (productId, reviewId) => {
-        const state = get();
-        const voteKey = `${productId}_${reviewId}`;
-        return !!state.votes[voteKey];
-      },
-
-      // Sort reviews
-      sortReviews: (productId, sortBy) => {
-        const state = get();
-        const reviews = state.reviews[productId] || [];
-        let sorted = [...reviews];
-
-        switch (sortBy) {
-          case 'newest':
-            sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
-            break;
-          case 'oldest':
-            sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-            break;
-          case 'most-helpful':
-            sorted.sort(
-              (a, b) =>
-                (b.helpfulCount || 0) - (a.helpfulCount || 0) ||
-                (a.notHelpfulCount || 0) - (b.notHelpfulCount || 0)
-            );
-            break;
-          case 'highest-rating':
-            sorted.sort((a, b) => b.rating - a.rating);
-            break;
-          case 'lowest-rating':
-            sorted.sort((a, b) => a.rating - b.rating);
-            break;
-          default:
-            break;
-        }
-
-        return sorted;
-      },
-    }),
-    {
-      name: 'reviews-storage',
-      storage: createJSONStorage(() => localStorage),
+        },
+        isLoading: false
+      }));
+      return data;
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
     }
-  )
-);
+  },
 
+  addReview: async (reviewData) => {
+    set({ isLoading: true });
+    try {
+      const data = await reviewService.createReview(reviewData);
+
+      // Refresh reviews for this product
+      // This will now work without crashing since fetchReviews is fixed
+      await get().fetchReviews(reviewData.productId);
+
+      toast.success('Review submitted successfully');
+      set({ isLoading: false });
+      return data;
+    } catch (error) {
+      set({ isLoading: false });
+      toast.error(error.response?.data?.message || 'Failed to submit review');
+      throw error;
+    }
+  },
+
+  getReviews: (productId) => {
+    return get().reviewsByProduct[productId]?.reviews || [];
+  },
+
+  checkEligibility: async (productId) => {
+    try {
+      const data = await reviewService.checkEligibility(productId);
+      return data.data; // { canReview: boolean, orderId?: string, message?: string }
+    } catch (error) {
+      return { canReview: false, message: 'Could not verify eligibility' };
+    }
+  }
+}));

@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiFilter, FiGrid, FiList, FiTrendingDown, FiX, FiLoader } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { getOffers } from '../data/products';
 import { useCampaignStore } from '../store/campaignStore';
 import { formatPrice } from '../utils/helpers';
 import Header from '../components/Layout/Header';
@@ -12,38 +11,50 @@ import PageTransition from '../components/PageTransition';
 import ProductCard from '../components/ProductCard';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Badge from '../components/Badge';
-import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import ProductGridSkeleton from '../components/Skeletons/ProductGridSkeleton';
 import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
 
 const Offers = () => {
   const location = useLocation();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { getCampaignsByType, initialize } = useCampaignStore();
-  
+
   // Initialize campaigns
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Get active special offer campaigns
-  const specialOfferCampaigns = useMemo(() => {
-    const allCampaigns = getCampaignsByType('special_offer');
-    const now = new Date();
-    return allCampaigns.filter(
-      campaign =>
-        campaign.isActive &&
-        new Date(campaign.startDate) <= now &&
-        new Date(campaign.endDate) >= now
-    );
-  }, [getCampaignsByType]);
-
-  // Fallback to static data if no campaigns
-  const allOffers = useMemo(() => {
-    if (specialOfferCampaigns.length > 0) {
-      return getOffers();
-    }
-    return getOffers();
-  }, [specialOfferCampaigns]);
+  // Fetch offers (discounted products)
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        setLoading(true);
+        const { fetchPublicProducts } = await import('../services/publicApi');
+        // We can use a high limit or pagination for offers
+        const res = await fetchPublicProducts({
+          page,
+          limit: 12,
+          sort: '-discount' // Assuming backend supports this or we just fetch products with discounts
+        });
+        if (res.success) {
+          if (page === 1) {
+            setProducts(res.data.products || []);
+          } else {
+            setProducts(prev => [...prev, ...(res.data.products || [])]);
+          }
+          setTotalPages(res.data.totalPages || 1);
+        }
+      } catch (error) {
+        console.error("Error fetching offers:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOffers();
+  }, [page]);
   const { responsivePadding } = useResponsiveHeaderPadding();
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('discount'); // discount, price-low, price-high, rating
@@ -53,15 +64,15 @@ const Offers = () => {
 
   // Calculate discount percentage for each product
   const offersWithDiscount = useMemo(() => {
-    return allOffers.map((product) => {
-      const discount = Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
-      );
-      return { ...product, discount };
+    return products.map((product) => {
+      const price = product.price;
+      const originalPrice = product.originalPrice || price * 1.35; // Fallback to 35% if missing
+      const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+      return { ...product, originalPrice, discount };
     });
-  }, [allOffers]);
+  }, [products]);
 
-  // Filter and sort products
+  // Sort products - handled by filteredAndSortedProducts useMemo
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = offersWithDiscount.filter(
       (p) => p.discount >= minDiscount && p.discount <= maxDiscount
@@ -88,12 +99,15 @@ const Offers = () => {
     return filtered;
   }, [offersWithDiscount, sortBy, minDiscount, maxDiscount]);
 
-  // Infinite scroll hook
-  const { displayedItems, hasMore, isLoading, loadMore, loadMoreRef } = useInfiniteScroll(
-    filteredAndSortedProducts,
-    12,
-    12
-  );
+  // Infinite scroll logic
+  const hasMore = page < totalPages;
+  const isLoading = loading;
+  const loadMore = () => {
+    if (hasMore && !isLoading) {
+      setPage(prev => prev + 1);
+    }
+  };
+  const displayedItems = filteredAndSortedProducts;
 
   const averageDiscount = useMemo(() => {
     if (offersWithDiscount.length === 0) return 0;
@@ -135,21 +149,19 @@ const Offers = () => {
                     <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
                       <button
                         onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'grid'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         <FiGrid className="text-lg" />
                       </button>
                       <button
                         onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-lg transition-colors ${
-                          viewMode === 'list'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                          }`}
                       >
                         <FiList className="text-lg" />
                       </button>
@@ -261,8 +273,12 @@ const Offers = () => {
                 )}
               </div>
 
-              {/* Products Grid/List */}
-              {filteredAndSortedProducts.length === 0 ? (
+              {loading && products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
+                  <FiLoader className="text-4xl text-primary-500 animate-spin mb-4" />
+                  <p className="font-bold text-gray-500 uppercase tracking-widest text-xs">Loading Offers...</p>
+                </div>
+              ) : filteredAndSortedProducts.length === 0 ? (
                 <div className="glass-card rounded-2xl p-12 text-center">
                   <FiTrendingDown className="text-6xl text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-800 mb-2">No offers found</h3>
@@ -275,7 +291,7 @@ const Offers = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6 relative z-0">
                     {displayedItems.map((product, index) => (
                       <motion.div
-                        key={product.id}
+                        key={product._id || product.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.03 }}
@@ -288,10 +304,10 @@ const Offers = () => {
                       </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Loading indicator and Load More button */}
                   {hasMore && (
-                    <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-4">
+                    <div className="mt-8 flex flex-col items-center gap-4">
                       {isLoading && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <FiLoader className="animate-spin text-xl" />
@@ -312,66 +328,66 @@ const Offers = () => {
                 <>
                   <div className="space-y-4">
                     {displayedItems.map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="glass-card rounded-2xl p-4 sm:p-6"
-                    >
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        {/* Product Image */}
-                        <div className="relative flex-shrink-0">
-                          <div className="w-full sm:w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.src =
-                                  'https://via.placeholder.com/200x200?text=Product+Image';
-                              }}
-                            />
-                          </div>
-                          <div className="absolute -top-2 -right-2">
-                            <Badge variant="discount">{product.discount}% OFF</Badge>
-                          </div>
-                        </div>
-
-                        {/* Product Info */}
-                        <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-gray-800 text-lg mb-2">
-                              {product.name}
-                            </h3>
-                            <p className="text-gray-600 mb-2">{product.unit || 'Unit'}</p>
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="text-xl font-bold text-gray-800">
-                                {formatPrice(product.price)}
-                              </span>
-                              <span className="text-sm text-gray-400 line-through">
-                                {formatPrice(product.originalPrice)}
-                              </span>
-                              <span className="text-sm font-semibold text-accent-600">
-                                Save {formatPrice(product.originalPrice - product.price)}
-                              </span>
+                      <motion.div
+                        key={product._id || product.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="glass-card rounded-2xl p-4 sm:p-6"
+                      >
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {/* Product Image */}
+                          <div className="relative flex-shrink-0">
+                            <div className="w-full sm:w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src =
+                                    'https://via.placeholder.com/200x200?text=Product+Image';
+                                }}
+                              />
                             </div>
-                            {product.rating && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <span className="font-semibold">⭐ {product.rating}</span>
-                                <span>({product.reviewCount || 0} reviews)</span>
+                            <div className="absolute -top-2 -right-2">
+                              <Badge variant="discount">{product.discount}% OFF</Badge>
+                            </div>
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <h3 className="font-bold text-gray-800 text-lg mb-2">
+                                {product.name}
+                              </h3>
+                              <p className="text-gray-600 mb-2">{product.unit || 'Unit'}</p>
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="text-xl font-bold text-gray-800">
+                                  {formatPrice(product.price)}
+                                </span>
+                                <span className="text-sm text-gray-400 line-through">
+                                  {formatPrice(product.originalPrice)}
+                                </span>
+                                <span className="text-sm font-semibold text-accent-600">
+                                  Save {formatPrice(product.originalPrice - product.price)}
+                                </span>
                               </div>
-                            )}
+                              {product.rating && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <span className="font-semibold">⭐ {product.rating}</span>
+                                  <span>({product.reviewCount || 0} reviews)</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
                     ))}
                   </div>
-                  
+
                   {/* Loading indicator and Load More button */}
                   {hasMore && (
-                    <div ref={loadMoreRef} className="mt-8 flex flex-col items-center gap-4">
+                    <div className="mt-8 flex flex-col items-center gap-4">
                       {isLoading && (
                         <div className="flex items-center gap-2 text-gray-600">
                           <FiLoader className="animate-spin text-xl" />

@@ -1,13 +1,14 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { gsapAnimations } from '../../utils/animations';
 import CategoryCard from '../CategoryCard';
 import { categories as fallbackCategories } from '../../data/categories';
 import { useCategoryStore } from '../../store/categoryStore';
+import { useScrollAnimation } from '../../hooks/useAnimation';
+import useResponsiveHeaderPadding from '../../hooks/useResponsiveHeaderPadding';
 
 const CategoriesSection = () => {
-  const sectionRef = useRef(null);
   const { categories, initialize, getRootCategories } = useCategoryStore();
+  const sectionRef = useScrollAnimation();
 
   // Initialize store on mount
   useEffect(() => {
@@ -20,12 +21,6 @@ const CategoriesSection = () => {
     return roots.length > 0 ? roots : fallbackCategories;
   }, [categories, getRootCategories]);
 
-  useEffect(() => {
-    if (sectionRef.current) {
-      gsapAnimations.scrollReveal(sectionRef.current);
-    }
-  }, []);
-
   return (
     <section ref={sectionRef} className="py-16 md:py-0 bg-transparent relative">
       {/* Desktop Layout - White card container with horizontal scroll */}
@@ -37,7 +32,7 @@ const CategoriesSection = () => {
           <div className="flex gap-4 min-w-max pb-2">
             {displayCategories.map((category, index) => (
               <motion.div
-                key={category.id}
+                key={category._id || category.id}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -63,7 +58,7 @@ const CategoriesSection = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6 relative z-[1]">
           {displayCategories.map((category, index) => (
             <motion.div
-              key={category.id}
+              key={category._id || category.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -79,4 +74,3 @@ const CategoriesSection = () => {
 };
 
 export default CategoriesSection;
-

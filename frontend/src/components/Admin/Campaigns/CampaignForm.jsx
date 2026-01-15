@@ -63,14 +63,14 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
   const productsPerPage = 20;
 
   // Get stores
-  const { categories, getRootCategories, getCategoriesByParent, initialize: initCategories } = useCategoryStore();
-  const { brands, initialize: initBrands } = useBrandStore();
+  const { categories, getRootCategories, getCategoriesByParent, fetchCategories: initCategories } = useCategoryStore();
+  const { brands, fetchBrands } = useBrandStore();
 
   // Initialize stores
   useEffect(() => {
     initCategories();
-    initBrands();
-  }, [initCategories, initBrands]);
+    fetchBrands();
+  }, [initCategories, fetchBrands]);
 
   // Generate slug from name
   const generatedSlug = useMemo(() => {
@@ -291,20 +291,18 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
   }, [filteredProducts, formData.productIds]);
 
   // Handle custom banner image upload
+  const [bannerImageFile, setBannerImageFile] = useState(null);
+
   const handleBannerImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check if file is an image
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-
       // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Image size should be less than 5MB');
         return;
       }
+
+      setBannerImageFile(file);
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -312,11 +310,11 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
           ...formData,
           bannerConfig: {
             ...formData.bannerConfig,
-            image: reader.result, // Base64 data URL
-            customImage: true, // Flag to indicate custom image
+            image: reader.result, // Preview
+            customImage: true, 
           },
         });
-        toast.success('Banner image uploaded successfully');
+        toast.success('Banner image selected');
       };
       reader.onerror = () => {
         toast.error('Error reading image file');
@@ -325,7 +323,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -346,34 +344,65 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
     }
 
     try {
-      const campaignData = {
-        ...formData,
-        slug: formData.slug || generatedSlug,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
-        discountValue: parseFloat(formData.discountValue),
-      };
+      const payload = new FormData();
+      
+      // Append basic fields
+      payload.append('name', formData.name);
+      payload.append('type', formData.type);
+      payload.append('description', formData.description || '');
+      payload.append('discountType', formData.discountType);
+      payload.append('discountValue', formData.discountValue);
+      payload.append('startDate', new Date(formData.startDate).toISOString());
+      payload.append('endDate', new Date(formData.endDate).toISOString());
+      payload.append('isActive', formData.isActive);
+      payload.append('slug', formData.slug || generatedSlug);
+      payload.append('autoCreateBanner', formData.autoCreateBanner);
+
+      // Append complex objects as JSON strings
+      payload.append('productIds', JSON.stringify(formData.productIds));
+      payload.append('pageConfig', JSON.stringify(formData.pageConfig));
+      
+      // Handle banner config
+      const bannerConfigToSend = { ...formData.bannerConfig };
+      // If we have a new file, we don't need to send the base64 string in the config
+      // The backend will set the image URL after upload
+      if (bannerImageFile) {
+         payload.append('image', bannerImageFile);
+         // backend expects bannerConfig object too, but maybe without the huge base64 image
+         bannerConfigToSend.image = ''; 
+      }
+      payload.append('bannerConfig', JSON.stringify(bannerConfigToSend));
 
       let createdCampaign;
       if (isEdit) {
-        createdCampaign = updateCampaign(campaign.id, campaignData);
+        // For update, we might not always use FormData if no file?
+        // But consistent FormData usage is safer given our backend logic.
+        // Backend update logic needs to support FormData too. 
+        // Let's assume updateCampaign in store -> offerApi.update supports it.
+        // offerApi.update DOES support it.
+        createdCampaign = await updateCampaign(campaign.id || campaign._id, payload);
       } else {
-        createdCampaign = createCampaign(campaignData);
+        createdCampaign = await createCampaign(payload);
         
-        // Auto-create banner if enabled
-        if (campaignData.autoCreateBanner && createdCampaign) {
-          try {
-            createCampaignBanner(createdCampaign, campaignData.bannerConfig);
-          } catch (bannerError) {
-            console.error('Failed to create banner:', bannerError);
-            // Don't fail the campaign creation if banner fails
-          }
+        // Auto-create banner if enabled (Note: if payload is FormData, createCampaign returns the backend response object)
+        // If createCampaign returns the created object directly:
+        if (formData.autoCreateBanner && createdCampaign) {
+             // We can trigger banner creation. 
+             // However, our backend might have extracted the image URL and put it in createdCampaign.bannerConfig.
+             // Let's try to use that.
+             try {
+                // We need to pass the updated campaign object which has the real image URL
+                await createCampaignBanner(createdCampaign, createdCampaign.bannerConfig); 
+             } catch (bannerError) {
+                 console.error('Failed to create banner:', bannerError);
+             }
         }
       }
       onSave?.();
       onClose();
     } catch (error) {
-      // Error handled in store
+      console.error("Submit Error", error);
+      // Error handled in store toast usually, or we catch here.
     }
   };
 

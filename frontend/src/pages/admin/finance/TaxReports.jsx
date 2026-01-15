@@ -1,143 +1,90 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FiFileText, FiDownload } from "react-icons/fi";
 import { motion } from "framer-motion";
 import TaxTrendsChart from "../../../components/Admin/Analytics/TaxTrendsChart";
 import DataTable from "../../../components/Admin/DataTable";
 import ExportButton from "../../../components/Admin/ExportButton";
 import { formatCurrency, formatDateTime } from "../../../utils/adminHelpers";
-import { mockOrders } from "../../../data/adminMockData";
+import { fetchTaxReports } from "../../../services/adminFinanceApi";
+import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
+import { toast } from "react-hot-toast";
 
 const TaxReports = () => {
-  const [orders] = useState(mockOrders);
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [period, setPeriod] = useState("month");
+  const [taxData, setTaxData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const taxData = useMemo(() => {
-    // Generate tax data from orders and create daily aggregates for better chart visualization
-    const dailyData = {};
-
-    orders.forEach((order) => {
-      const taxRate = 0.18; // 18% tax
-      const taxAmount = order.total * taxRate;
-      const subtotal = order.total - taxAmount;
-      const dateKey = order.date.split("T")[0]; // Get date part only
-
-      if (!dailyData[dateKey]) {
-        dailyData[dateKey] = {
-          date: dateKey,
-          taxAmount: 0,
-          total: 0,
-          count: 0,
-          orders: [],
-        };
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchTaxReports(period);
+        setTaxData(data);
+      } catch (error) {
+        console.error("Failed to load tax reports:", error);
+        toast.error("Failed to load tax reports");
+      } finally {
+        setLoading(false);
       }
-
-      dailyData[dateKey].taxAmount += taxAmount;
-      dailyData[dateKey].total += order.total;
-      dailyData[dateKey].count += 1;
-      dailyData[dateKey].orders.push({
-        orderId: order.id,
-        customer: order.customer.name,
-        subtotal,
-        taxRate: taxRate * 100,
-        taxAmount,
-        total: order.total,
-      });
-    });
-
-    // Convert to array format for table and add individual order entries
-    const tableData = [];
-    Object.values(dailyData).forEach((dayData) => {
-      dayData.orders.forEach((order) => {
-        tableData.push({
-          orderId: order.orderId,
-          date: dayData.date,
-          customer: order.customer,
-          subtotal: order.subtotal,
-          taxRate: order.taxRate,
-          taxAmount: order.taxAmount,
-          total: order.total,
-        });
-      });
-    });
-
-    return {
-      chartData: Object.values(dailyData).map((day) => ({
-        date: day.date,
-        taxAmount: day.taxAmount,
-        total: day.total,
-        taxRate: 18,
-        count: day.count,
-      })),
-      tableData,
     };
-  }, [orders]);
 
-  const filteredTaxData = useMemo(() => {
-    if (!dateRange.start && !dateRange.end) return taxData.tableData;
-    return taxData.tableData.filter((item) => {
-      const itemDate = new Date(item.date);
-      const start = dateRange.start ? new Date(dateRange.start) : null;
-      const end = dateRange.end ? new Date(dateRange.end) : null;
-      return (!start || itemDate >= start) && (!end || itemDate <= end);
-    });
-  }, [taxData, dateRange]);
+    loadData();
+  }, [period]);
 
-  const totalTax = filteredTaxData.reduce(
+  const formattedData = useMemo(() => {
+    return taxData.map(item => ({
+      date: item.month || item.date || item._id, // Handle different potential keys
+      taxAmount: item.taxAmount,
+      total: item.taxableAmount,
+      taxRate: item.taxableAmount > 0 ? ((item.taxAmount / item.taxableAmount) * 100).toFixed(1) : 0
+    }));
+  }, [taxData]);
+
+  const totalTax = formattedData.reduce(
     (sum, item) => sum + item.taxAmount,
     0
   );
-  const totalRevenue = filteredTaxData.reduce(
+  const totalRevenue = formattedData.reduce(
     (sum, item) => sum + item.total,
     0
   );
 
   const columns = [
     {
-      key: "orderId",
-      label: "Order ID",
-      sortable: true,
-      render: (value) => (
-        <span className="font-semibold text-gray-800">{value}</span>
-      ),
-    },
-    {
       key: "date",
-      label: "Date",
+      label: "Period",
       sortable: true,
-      render: (value) => formatDateTime(value),
+      render: (value) => value, // Display as is (YYYY-MM or YYYY-MM-DD)
     },
     {
-      key: "customer",
-      label: "Customer",
-      sortable: true,
-    },
-    {
-      key: "subtotal",
-      label: "Subtotal",
+      key: "total",
+      label: "Taxable Amount",
       sortable: true,
       render: (value) => formatCurrency(value),
     },
     {
       key: "taxRate",
-      label: "Tax Rate",
+      label: "Avg Tax Rate",
       sortable: true,
       render: (value) => `${value}%`,
     },
     {
       key: "taxAmount",
-      label: "Tax Amount",
+      label: "Tax Collected",
       sortable: true,
       render: (value) => (
         <span className="font-bold text-gray-800">{formatCurrency(value)}</span>
       ),
     },
-    {
-      key: "total",
-      label: "Total",
-      sortable: true,
-      render: (value) => formatCurrency(value),
-    },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -153,6 +100,19 @@ const TaxReports = () => {
         </p>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-4 justify-end">
+        <AnimatedSelect
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          options={[
+            { value: "week", label: "Last 7 Days" },
+            { value: "month", label: "Last 30 Days" },
+            { value: "year", label: "Last Year" },
+          ]}
+          className="min-w-[140px]"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
@@ -165,7 +125,7 @@ const TaxReports = () => {
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600">Total Revenue</p>
+            <p className="text-sm text-gray-600">Taxable Revenue</p>
             <FiFileText className="text-green-600" />
           </div>
           <p className="text-2xl font-bold text-gray-800">
@@ -174,68 +134,33 @@ const TaxReports = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) =>
-                setDateRange({ ...dateRange, start: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date
-            </label>
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) =>
-                setDateRange({ ...dateRange, end: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div className="flex items-end">
-            <ExportButton
-              data={filteredTaxData}
-              headers={[
-                { label: "Order ID", accessor: (row) => row.orderId },
-                { label: "Date", accessor: (row) => formatDateTime(row.date) },
-                { label: "Customer", accessor: (row) => row.customer },
-                {
-                  label: "Subtotal",
-                  accessor: (row) => formatCurrency(row.subtotal),
-                },
-                { label: "Tax Rate", accessor: (row) => `${row.taxRate}%` },
-                {
-                  label: "Tax Amount",
-                  accessor: (row) => formatCurrency(row.taxAmount),
-                },
-                {
-                  label: "Total",
-                  accessor: (row) => formatCurrency(row.total),
-                },
-              ]}
-              filename="tax-report"
-            />
-          </div>
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        {/* Pass the fully formatted data to chart. The chart handles filtering, but we already fetched tailored data. 
+            We might need to adjust chart internal logic if it aggressively filters. 
+            But usually passing 'data' prop overrides internal fetching. 
+            However, our TaxTrendsChart 'filters' based on date range. 
+            Since backend returns data FOR the period, client side filtering for the SAME period should be a no-op 
+            if the dates match expected range. 
+        */}
+        <TaxTrendsChart taxData={formattedData} period={period} />
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Tax Breakdown</h3>
+          <ExportButton
+            data={formattedData}
+            headers={[
+              { label: "Date", accessor: (row) => row.date },
+              { label: "Taxable Amount", accessor: (row) => formatCurrency(row.total) },
+              { label: "Tax Rate", accessor: (row) => `${row.taxRate}%` },
+              { label: "Tax Amount", accessor: (row) => formatCurrency(row.taxAmount) },
+            ]}
+            filename={`tax-report-${period}`}
+          />
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <TaxTrendsChart taxData={taxData.chartData} period="month" />
-      </div>
-
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
         <DataTable
-          data={filteredTaxData}
+          data={formattedData}
           columns={columns}
           pagination={true}
           itemsPerPage={10}

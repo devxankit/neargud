@@ -279,129 +279,112 @@ export default function PromoStrip({ activeTab = 'all', heroBanner, categoryName
     const container = containerRef.current;
     if (!container) return;
 
-    const ctx = gsap.context(() => {
-      const cards = container.querySelectorAll('.promo-card');
-      gsap.fromTo(
-        cards,
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          stagger: 0.08,
-          ease: 'power3.out',
+    const ctx = gsap.context((self) => {
+      if (!container) return;
+
+      const q = gsap.utils.selector(container);
+
+      // 1. Initial cards stagger
+      const cards = q('.promo-card');
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { y: 30, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.5,
+            stagger: 0.08,
+            ease: 'power3.out',
+          }
+        );
+      }
+
+      // 2. Snowflake animation
+      const snowflakesContainer = snowflakesRef.current;
+      if (snowflakesContainer) {
+        const snowflakes = q('.snowflake');
+        snowflakes.forEach((snowflake, index) => {
+          const delay = index * 0.3;
+          const duration = 3 + Math.random() * 2;
+          const xOffset = (Math.random() - 0.5) * 40;
+
+          gsap.set(snowflake, {
+            y: -20,
+            x: xOffset,
+            opacity: 0.8 + Math.random() * 0.2,
+            scale: 0.6 + Math.random() * 0.4,
+          });
+
+          gsap.to(snowflake, {
+            y: '+=200',
+            x: `+=${xOffset}`,
+            duration: duration,
+            delay: delay,
+            ease: 'none',
+            repeat: -1,
+          });
+        });
+      }
+
+      // 3. HOUSEFULL SALE animation (Timeline with repeat)
+      const housefullContainer = housefullRef.current;
+      const saleText = saleRef.current;
+      const dateText = dateRef.current;
+
+      if (housefullContainer) {
+        const letters = q('.housefull-letter');
+        const tl = gsap.timeline({ repeat: -1, repeatDelay: 1 });
+
+        const targets = [housefullContainer, saleText, dateText].filter(Boolean);
+        if (targets.length > 0) {
+          tl.set(targets as any, { scale: 1, opacity: 1 })
+            .to(targets as any, {
+              scale: 0,
+              opacity: 0,
+              duration: 0.6,
+              ease: 'power2.in',
+              delay: 2 // Wait before starting loop
+            })
+            .to(targets as any, {
+              scale: 1.2,
+              opacity: 1,
+              duration: 0.5,
+              ease: 'back.out(1.7)',
+            })
+            .to(targets as any, {
+              scale: 1,
+              duration: 0.4,
+              ease: 'power2.out',
+            })
+            .to({}, { duration: 0.4 });
+
+          if (letters.length > 0) {
+            tl.to(letters, {
+              y: -15,
+              duration: 0.2,
+              stagger: 0.06,
+              ease: 'power2.out',
+            })
+              .to(letters, {
+                y: 0,
+                duration: 0.2,
+                stagger: 0.06,
+                ease: 'power2.in',
+              });
+          }
         }
-      );
+      }
     }, container);
 
-    return () => ctx.revert();
-  }, []);
-
-  // Snowflake animation
-  useLayoutEffect(() => {
-    const snowflakesContainer = snowflakesRef.current;
-    if (!snowflakesContainer) return;
-
-    const snowflakes = snowflakesContainer.querySelectorAll('.snowflake');
-
-    snowflakes.forEach((snowflake, index) => {
-      const delay = index * 0.3;
-      const duration = 3 + Math.random() * 2; // 3-5 seconds
-      const xOffset = (Math.random() - 0.5) * 40; // Random horizontal drift
-
-      gsap.set(snowflake, {
-        y: -20,
-        x: xOffset,
-        opacity: 0.8 + Math.random() * 0.2, // 0.8-1.0 opacity for better visibility
-        scale: 0.6 + Math.random() * 0.4, // 0.6-1.0 scale for better visibility
-      });
-
-      gsap.to(snowflake, {
-        y: '+=200',
-        x: `+=${xOffset}`,
-        duration: duration,
-        delay: delay,
-        ease: 'none',
-        repeat: -1,
-      });
-    });
-
     return () => {
-      snowflakes.forEach(snowflake => {
-        gsap.killTweensOf(snowflake);
-      });
+      try {
+        ctx.revert();
+      } catch (e) {
+        // Safe catch
+      }
     };
-  }, []);
-
-  // HOUSEFULL SALE animation: shrink down, pop out, then letter-by-letter pop - repeats every few seconds
-  useLayoutEffect(() => {
-    const housefullContainer = housefullRef.current;
-    const saleText = saleRef.current;
-    const dateText = dateRef.current;
-    if (!housefullContainer) return;
-
-    const letters = housefullContainer.querySelectorAll('.housefull-letter');
-
-    const animate = () => {
-      // Animation timeline
-      const tl = gsap.timeline();
-
-      // Set initial state - start at normal size
-      gsap.set([housefullContainer, saleText, dateText], { scale: 1, opacity: 1 });
-
-      // Step 1: Shrink down (going into a hole) - all elements together
-      tl.to([housefullContainer, saleText, dateText], {
-        scale: 0,
-        opacity: 0,
-        duration: 0.6,
-        ease: 'power2.in',
-      })
-        // Step 2: Pop out with bounce - all elements together
-        .to([housefullContainer, saleText, dateText], {
-          scale: 1.2,
-          opacity: 1,
-          duration: 0.5,
-          ease: 'back.out(1.7)',
-        })
-        // Step 3: Pop back to normal size - all elements together
-        .to([housefullContainer, saleText, dateText], {
-          scale: 1,
-          duration: 0.4,
-          ease: 'power2.out',
-        })
-        // Step 4: Wait a bit before letter animation
-        .to({}, { duration: 0.4 })
-        // Step 5: Letter-by-letter pop up animation (first to last)
-        .to(letters, {
-          y: -15,
-          duration: 0.2,
-          stagger: 0.06,
-          ease: 'power2.out',
-        })
-        // Step 6: Letters go back to place
-        .to(letters, {
-          y: 0,
-          duration: 0.2,
-          stagger: 0.06,
-          ease: 'power2.in',
-        })
-        // Step 7: Wait before repeating
-        .to({}, {
-          duration: 2,
-          onComplete: () => {
-            // Repeat animation after delay
-            setTimeout(animate, 1000);
-          }
-        });
-    };
-
-    // Start initial animation
-    animate();
-
-    return () => {
-      gsap.killTweensOf([housefullContainer, saleText, dateText, letters]);
-    };
-  }, []);
+  }, [activeTab, bannerText]);
 
   // Product rotation animation
   useEffect(() => {
@@ -412,39 +395,49 @@ export default function PromoStrip({ activeTab = 'all', heroBanner, categoryName
     return () => clearInterval(interval);
   }, [featuredProducts.length]);
 
-  // Animate product change with left swipe
   useEffect(() => {
-    if (priceContainerRef.current && productNameRef.current && productImageRef.current) {
-      // Swipe left (out)
-      try {
-        gsap.to([priceContainerRef.current, productNameRef.current, productImageRef.current], {
-          opacity: 0,
-          x: -30,
-          duration: 0.3,
-          ease: 'power2.in',
-          onComplete: () => {
-            // Check if refs are still valid before setting state
-            if (!priceContainerRef.current || !productNameRef.current || !productImageRef.current) return;
+    const ctx = gsap.context(() => {
+      // Create scoped selector
+      const q = gsap.utils.selector(containerRef);
 
-            // Reset position and update content
-            gsap.set([priceContainerRef.current, productNameRef.current, productImageRef.current], {
-              x: 30,
-              opacity: 0,
-            });
+      const priceTag = q('.crazy-price-container');
+      const nameTag = q('.crazy-product-name');
+      const imageTag = q('.crazy-product-image');
 
-            // Swipe in from right
-            gsap.to([priceContainerRef.current, productNameRef.current, productImageRef.current], {
-              opacity: 1,
-              x: 0,
-              duration: 0.4,
-              ease: 'power2.out',
-            });
-          },
-        });
-      } catch (e) {
-        console.warn("GSAP animation error:", e);
+      if (priceContainerRef.current && productNameRef.current && productImageRef.current) {
+        // Swipe left (out)
+        try {
+          gsap.to([priceContainerRef.current, productNameRef.current, productImageRef.current], {
+            opacity: 0,
+            x: -30,
+            duration: 0.3,
+            ease: 'power2.in',
+            onComplete: () => {
+              // Double check refs and component mounted status
+              if (!priceContainerRef.current || !productNameRef.current || !productImageRef.current) return;
+
+              // Reset position and update content
+              gsap.set([priceContainerRef.current, productNameRef.current, productImageRef.current], {
+                x: 30,
+                opacity: 0,
+              });
+
+              // Swipe in from right (only if still mounted)
+              gsap.to([priceContainerRef.current, productNameRef.current, productImageRef.current], {
+                opacity: 1,
+                x: 0,
+                duration: 0.4,
+                ease: 'power2.out',
+              });
+            },
+          });
+        } catch (e) {
+          // Inner catch for immediate animation errors
+        }
       }
-    }
+    }, containerRef);
+
+    return () => ctx.revert();
   }, [currentProductIndex]);
 
   const currentProduct = featuredProducts[currentProductIndex];

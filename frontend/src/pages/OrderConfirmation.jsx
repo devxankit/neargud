@@ -64,7 +64,7 @@ const OrderConfirmation = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-12">
             <div className="max-w-6xl mx-auto">
               <Breadcrumbs />
-              
+
               {/* Success Animation */}
               <motion.div
                 initial={{ scale: 0 }}
@@ -100,7 +100,7 @@ const OrderConfirmation = () => {
                             Order #{order.id}
                           </h2>
                           <p className="text-gray-600">
-                            Placed on {formatDate(order.date)}
+                            Placed on {formatDate(order.timestamp)}
                           </p>
                         </div>
                         <div className="text-right">
@@ -124,9 +124,16 @@ const OrderConfirmation = () => {
                               />
                               <div className="flex-1">
                                 <p className="font-semibold text-gray-800">{item.name}</p>
-                                <p className="text-sm text-gray-600">
-                                  {formatPrice(item.price)} × {item.quantity}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-gray-600">
+                                    {formatPrice(item.price)} × {item.quantity}
+                                  </p>
+                                  {item.originalPrice && item.originalPrice > item.price && (
+                                    <p className="text-xs text-gray-400 line-through">
+                                      {formatPrice(item.originalPrice)}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                               <p className="font-bold text-gray-800">
                                 {formatPrice(item.price * item.quantity)}
@@ -168,11 +175,11 @@ const OrderConfirmation = () => {
                     >
                       <h3 className="text-xl font-bold text-gray-800 mb-4">Payment Method</h3>
                       <p className="text-gray-700 capitalize">
-                        {order.paymentMethod === 'card' 
-                          ? 'Credit/Debit Card' 
-                          : order.paymentMethod === 'cash' 
-                          ? 'Cash on Delivery' 
-                          : 'Bank Transfer'}
+                        {order.paymentMethod === 'card'
+                          ? 'Credit/Debit Card'
+                          : order.paymentMethod === 'cash'
+                            ? 'Cash on Delivery'
+                            : 'Bank Transfer'}
                       </p>
                     </motion.div>
                   </div>

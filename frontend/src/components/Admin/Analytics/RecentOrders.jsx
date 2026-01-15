@@ -23,7 +23,7 @@ const RecentOrders = ({ orders, onViewOrder }) => {
       <div className="space-y-4">
         {paginatedOrders.map((order, index) => (
           <motion.div
-            key={order.id}
+            key={order._id || order.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
@@ -31,12 +31,12 @@ const RecentOrders = ({ orders, onViewOrder }) => {
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <h4 className="font-semibold text-gray-800 truncate">{order.id}</h4>
+                <h4 className="font-semibold text-gray-800 truncate">{order.orderCode || order._id}</h4>
                 <Badge variant={order.status}>{order.status}</Badge>
               </div>
-              <p className="text-sm text-gray-600 truncate">{order.customer.name}</p>
+              <p className="text-sm text-gray-600 truncate">{order.customerId?.firstName + ' ' + order.customerId?.lastName || 'N/A'}</p>
               <p className="text-xs text-gray-500 mt-1">
-                {formatDateTime(order.date)} • {Array.isArray(order.items) ? order.items.length : (typeof order.items === 'number' ? order.items : 0)} items
+                {formatDateTime(order.createdAt || order.orderDate || order.date)} • {Array.isArray(order.items) ? order.items.length : (typeof order.items === 'number' ? order.items : 0)} items
               </p>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0 ml-4">

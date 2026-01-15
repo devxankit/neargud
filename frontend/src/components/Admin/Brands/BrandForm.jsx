@@ -40,7 +40,7 @@ const BrandForm = ({ brand, onClose, onSave }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -50,9 +50,9 @@ const BrandForm = ({ brand, onClose, onSave }) => {
 
     try {
       if (isEdit) {
-        updateBrand(brand.id, formData);
+        await updateBrand(brand.id, formData);
       } else {
-        createBrand(formData);
+        await createBrand(formData);
       }
       onSave?.();
       onClose();

@@ -18,8 +18,8 @@ const ProfitLossChart = ({ data, period = "month" }) => {
   const chartData = useMemo(() => {
     return data.map((item) => {
       const revenue = item.revenue || 0;
-      const costOfGoods = revenue * 0.6;
-      const operatingExpenses = revenue * 0.2;
+      const costOfGoods = revenue * 0.85;
+      const operatingExpenses = revenue * 0.05;
       const grossProfit = revenue - costOfGoods;
       const netProfit = grossProfit - operatingExpenses;
 

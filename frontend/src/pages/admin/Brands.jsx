@@ -12,7 +12,7 @@ import Button from '../../components/Admin/Button';
 const Brands = () => {
   const {
     brands,
-    initialize,
+    fetchBrands,
     deleteBrand,
     bulkDeleteBrands,
     toggleBrandStatus,
@@ -28,7 +28,7 @@ const Brands = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    initialize();
+    fetchBrands();
   }, []);
 
   // Filtered brands

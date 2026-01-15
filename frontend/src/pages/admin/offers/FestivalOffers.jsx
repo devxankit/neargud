@@ -47,7 +47,7 @@ const FestivalOffers = () => {
       }
 
       return {
-        id: campaign.id,
+        id: campaign._id || campaign.id,
         title: campaign.name,
         discount: campaign.discountValue,
         startDate: campaign.startDate,

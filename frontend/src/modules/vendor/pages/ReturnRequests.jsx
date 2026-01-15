@@ -9,80 +9,52 @@ import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
 import { formatPrice } from '../../../utils/helpers';
 import { useVendorAuthStore } from '../store/vendorAuthStore';
 import { useOrderStore } from '../../../store/orderStore';
-import { mockReturnRequests } from '../../../data/adminMockData';
+import { vendorReturnApi } from '../../../services/vendorReturnApi';
 import toast from 'react-hot-toast';
 
 const ReturnRequests = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { orders } = useOrderStore();
   const [returnRequests, setReturnRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
   const vendorId = vendor?.id;
 
-  useEffect(() => {
-    if (!vendorId) return;
-
-    // Load return requests from localStorage or use mock data
-    const savedRequests = localStorage.getItem('admin-return-requests');
-    const allRequests = savedRequests ? JSON.parse(savedRequests) : mockReturnRequests;
-
-    // Filter return requests for this vendor's products
-    const vendorReturnRequests = allRequests.filter((request) => {
-      // Check if any items in the return request belong to this vendor
-      if (request.items && Array.isArray(request.items)) {
-        return request.items.some((item) => {
-          // Find the order to check vendor
-          const order = orders.find((o) => o.id === request.orderId);
-          if (order && order.vendorItems) {
-            return order.vendorItems.some((vi) => vi.vendorId === vendorId);
-          }
-          // Fallback: check if product belongs to vendor (from products data)
-          return item.vendorId === vendorId;
-        });
-      }
-      return false;
-    });
-
-    setReturnRequests(vendorReturnRequests);
-  }, [vendorId, orders]);
-
-  // Save return requests to localStorage
-  const saveReturnRequests = (newRequests) => {
-    const savedRequests = localStorage.getItem('admin-return-requests');
-    const allRequests = savedRequests ? JSON.parse(savedRequests) : mockReturnRequests;
-
-    // Update the specific requests
-    const updatedRequests = allRequests.map((req) => {
-      const updated = newRequests.find((nr) => nr.id === req.id);
-      return updated || req;
-    });
-
-    localStorage.setItem('admin-return-requests', JSON.stringify(updatedRequests));
-    setReturnRequests(newRequests);
+  const fetchReturns = async () => {
+    setIsLoading(true);
+    try {
+      const response = await vendorReturnApi.getReturns({ status: selectedStatus !== 'all' ? selectedStatus : undefined });
+      setReturnRequests(response.data || response || []);
+    } catch (error) {
+      console.error('Failed to fetch returns:', error);
+      toast.error('Failed to load return requests');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (vendorId) {
+      fetchReturns();
+    }
+  }, [vendorId, selectedStatus]);
 
   // Filtered return requests
   const filteredRequests = useMemo(() => {
-    let filtered = returnRequests;
+    let filtered = [...returnRequests];
 
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(
         (request) =>
-          request.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+          request.returnCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.orderId?.orderCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.customerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    }
-
-    // Status filter
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter((request) => request.status === selectedStatus);
     }
 
     // Date filter
@@ -93,15 +65,15 @@ const ReturnRequests = () => {
       switch (dateFilter) {
         case 'today':
           filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter((request) => new Date(request.requestDate) >= filterDate);
+          filtered = filtered.filter((request) => new Date(request.createdAt) >= filterDate);
           break;
         case 'week':
           filterDate.setDate(now.getDate() - 7);
-          filtered = filtered.filter((request) => new Date(request.requestDate) >= filterDate);
+          filtered = filtered.filter((request) => new Date(request.createdAt) >= filterDate);
           break;
         case 'month':
           filterDate.setMonth(now.getMonth() - 1);
-          filtered = filtered.filter((request) => new Date(request.requestDate) >= filterDate);
+          filtered = filtered.filter((request) => new Date(request.createdAt) >= filterDate);
           break;
         default:
           break;
@@ -109,38 +81,18 @@ const ReturnRequests = () => {
     }
 
     return filtered;
-  }, [returnRequests, searchQuery, selectedStatus, dateFilter]);
+  }, [returnRequests, searchQuery, dateFilter]);
 
   // Handle status update
-  const handleStatusUpdate = (requestId, newStatus, action = '') => {
-    const updatedRequests = returnRequests.map((request) => {
-      if (request.id === requestId) {
-        const updated = {
-          ...request,
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-        };
-
-        if (newStatus === 'approved' && action === 'approve') {
-          updated.refundStatus = 'pending';
-        } else if (newStatus === 'completed' && action === 'process-refund') {
-          updated.refundStatus = 'processed';
-        }
-
-        return updated;
-      }
-      return request;
-    });
-
-    saveReturnRequests(updatedRequests);
-
-    const statusMessages = {
-      approve: 'Return request approved',
-      reject: 'Return request rejected',
-      'process-refund': 'Refund processed successfully',
-    };
-
-    toast.success(statusMessages[action] || 'Status updated successfully');
+  const handleStatusUpdate = async (requestId, newStatus) => {
+    try {
+      await vendorReturnApi.updateStatus(requestId, newStatus);
+      toast.success(`Return request ${newStatus} successfully`);
+      fetchReturns();
+    } catch (error) {
+      console.error('Status update failed:', error);
+      toast.error(error.response?.data?.message || 'Failed to update status');
+    }
   };
 
   // Get status badge variant
@@ -158,7 +110,7 @@ const ReturnRequests = () => {
   // Table columns
   const columns = [
     {
-      key: 'id',
+      key: 'returnCode',
       label: 'Return ID',
       sortable: true,
       render: (value) => <span className="font-semibold">{value}</span>,
@@ -170,25 +122,30 @@ const ReturnRequests = () => {
       render: (value) => (
         <span
           className="text-blue-600 hover:text-blue-800 cursor-pointer"
-          onClick={() => navigate(`/vendor/orders/${value}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/vendor/orders/${value?._id || value}`);
+          }}
         >
-          {value}
+          {value?.orderCode || 'N/A'}
         </span>
       ),
     },
     {
-      key: 'customer',
+      key: 'customerId',
       label: 'Customer',
       sortable: true,
       render: (value) => (
         <div>
-          <p className="font-medium text-gray-800">{value.name}</p>
-          <p className="text-xs text-gray-500">{value.email}</p>
+          <p className="font-medium text-gray-800">
+            {value?.name || (value?.firstName ? `${value.firstName} ${value.lastName || ''}` : 'N/A')}
+          </p>
+          <p className="text-xs text-gray-500">{value?.email || 'N/A'}</p>
         </div>
       ),
     },
     {
-      key: 'requestDate',
+      key: 'createdAt',
       label: 'Request Date',
       sortable: true,
       render: (value) => new Date(value).toLocaleDateString(),
@@ -207,7 +164,7 @@ const ReturnRequests = () => {
       label: 'Reason',
       sortable: true,
       render: (value) => (
-        <span className="text-sm text-gray-700">{value}</span>
+        <span className="text-sm text-gray-700 capitalize">{value?.replace(/_/g, ' ')}</span>
       ),
     },
     {
@@ -222,7 +179,7 @@ const ReturnRequests = () => {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (value) => <Badge variant={getStatusVariant(value)}>{value}</Badge>,
+      render: (value) => <Badge variant={getStatusVariant(value)}>{value.toUpperCase()}</Badge>,
     },
     {
       key: 'actions',
@@ -231,7 +188,11 @@ const ReturnRequests = () => {
       render: (_, row) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/vendor/return-requests/${row.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              const requestId = row._id || row.id;
+              if (requestId) navigate(`/vendor/return-requests/${requestId}`);
+            }}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             title="View Details"
           >
@@ -240,9 +201,12 @@ const ReturnRequests = () => {
           {row.status === 'pending' && (
             <>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const requestId = row._id || row.id;
+                  if (!requestId) return;
                   if (window.confirm('Are you sure you want to approve this return request?')) {
-                    handleStatusUpdate(row.id, 'approved', 'approve');
+                    handleStatusUpdate(requestId, 'approved');
                   }
                 }}
                 className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
@@ -251,9 +215,12 @@ const ReturnRequests = () => {
                 <FiCheck />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const requestId = row._id || row.id;
+                  if (!requestId) return;
                   if (window.confirm('Are you sure you want to reject this return request?')) {
-                    handleStatusUpdate(row.id, 'rejected', 'reject');
+                    handleStatusUpdate(requestId, 'rejected');
                   }
                 }}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -262,19 +229,6 @@ const ReturnRequests = () => {
                 <FiX />
               </button>
             </>
-          )}
-          {row.status === 'approved' && row.refundStatus === 'pending' && (
-            <button
-              onClick={() => {
-                if (window.confirm('Process refund for this return request?')) {
-                  handleStatusUpdate(row.id, 'completed', 'process-refund');
-                }
-              }}
-              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-              title="Process Refund"
-            >
-              <FiRefreshCw />
-            </button>
           )}
         </div>
       ),
@@ -385,12 +339,12 @@ const ReturnRequests = () => {
             <ExportButton
               data={filteredRequests}
               headers={[
-                { label: 'Return ID', accessor: (row) => row.id },
-                { label: 'Order ID', accessor: (row) => row.orderId },
-                { label: 'Customer', accessor: (row) => row.customer.name },
-                { label: 'Email', accessor: (row) => row.customer.email },
-                { label: 'Request Date', accessor: (row) => new Date(row.requestDate).toLocaleDateString() },
-                { label: 'Items', accessor: (row) => row.items.length },
+                { label: 'Return ID', accessor: (row) => row.returnCode },
+                { label: 'Order ID', accessor: (row) => row.orderId?.orderCode },
+                { label: 'Customer', accessor: (row) => row.customerId?.name || `${row.customerId?.firstName} ${row.customerId?.lastName || ''}` },
+                { label: 'Email', accessor: (row) => row.customerId?.email },
+                { label: 'Request Date', accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
+                { label: 'Items', accessor: (row) => row.items?.length },
                 { label: 'Reason', accessor: (row) => row.reason },
                 { label: 'Refund Amount', accessor: (row) => formatPrice(row.refundAmount) },
                 { label: 'Status', accessor: (row) => row.status },
@@ -408,7 +362,10 @@ const ReturnRequests = () => {
           columns={columns}
           pagination={true}
           itemsPerPage={10}
-          onRowClick={(row) => navigate(`/vendor/return-requests/${row.id}`)}
+          onRowClick={(row) => {
+            const requestId = row._id || row.id;
+            if (requestId) navigate(`/vendor/return-requests/${requestId}`);
+          }}
         />
       ) : (
         <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-200 text-center">

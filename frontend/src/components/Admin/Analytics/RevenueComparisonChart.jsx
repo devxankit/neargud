@@ -15,21 +15,17 @@ import {
 import {
   formatDate,
   formatCurrency,
-  filterByDateRange,
-  getDateRange,
 } from "../../../utils/adminHelpers";
 import { motion } from "framer-motion";
 
 const RevenueComparisonChart = ({ data, period = "month" }) => {
   const filteredData = useMemo(() => {
-    const range = getDateRange(period);
-    const filtered = filterByDateRange(data, range.start, range.end);
-    return filtered.map((item) => ({
+    return data.map((item) => ({
       ...item,
       dateLabel: formatDate(item.date, { month: "short", day: "numeric" }),
       averageOrderValue: item.orders > 0 ? item.revenue / item.orders : 0,
     }));
-  }, [data, period]);
+  }, [data]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -59,7 +55,7 @@ const RevenueComparisonChart = ({ data, period = "month" }) => {
                   className="text-sm font-bold"
                   style={{ color: entry.color }}>
                   {entry.name.includes("Revenue") ||
-                  entry.name.includes("Order Value")
+                    entry.name.includes("Order Value")
                     ? formatCurrency(entry.value)
                     : entry.value}
                 </span>

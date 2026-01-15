@@ -7,70 +7,68 @@ import ExportButton from '../../components/Admin/ExportButton';
 import Badge from '../../components/Badge';
 import AnimatedSelect from '../../components/Admin/AnimatedSelect';
 import { formatCurrency, formatDateTime } from '../../utils/adminHelpers';
-import { mockReturnRequests } from '../../data/adminMockData';
+import { adminReturnApi } from '../../services/adminReturnApi';
 import toast from 'react-hot-toast';
 
 const ReturnRequests = () => {
   const navigate = useNavigate();
   const [returnRequests, setReturnRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
-  // Load return requests from localStorage or use mock data
-  useEffect(() => {
-    const savedRequests = localStorage.getItem('admin-return-requests');
-    if (savedRequests) {
-      setReturnRequests(JSON.parse(savedRequests));
-    } else {
-      setReturnRequests(mockReturnRequests);
-      localStorage.setItem('admin-return-requests', JSON.stringify(mockReturnRequests));
+  const fetchReturns = async () => {
+    setIsLoading(true);
+    try {
+      const response = await adminReturnApi.getReturns({ status: selectedStatus !== 'all' ? selectedStatus : undefined });
+      // Handle different possible response structures
+      const data = response?.returns || response?.data || (Array.isArray(response) ? response : []);
+      setReturnRequests(data);
+    } catch (error) {
+      console.error('Failed to fetch returns:', error);
+      toast.error('Failed to load return requests');
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
-
-  // Save return requests to localStorage
-  const saveReturnRequests = (newRequests) => {
-    setReturnRequests(newRequests);
-    localStorage.setItem('admin-return-requests', JSON.stringify(newRequests));
   };
+
+  useEffect(() => {
+    fetchReturns();
+  }, [selectedStatus]);
 
   // Filtered return requests
   const filteredRequests = useMemo(() => {
-    let filtered = returnRequests;
+    let filtered = [...returnRequests];
 
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(
         (request) =>
-          request.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+          request.returnCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.orderId?.orderCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.customerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    }
-
-    // Status filter
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter((request) => request.status === selectedStatus);
     }
 
     // Date filter
     if (dateFilter !== 'all') {
       const now = new Date();
       const filterDate = new Date();
-      
+
       switch (dateFilter) {
         case 'today':
           filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter((request) => new Date(request.requestDate) >= filterDate);
+          filtered = filtered.filter((request) => new Date(request.createdAt) >= filterDate);
           break;
         case 'week':
           filterDate.setDate(now.getDate() - 7);
-          filtered = filtered.filter((request) => new Date(request.requestDate) >= filterDate);
+          filtered = filtered.filter((request) => new Date(request.createdAt) >= filterDate);
           break;
         case 'month':
           filterDate.setMonth(now.getMonth() - 1);
-          filtered = filtered.filter((request) => new Date(request.requestDate) >= filterDate);
+          filtered = filtered.filter((request) => new Date(request.createdAt) >= filterDate);
           break;
         default:
           break;
@@ -78,38 +76,29 @@ const ReturnRequests = () => {
     }
 
     return filtered;
-  }, [returnRequests, searchQuery, selectedStatus, dateFilter]);
+  }, [returnRequests, searchQuery, dateFilter]);
 
   // Handle status update
-  const handleStatusUpdate = (requestId, newStatus, action = '') => {
-    const updatedRequests = returnRequests.map((request) => {
-      if (request.id === requestId) {
-        const updated = {
-          ...request,
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-        };
-        
-        if (newStatus === 'approved' && action === 'approve') {
-          updated.refundStatus = 'pending';
-        } else if (newStatus === 'completed' && action === 'process-refund') {
-          updated.refundStatus = 'processed';
-        }
-        
-        return updated;
-      }
-      return request;
-    });
-    
-    saveReturnRequests(updatedRequests);
-    
-    const statusMessages = {
-      approve: 'Return request approved',
-      reject: 'Return request rejected',
-      'process-refund': 'Refund processed successfully',
-    };
-    
-    toast.success(statusMessages[action] || 'Status updated successfully');
+  const handleStatusUpdate = async (requestId, newStatus) => {
+    try {
+      await adminReturnApi.updateStatus(requestId, newStatus);
+      toast.success(`Return request ${newStatus} successfully`);
+      fetchReturns();
+    } catch (error) {
+      console.error('Status update failed:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleProcessRefund = async (requestId) => {
+    try {
+      await adminReturnApi.processRefund(requestId);
+      toast.success('Refund processed successfully');
+      fetchReturns();
+    } catch (error) {
+      console.error('Refund processing failed:', error);
+      toast.error('Failed to process refund');
+    }
   };
 
   // Get status badge variant
@@ -127,34 +116,40 @@ const ReturnRequests = () => {
   // Table columns
   const columns = [
     {
-      key: 'id',
+      key: 'returnCode',
       label: 'Return ID',
       sortable: true,
-      render: (value) => <span className="font-semibold">{value}</span>,
+      render: (value, row) => <span className="font-semibold">{value || row._id || row.id}</span>,
     },
     {
       key: 'orderId',
       label: 'Order ID',
       sortable: true,
       render: (value) => (
-        <span className="text-blue-600 hover:text-blue-800 cursor-pointer" onClick={() => navigate(`/admin/orders/${value}`)}>
-          {value}
+        <span
+          className="text-blue-600 hover:text-blue-800 cursor-pointer"
+          onClick={() => {
+            const orderId = value?._id || value?.id || value;
+            if (orderId) navigate(`/admin/orders/${orderId}`);
+          }}
+        >
+          {value?.orderCode || value}
         </span>
       ),
     },
     {
-      key: 'customer',
+      key: 'customerId',
       label: 'Customer',
       sortable: true,
       render: (value) => (
         <div>
-          <p className="font-medium text-gray-800">{value.name}</p>
-          <p className="text-xs text-gray-500">{value.email}</p>
+          <p className="font-medium text-gray-800">{value?.name || 'Unknown'}</p>
+          <p className="text-xs text-gray-500">{value?.email || 'N/A'}</p>
         </div>
       ),
     },
     {
-      key: 'requestDate',
+      key: 'createdAt',
       label: 'Request Date',
       sortable: true,
       render: (value) => formatDateTime(value),
@@ -197,7 +192,10 @@ const ReturnRequests = () => {
       render: (_, row) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/admin/return-requests/${row.id}`)}
+            onClick={() => {
+              const requestId = row._id || row.id;
+              if (requestId) navigate(`/admin/return-requests/${requestId}`);
+            }}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             title="View Details"
           >
@@ -207,8 +205,10 @@ const ReturnRequests = () => {
             <>
               <button
                 onClick={() => {
+                  const requestId = row._id || row.id;
+                  if (!requestId) return;
                   if (window.confirm('Are you sure you want to approve this return request?')) {
-                    handleStatusUpdate(row.id, 'approved', 'approve');
+                    handleStatusUpdate(requestId, 'approved', 'approve');
                   }
                 }}
                 className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
@@ -218,8 +218,10 @@ const ReturnRequests = () => {
               </button>
               <button
                 onClick={() => {
+                  const requestId = row._id || row.id;
+                  if (!requestId) return;
                   if (window.confirm('Are you sure you want to reject this return request?')) {
-                    handleStatusUpdate(row.id, 'rejected', 'reject');
+                    handleStatusUpdate(requestId, 'rejected', 'reject');
                   }
                 }}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -232,8 +234,10 @@ const ReturnRequests = () => {
           {row.status === 'approved' && row.refundStatus === 'pending' && (
             <button
               onClick={() => {
+                const requestId = row._id || row.id;
+                if (!requestId) return;
                 if (window.confirm('Process refund for this return request?')) {
-                  handleStatusUpdate(row.id, 'completed', 'process-refund');
+                  handleProcessRefund(requestId);
                 }
               }}
               className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -349,12 +353,12 @@ const ReturnRequests = () => {
             <ExportButton
               data={filteredRequests}
               headers={[
-                { label: 'Return ID', accessor: (row) => row.id },
-                { label: 'Order ID', accessor: (row) => row.orderId },
-                { label: 'Customer', accessor: (row) => row.customer.name },
-                { label: 'Email', accessor: (row) => row.customer.email },
-                { label: 'Request Date', accessor: (row) => formatDateTime(row.requestDate) },
-                { label: 'Items', accessor: (row) => row.items.length },
+                { label: 'Return ID', accessor: (row) => row.returnCode || row._id || row.id },
+                { label: 'Order ID', accessor: (row) => row.orderId?.orderCode || row.orderId },
+                { label: 'Customer', accessor: (row) => row.customerId?.name || 'N/A' },
+                { label: 'Email', accessor: (row) => row.customerId?.email || 'N/A' },
+                { label: 'Request Date', accessor: (row) => formatDateTime(row.createdAt) },
+                { label: 'Items', accessor: (row) => (Array.isArray(row.items) ? row.items.length : 0) },
                 { label: 'Reason', accessor: (row) => row.reason },
                 { label: 'Refund Amount', accessor: (row) => formatCurrency(row.refundAmount) },
                 { label: 'Status', accessor: (row) => row.status },
@@ -371,7 +375,10 @@ const ReturnRequests = () => {
         columns={columns}
         pagination={true}
         itemsPerPage={10}
-        onRowClick={(row) => navigate(`/admin/return-requests/${row.id}`)}
+        onRowClick={(row) => {
+          const requestId = row._id || row.id;
+          if (requestId) navigate(`/admin/return-requests/${requestId}`);
+        }}
       />
     </motion.div>
   );

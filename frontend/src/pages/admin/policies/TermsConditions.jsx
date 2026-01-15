@@ -1,31 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useContentStore } from '../../../store/contentStore';
 import { FiSave, FiFileText } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const TermsConditions = () => {
-  const [content, setContent] = useState(`Terms & Conditions
+  const { fetchPolicyContent, updatePolicyContent } = useContentStore();
+  const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-Last updated: ${new Date().toLocaleDateString()}
+  useEffect(() => {
+    const loadPolicy = async () => {
+      setIsLoading(true);
+      const data = await fetchPolicyContent('terms');
+      if (data) setContent(data);
+      setIsLoading(false);
+    };
+    loadPolicy();
+  }, [fetchPolicyContent]);
 
-1. Acceptance of Terms
-By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement.
-
-2. Use License
-Permission is granted to temporarily download one copy of the materials on our website for personal, non-commercial transitory viewing only.
-
-3. Disclaimer
-The materials on our website are provided on an 'as is' basis. We make no warranties, expressed or implied.
-
-4. Limitations
-In no event shall our company or its suppliers be liable for any damages arising out of the use or inability to use the materials on our website.
-
-5. Revisions
-We may revise these terms of service at any time without notice. By using this website you are agreeing to be bound by the then current version of these terms.`);
-
-  const handleSave = () => {
-    toast.success('Terms & conditions saved successfully');
+  const handleSave = async () => {
+    try {
+      await updatePolicyContent('terms', content);
+    } catch (error) {
+      // Error handled in store
+    }
   };
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Loading...</div>;
+  }
 
   return (
     <motion.div

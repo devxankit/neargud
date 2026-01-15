@@ -14,10 +14,11 @@ import VendorBadge from '../../../modules/vendor/components/VendorBadge';
 import { getVendorById } from '../../../modules/vendor/data/vendors';
 
 const MobileProductCard = ({ product }) => {
+  const productId = product._id || product.id;
   const addItem = useCartStore((state) => state.addItem);
   const triggerCartAnimation = useUIStore((state) => state.triggerCartAnimation);
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
-  const isFavorite = isInWishlist(product.id);
+  const isFavorite = isInWishlist(productId);
   const [showLongPressMenu, setShowLongPressMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showFlyingItem, setShowFlyingItem] = useState(false);
@@ -63,11 +64,14 @@ const MobileProductCard = ({ product }) => {
     }, 50);
 
     addItem({
-      id: product.id,
+      id: product._id || product.id,
       name: product.name,
       price: product.price,
+      originalPrice: product.originalPrice,
       image: product.image,
       quantity: 1,
+      applicableCoupons: product.applicableCoupons,
+      isCouponEligible: product.isCouponEligible,
     });
     triggerCartAnimation();
   };
@@ -78,13 +82,14 @@ const MobileProductCard = ({ product }) => {
       e.stopPropagation();
     }
     if (isFavorite) {
-      removeFromWishlist(product.id);
+      removeFromWishlist(productId);
       toast.success('Removed from wishlist');
     } else {
       addToWishlist({
-        id: product.id,
+        id: productId,
         name: product.name,
         price: product.price,
+        originalPrice: product.originalPrice,
         image: product.image,
       });
       toast.success('Added to wishlist');
@@ -105,10 +110,10 @@ const MobileProductCard = ({ product }) => {
       navigator.share({
         title: product.name,
         text: `Check out ${product.name}`,
-        url: window.location.origin + `/app/product/${product.id}`,
+        url: window.location.origin + `/app/product/${productId}`,
       });
     } else {
-      navigator.clipboard.writeText(window.location.origin + `/app/product/${product.id}`);
+      navigator.clipboard.writeText(window.location.origin + `/app/product/${productId}`);
       toast.success('Link copied to clipboard');
     }
   };
@@ -117,80 +122,65 @@ const MobileProductCard = ({ product }) => {
 
   return (
     <>
-      <Link to={`/app/product/${product.id}`} className="block">
+      <Link to={`/app/product/${productId}`} className="block">
         <motion.div
           whileTap={{ scale: 0.98 }}
-          className="glass-card rounded-2xl overflow-hidden mb-4"
+          className="bg-white rounded-[1.5rem] overflow-hidden mb-4 border border-slate-100 shadow-sm transition-all active:shadow-md"
           {...longPressHandlers}
         >
-          <div className="flex gap-4 p-4">
+          <div className="flex gap-4 p-3 items-center">
             {/* Product Image */}
-            <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+            <div className="w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 p-1">
               <LazyImage
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/200x200?text=Product';
-                }}
+                className="w-full h-full object-cover rounded-xl"
               />
             </div>
 
             {/* Product Info */}
-            <div className="flex-1 min-w-0 flex flex-col">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="font-bold text-gray-800 text-sm line-clamp-2 flex-1">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-extrabold text-slate-800 text-sm line-clamp-2 uppercase tracking-tight">
                   {product.name}
                 </h3>
                 <button
                   onClick={handleFavorite}
-                  className="flex-shrink-0 p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                  className={`flex-shrink-0 p-2 rounded-xl transition-all ${isFavorite ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-400'}`}
                 >
                   <FiHeart
-                    className={`text-lg ${isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-400'}`}
+                    size={16}
+                    fill={isFavorite ? 'currentColor' : 'none'}
                   />
                 </button>
               </div>
 
-              <p className="text-xs text-gray-500 mb-2">{product.unit}</p>
-
-              {/* Vendor Badge */}
-              {product.vendorId && (
-                <div className="mb-2">
-                  <VendorBadge
-                    vendor={getVendorById(product.vendorId)}
-                    showVerified={true}
-                    size="sm"
-                  />
-                </div>
-              )}
-
-              {/* Rating */}
-              {product.rating && (
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <FiStar
-                        key={i}
-                        className={`text-xs ${i < Math.floor(product.rating)
-                            ? 'text-yellow-400 fill-yellow-400'
-                            : 'text-gray-300'
-                          }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-gray-600 font-medium">
-                    {product.rating} ({product.reviewCount || 0})
-                  </span>
-                </div>
-              )}
-
-              {/* Price */}
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-gray-900">{formatPrice(product.price)}</span>
-                {product.originalPrice && (
-                  <span className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{product.unit}</span>
+                {product.stock === 'low_stock' && (
+                  <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-md border border-orange-100 uppercase">Low Stock</span>
                 )}
+              </div>
+
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-black text-slate-900 tracking-tighter">
+                    {formatPrice(product.price)}
+                  </span>
+                  {product.originalPrice && (
+                    <span className="text-[10px] text-slate-400 line-through decoration-slate-300 font-bold">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  ref={buttonRef}
+                  onClick={handleAddToCart}
+                  className="w-9 h-9 rounded-xl bg-primary-600 text-white flex items-center justify-center shadow-lg shadow-primary-200 active:scale-90 transition-transform"
+                >
+                  <FiShoppingBag size={18} />
+                </button>
               </div>
             </div>
           </div>

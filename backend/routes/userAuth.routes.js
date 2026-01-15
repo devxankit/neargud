@@ -1,0 +1,37 @@
+import express from 'express';
+import {
+  register,
+  login,
+  logout,
+  getMe,
+  updateProfile,
+  changePassword,
+  verifyEmail,
+  resendOTP,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword,
+} from '../controllers/user-controllers/userAuth.controller.js';
+import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware.js';
+import { asyncHandler } from '../middleware/errorHandler.middleware.js';
+
+const router = express.Router();
+
+// Public routes
+router.post('/register', asyncHandler(register));
+router.post('/login', asyncHandler(login));
+router.post('/verify-email', asyncHandler(verifyEmail));
+router.post('/resend-otp', asyncHandler(resendOTP));
+router.post('/forgot-password', asyncHandler(forgotPassword));
+router.post('/verify-reset-otp', asyncHandler(verifyResetOTP));
+router.post('/reset-password', asyncHandler(resetPassword));
+
+// Protected routes (require authentication)
+// Logout uses optional authentication to allow logout even with expired tokens
+router.post('/logout', optionalAuthenticate, asyncHandler(logout));
+router.get('/me', authenticate, asyncHandler(getMe));
+router.put('/profile', authenticate, asyncHandler(updateProfile));
+router.put('/change-password', authenticate, asyncHandler(changePassword));
+
+export default router;
+

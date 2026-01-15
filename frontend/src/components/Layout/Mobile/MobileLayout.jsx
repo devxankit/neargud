@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import MobileHeader from './MobileHeader';
 import MobileBottomNav from './MobileBottomNav';
 import MobileCartBar from './MobileCartBar';
-import CartDrawer from '../../Cart/CartDrawer';
 import useMobileHeaderHeight from '../../../hooks/useMobileHeaderHeight';
 
 const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, showHeader }) => {
@@ -18,8 +17,11 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/app/reels',
     '/app/chat',
     '/app/login',
+    '/login',
     '/app/register',
+    '/register',
     '/app/verification',
+    '/verification',
     '/app/checkout',
     '/checkout',
   ];
@@ -72,7 +74,6 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
       </main>
       {showCartBar && <MobileCartBar />}
       {shouldShowBottomNav && <MobileBottomNav />}
-      <CartDrawer />
     </>
   );
 };

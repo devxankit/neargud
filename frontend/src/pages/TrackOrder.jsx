@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiCheckCircle, FiClock, FiPackage, FiTruck, FiMapPin, FiArrowLeft } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -12,16 +12,35 @@ import ProtectedRoute from '../components/Auth/ProtectedRoute';
 const TrackOrder = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { getOrder } = useOrderStore();
+  const { getOrder, fetchOrder } = useOrderStore();
   const order = getOrder(orderId);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
+    const loadOrder = async () => {
+      setFetching(true);
+      try {
+        await fetchOrder(orderId);
+      } catch (error) {
+        console.error("Error fetching order tracking:", error);
+      } finally {
+        setFetching(false);
+      }
+    };
     if (!order) {
-      navigate('/orders');
+      loadOrder();
     }
-  }, [order, navigate]);
+  }, [orderId, fetchOrder, order]);
 
-  if (!order) {
+  if (!order && fetching) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!order && !fetching) {
     return (
       <PageTransition>
         <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 w-full overflow-x-hidden">
@@ -46,20 +65,22 @@ const TrackOrder = () => {
       {
         label: 'Order Placed',
         completed: true,
-        date: order.date,
+        date: order.date || order.createdAt,
         description: 'Your order has been confirmed',
       },
       {
         label: 'Processing',
         completed: ['processing', 'shipped', 'delivered'].includes(order.status),
-        date: order.status !== 'pending' ? new Date(new Date(order.date).getTime() + 24 * 60 * 60 * 1000).toISOString() : null,
+        date: (order.date || order.createdAt) && order.status !== 'pending'
+          ? new Date(new Date(order.date || order.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
+          : null,
         description: 'We are preparing your order',
       },
       {
         label: 'Shipped',
         completed: ['shipped', 'delivered'].includes(order.status),
-        date: order.status === 'shipped' || order.status === 'delivered' 
-          ? new Date(new Date(order.date).getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
+        date: (order.date || order.createdAt) && (order.status === 'shipped' || order.status === 'delivered')
+          ? new Date(new Date(order.date || order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
           : null,
         description: 'Your order is on the way',
       },
@@ -103,13 +124,13 @@ const TrackOrder = () => {
           <main className="w-full overflow-x-hidden">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-12">
               <Breadcrumbs />
-              
+
               <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                      Track Order #{order.id}
+                      Track Order #{order.orderCode || order._id || order.id}
                     </h1>
                     <p className="text-gray-600">
                       Estimated delivery: {formatDeliveryDate(order.estimatedDelivery)}
@@ -153,21 +174,19 @@ const TrackOrder = () => {
                         {/* Timeline Line */}
                         {index < trackingSteps.length - 1 && (
                           <div
-                            className={`absolute left-6 top-12 w-0.5 h-full ${
-                              step.completed ? 'bg-primary-600' : 'bg-gray-200'
-                            }`}
+                            className={`absolute left-6 top-12 w-0.5 h-full ${step.completed ? 'bg-primary-600' : 'bg-gray-200'
+                              }`}
                           />
                         )}
-                        
+
                         {/* Step Content */}
                         <div className="flex items-start gap-4">
                           {/* Icon */}
                           <div
-                            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              step.completed
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-gray-200 text-gray-400'
-                            }`}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${step.completed
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-gray-200 text-gray-400'
+                              }`}
                           >
                             {step.completed ? (
                               <FiCheckCircle className="text-xl" />
@@ -177,14 +196,13 @@ const TrackOrder = () => {
                               <div className="w-3 h-3 rounded-full bg-current" />
                             )}
                           </div>
-                          
+
                           {/* Content */}
                           <div className="flex-1 pt-1">
                             <div className="flex items-center justify-between mb-1">
                               <h3
-                                className={`font-bold ${
-                                  step.completed ? 'text-gray-800' : 'text-gray-400'
-                                }`}
+                                className={`font-bold ${step.completed ? 'text-gray-800' : 'text-gray-400'
+                                  }`}
                               >
                                 {step.label}
                               </h3>
@@ -195,9 +213,8 @@ const TrackOrder = () => {
                               )}
                             </div>
                             <p
-                              className={`text-sm ${
-                                step.completed ? 'text-gray-600' : 'text-gray-400'
-                              }`}
+                              className={`text-sm ${step.completed ? 'text-gray-600' : 'text-gray-400'
+                                }`}
                             >
                               {step.description}
                             </p>
@@ -247,9 +264,16 @@ const TrackOrder = () => {
                         />
                         <div className="flex-1">
                           <p className="font-semibold text-gray-800">{item.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {formatPrice(item.price)} × {item.quantity}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-600">
+                              {formatPrice(item.price)} × {item.quantity}
+                            </p>
+                            {item.originalPrice && item.originalPrice > item.price && (
+                              <p className="text-xs text-gray-400 line-through">
+                                {formatPrice(item.originalPrice)}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <p className="font-bold text-gray-800">
                           {formatPrice(item.price * item.quantity)}

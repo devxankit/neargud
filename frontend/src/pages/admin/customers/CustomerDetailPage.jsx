@@ -29,81 +29,32 @@ const CustomerDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getCustomerById, initialize } = useCustomerStore();
+  const { fetchCustomerById, fetchCustomerDetails } = useCustomerStore();
   const [customer, setCustomer] = useState(null);
   const [orders, setOrders] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [addresses, setAddresses] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    initialize();
-    const customerData = getCustomerById(id);
-    if (customerData) {
-      setCustomer(customerData);
-    } else {
-      toast.error('Customer not found');
-      navigate('/admin/customers');
-    }
-  }, [id, initialize, getCustomerById, navigate]);
+    const loadCustomerData = async () => {
+      const data = await fetchCustomerById(id);
+      if (data) {
+        setCustomer(data);
+        const details = await fetchCustomerDetails(id);
+        setOrders(details.orders || []);
+        setTransactions(details.transactions || []);
+        setAddresses(details.addresses || []);
+      } else {
+        toast.error('Customer not found');
+        navigate('/admin/customers');
+      }
+    };
+    loadCustomerData();
+  }, [id, fetchCustomerById, fetchCustomerDetails, navigate]);
 
-  useEffect(() => {
-    // Load orders from localStorage
-    const savedOrders = localStorage.getItem('admin-orders');
-    let allOrders = [];
-    
-    if (savedOrders) {
-      allOrders = JSON.parse(savedOrders);
-    } else {
-      allOrders = mockOrders.map((order) => ({
-        ...order,
-        customerId: customer?.id,
-        items: Array.isArray(order.items) ? order.items : Array.from({ length: order.items || 1 }, (_, i) => ({
-          id: i + 1,
-          name: `Product ${i + 1}`,
-          quantity: 1,
-          price: order.total / (order.items || 1),
-        })),
-      }));
-    }
+  // Data is now fetched asynchronously in the first useEffect
 
-    // Filter orders by customer email or name
-    if (customer) {
-      const customerOrders = allOrders.filter(
-        (order) =>
-          order.customer?.email === customer.email ||
-          order.customer?.name === customer.name ||
-          order.customerId === customer.id
-      );
-      setOrders(customerOrders);
-
-      // Generate transactions from orders
-      const generatedTransactions = customerOrders.flatMap((order) => [
-        {
-          id: `TXN-${order.id}-1`,
-          orderId: order.id,
-          amount: order.total,
-          type: 'payment',
-          status: order.status === 'cancelled' ? 'failed' : 'completed',
-          method: 'Credit Card',
-          date: order.date,
-        },
-        ...(order.status === 'cancelled'
-          ? [
-              {
-                id: `TXN-${order.id}-2`,
-                orderId: order.id,
-                amount: order.total,
-                type: 'refund',
-                status: 'completed',
-                method: 'Original Payment Method',
-                date: new Date(new Date(order.date).getTime() + 86400000).toISOString(),
-              },
-            ]
-          : []),
-      ]);
-      setTransactions(generatedTransactions);
-    }
-  }, [customer]);
 
   // Set active tab from URL query parameter
   useEffect(() => {
@@ -337,7 +288,9 @@ const CustomerDetailPage = () => {
             <FiArrowLeft className="text-xl text-gray-600" />
           </button>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{customer.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {customer.name || customer.email?.split('@')[0]}
+            </h1>
             <p className="text-sm text-gray-600 mt-1">Customer Details</p>
           </div>
         </div>
@@ -346,7 +299,7 @@ const CustomerDetailPage = () => {
             {customer.status}
           </Badge>
           <button
-            onClick={() => navigate(`/admin/customers?edit=${customer.id}`)}
+            onClick={() => navigate(`/admin/customers?edit=${customer._id || customer.id}`)}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold text-sm flex items-center gap-2"
           >
             <FiEdit />
@@ -363,7 +316,7 @@ const CustomerDetailPage = () => {
               <FiUser className="text-gray-400 text-xl" />
               <div>
                 <p className="text-sm text-gray-500">Full Name</p>
-                <p className="font-semibold text-gray-800">{customer.name}</p>
+                <p className="font-semibold text-gray-800">{customer.name || 'N/A'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -411,11 +364,10 @@ const CustomerDetailPage = () => {
                 setActiveTab('overview');
                 navigate(`/admin/customers/${id}?tab=overview`);
               }}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'overview'
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'overview'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
+                }`}
             >
               Overview
             </button>
@@ -424,11 +376,10 @@ const CustomerDetailPage = () => {
                 setActiveTab('orders');
                 navigate(`/admin/customers/${id}?tab=orders`);
               }}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'orders'
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'orders'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
+                }`}
             >
               Orders ({orders.length})
             </button>
@@ -437,11 +388,10 @@ const CustomerDetailPage = () => {
                 setActiveTab('transactions');
                 navigate(`/admin/customers/${id}?tab=transactions`);
               }}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'transactions'
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'transactions'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
+                }`}
             >
               Transactions ({transactions.length})
             </button>
@@ -450,13 +400,12 @@ const CustomerDetailPage = () => {
                 setActiveTab('addresses');
                 navigate(`/admin/customers/${id}?tab=addresses`);
               }}
-              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'addresses'
+              className={`px-6 py-4 font-semibold text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'addresses'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
+                }`}
             >
-              Addresses ({customer.addresses?.length || 0})
+              Addresses ({addresses.length})
             </button>
           </div>
         </div>
@@ -494,7 +443,7 @@ const CustomerDetailPage = () => {
                     <span className="text-sm font-semibold">Addresses</span>
                   </div>
                   <p className="text-2xl font-bold text-gray-800">
-                    {customer.addresses?.length || 0}
+                    {addresses.length}
                   </p>
                 </div>
               </div>
@@ -595,9 +544,9 @@ const CustomerDetailPage = () => {
           {/* Addresses Tab */}
           {activeTab === 'addresses' && (
             <div>
-              {customer.addresses && customer.addresses.length > 0 ? (
+              {addresses.length > 0 ? (
                 <DataTable
-                  data={customer.addresses}
+                  data={addresses}
                   columns={addressColumns}
                   pagination={true}
                   itemsPerPage={10}

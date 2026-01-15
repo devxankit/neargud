@@ -1,21 +1,18 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useBannerStore } from '../../store/bannerStore';
 import { useCampaignStore } from '../../store/campaignStore';
-import { gsapAnimations } from '../../utils/animations';
+import { useScrollAnimation } from '../../hooks/useAnimation';
 
 const PromotionalBanners = () => {
-  const sectionRef = useRef(null);
+  const sectionRef = useScrollAnimation();
   const { getBannersByType, initialize: initBanners } = useBannerStore();
   const { initialize: initCampaigns } = useCampaignStore();
 
   useEffect(() => {
     initBanners();
     initCampaigns();
-    if (sectionRef.current) {
-      gsapAnimations.scrollReveal(sectionRef.current);
-    }
   }, [initBanners, initCampaigns]);
 
   // Get active promotional banners from store
@@ -31,7 +28,7 @@ const PromotionalBanners = () => {
       })
       .slice(0, 3) // Limit to 3 campaign banners
       .map((banner, index) => ({
-        id: `campaign-${banner.id}`,
+        id: `campaign-${banner._id || banner.id}`,
         title: banner.title,
         subtitle: banner.subtitle || '',
         description: banner.description || '',
@@ -113,45 +110,45 @@ const PromotionalBanners = () => {
                 className={`bg-gradient-to-br ${banner.gradient} rounded-lg p-4 relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group`}
                 style={{ aspectRatio: "41/22" }}
               >
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-white rounded-full blur-xl"></div>
-              </div>
-
-              <div className="relative z-10 h-full flex flex-col justify-between">
-                <div>
-                  {banner.description && (
-                    <p className="text-xs text-white/90 mb-1 font-medium">{banner.description}</p>
-                  )}
-                  <h3 className="text-lg font-bold text-white mb-0.5 drop-shadow-lg">
-                    {banner.title}
-                  </h3>
-                  {banner.subtitle && (
-                    <h3 className="text-lg font-bold text-white mb-0.5 drop-shadow-lg">
-                      {banner.subtitle}
-                    </h3>
-                  )}
-                  {banner.subtext && (
-                    <h3 className="text-lg font-bold text-white mb-2 drop-shadow-lg">
-                      {banner.subtext}
-                    </h3>
-                  )}
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full blur-2xl"></div>
+                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-white rounded-full blur-xl"></div>
                 </div>
-                <p className="text-white text-sm font-bold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full inline-block">
-                  {banner.discount}
-                </p>
-              </div>
-              <div className="absolute right-0 bottom-0 w-24 h-24 opacity-30 group-hover:opacity-40 transition-opacity">
-                <img
-                  src={banner.image}
-                  alt={banner.title}
-                  className="w-full h-full object-cover rounded-tl-full"
-                  onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/200x200?text=Promo';
-                  }}
-                />
-              </div>
+
+                <div className="relative z-10 h-full flex flex-col justify-between">
+                  <div>
+                    {banner.description && (
+                      <p className="text-xs text-white/90 mb-1 font-medium">{banner.description}</p>
+                    )}
+                    <h3 className="text-lg font-bold text-white mb-0.5 drop-shadow-lg">
+                      {banner.title}
+                    </h3>
+                    {banner.subtitle && (
+                      <h3 className="text-lg font-bold text-white mb-0.5 drop-shadow-lg">
+                        {banner.subtitle}
+                      </h3>
+                    )}
+                    {banner.subtext && (
+                      <h3 className="text-lg font-bold text-white mb-2 drop-shadow-lg">
+                        {banner.subtext}
+                      </h3>
+                    )}
+                  </div>
+                  <p className="text-white text-sm font-bold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full inline-block">
+                    {banner.discount}
+                  </p>
+                </div>
+                <div className="absolute right-0 bottom-0 w-24 h-24 opacity-30 group-hover:opacity-40 transition-opacity">
+                  <img
+                    src={banner.image}
+                    alt={banner.title}
+                    className="w-full h-full object-cover rounded-tl-full"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/200x200?text=Promo';
+                    }}
+                  />
+                </div>
               </motion.div>
             </BannerWrapper>
           ))}
@@ -171,43 +168,43 @@ const PromotionalBanners = () => {
                 whileHover={{ y: -8, scale: 1.02 }}
                 className={`bg-gradient-to-br ${banner.gradient} rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group`}
               >
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 right-0 w-32 sm:w-48 h-32 sm:h-48 bg-white rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-24 sm:w-32 h-24 sm:h-32 bg-white rounded-full blur-2xl"></div>
-              </div>
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-0 right-0 w-32 sm:w-48 h-32 sm:h-48 bg-white rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-0 left-0 w-24 sm:w-32 h-24 sm:h-32 bg-white rounded-full blur-2xl"></div>
+                </div>
 
-              <div className="relative z-10">
-                {banner.description && (
-                  <p className="text-xs sm:text-sm text-white/90 mb-2 sm:mb-3 font-medium">{banner.description}</p>
-                )}
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1 sm:mb-2 drop-shadow-lg">
-                  {banner.title}
-                </h3>
-                {banner.subtitle && (
+                <div className="relative z-10">
+                  {banner.description && (
+                    <p className="text-xs sm:text-sm text-white/90 mb-2 sm:mb-3 font-medium">{banner.description}</p>
+                  )}
                   <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1 sm:mb-2 drop-shadow-lg">
-                    {banner.subtitle}
+                    {banner.title}
                   </h3>
-                )}
-                {banner.subtext && (
-                  <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-3 sm:mb-4 drop-shadow-lg">
-                    {banner.subtext}
-                  </h3>
-                )}
-                <p className="text-white font-bold text-base sm:text-lg md:text-xl bg-white/20 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full inline-block">
-                  {banner.discount}
-                </p>
-              </div>
-              <div className="absolute right-0 bottom-0 w-32 h-32 sm:w-40 sm:h-40 opacity-30 group-hover:opacity-40 transition-opacity">
-                <img
-                  src={banner.image}
-                  alt={banner.title}
-                  className="w-full h-full object-cover rounded-tl-full"
-                  onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/200x200?text=Promo';
-                  }}
-                />
-              </div>
+                  {banner.subtitle && (
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1 sm:mb-2 drop-shadow-lg">
+                      {banner.subtitle}
+                    </h3>
+                  )}
+                  {banner.subtext && (
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-3 sm:mb-4 drop-shadow-lg">
+                      {banner.subtext}
+                    </h3>
+                  )}
+                  <p className="text-white font-bold text-base sm:text-lg md:text-xl bg-white/20 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full inline-block">
+                    {banner.discount}
+                  </p>
+                </div>
+                <div className="absolute right-0 bottom-0 w-32 h-32 sm:w-40 sm:h-40 opacity-30 group-hover:opacity-40 transition-opacity">
+                  <img
+                    src={banner.image}
+                    alt={banner.title}
+                    className="w-full h-full object-cover rounded-tl-full"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/200x200?text=Promo';
+                    }}
+                  />
+                </div>
               </motion.div>
             </BannerWrapper>
           ))}
@@ -218,4 +215,3 @@ const PromotionalBanners = () => {
 };
 
 export default PromotionalBanners;
-

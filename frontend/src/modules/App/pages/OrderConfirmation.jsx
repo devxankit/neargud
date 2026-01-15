@@ -74,7 +74,7 @@ const MobileOrderConfirmation = () => {
             <div className="glass-card rounded-2xl p-6 mb-4">
               <div className="text-center mb-6">
                 <p className="text-sm text-gray-600 mb-1">Order Number</p>
-                <p className="text-xl font-bold text-gray-800">{order.id}</p>
+                <p className="text-xl font-bold text-gray-800">{order.orderCode || order._id || order.id}</p>
                 {order.trackingNumber && (
                   <>
                     <p className="text-sm text-gray-600 mt-3 mb-1">Tracking Number</p>
@@ -86,7 +86,7 @@ const MobileOrderConfirmation = () => {
               <div className="border-t border-gray-200 pt-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Order Date</span>
-                  <span className="font-semibold text-gray-800">{formatDate(order.date)}</span>
+                  <span className="font-semibold text-gray-800">{formatDate(order.orderDate || order.createdAt)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Total Amount</span>
@@ -134,7 +134,7 @@ const MobileOrderConfirmation = () => {
             {/* Actions */}
             <div className="space-y-3">
               <Link
-                to={`/app/orders/${order.id}`}
+                to={`/app/orders/${order._id || order.id}`}
                 className="block w-full py-3 gradient-green text-white rounded-xl font-semibold text-center hover:shadow-glow-green transition-all"
               >
                 <div className="flex items-center justify-center gap-2">
@@ -143,7 +143,7 @@ const MobileOrderConfirmation = () => {
                 </div>
               </Link>
               <Link
-                to={`/app/track-order/${order.id}`}
+                to={`/app/track-order/${order._id || order.id}`}
                 className="block w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold text-center hover:bg-gray-200 transition-colors"
               >
                 <div className="flex items-center justify-center gap-2">

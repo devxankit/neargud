@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import toast from 'react-hot-toast';
+import { adminSettingsApi } from '../services/adminSettingsApi';
 
 const defaultSettings = {
   general: {
@@ -23,6 +24,7 @@ const defaultSettings = {
     accentColor: '#FFE11B',
     storeDescription: '',
   },
+  // ... rest of the categories remain as placeholders for now
   payment: {
     paymentMethods: ['cod', 'card', 'wallet'],
     codEnabled: true,
@@ -32,12 +34,7 @@ const defaultSettings = {
     paymentGateway: 'stripe',
     stripePublicKey: '',
     stripeSecretKey: '',
-    paymentFees: {
-      cod: 0,
-      card: 2.5,
-      wallet: 1.5,
-      upi: 0.5,
-    },
+    paymentFees: { cod: 0, card: 2.5, wallet: 1.5, upi: 0.5 },
   },
   shipping: {
     shippingZones: [],
@@ -46,7 +43,7 @@ const defaultSettings = {
     shippingMethods: ['standard', 'express'],
   },
   orders: {
-    cancellationTimeLimit: 24, // hours
+    cancellationTimeLimit: 24,
     minimumOrderValue: 0,
     orderTrackingEnabled: true,
     orderConfirmationEmail: true,
@@ -56,30 +53,22 @@ const defaultSettings = {
     guestCheckoutEnabled: true,
     registrationRequired: false,
     emailVerificationRequired: false,
-    customerAccountFeatures: {
-      orderHistory: true,
-      wishlist: true,
-      addresses: true,
-    },
+    customerAccountFeatures: { orderHistory: true, wishlist: true, addresses: true },
   },
   products: {
     itemsPerPage: 12,
     gridColumns: 4,
     defaultSort: 'popularity',
     lowStockThreshold: 10,
-    outOfStockBehavior: 'show', // 'hide' or 'show'
+    outOfStockBehavior: 'show',
     stockAlertsEnabled: true,
   },
   tax: {
     defaultTaxRate: 18,
-    taxCalculationMethod: 'exclusive', // 'inclusive' or 'exclusive'
-    priceDisplayFormat: 'INR', // Currency format
+    taxCalculationMethod: 'exclusive',
+    priceDisplayFormat: 'INR',
   },
-  content: {
-    privacyPolicy: '',
-    termsConditions: '',
-    refundPolicy: '',
-  },
+  content: { privacyPolicy: '', termsConditions: '', refundPolicy: '' },
   features: {
     wishlistEnabled: true,
     reviewsEnabled: true,
@@ -88,57 +77,14 @@ const defaultSettings = {
     liveChatEnabled: true,
     couponCodesEnabled: true,
   },
-  homepage: {
-    heroBannerEnabled: true,
-    sections: {
-      mostPopular: { enabled: true, order: 1 },
-      trending: { enabled: true, order: 2 },
-      flashSale: { enabled: true, order: 3 },
-      dailyDeals: { enabled: true, order: 4 },
-      recommended: { enabled: true, order: 5 },
-    },
-  },
-  reviews: {
-    moderationMode: 'manual', // 'auto' or 'manual'
-    purchaseRequired: true,
-    displaySettings: {
-      showAll: true,
-      verifiedOnly: false,
-      withPhotosOnly: false,
-    },
-  },
-  email: {
-    smtpHost: '',
-    smtpPort: 587,
-    smtpUser: '',
-    smtpPassword: '',
-    fromEmail: 'noreply@example.com',
-    fromName: 'Appzeto Store',
-  },
-  notifications: {
-    email: {
-      orderConfirmation: true,
-      shippingUpdate: true,
-      deliveryUpdate: true,
-    },
-    smsEnabled: false,
-    pushEnabled: false,
-    admin: {
-      newOrders: true,
-      lowStock: true,
-    },
-  },
-  seo: {
-    metaTitle: 'Appzeto E-commerce - Shop Online',
-    metaDescription: 'Shop the latest trends and products',
-    metaKeywords: 'ecommerce, shopping, online store',
-    ogImage: '/images/logos/logo.png',
-    canonicalUrl: '',
-  },
   theme: {
     primaryColor: '#10B981',
     secondaryColor: '#3B82F6',
+    accentColor: '#FFE11B',
     fontFamily: 'Inter',
+  },
+  delivery: {
+    deliveryPartnerFee: 50,
   },
 };
 
@@ -148,46 +94,89 @@ export const useSettingsStore = create(
       settings: defaultSettings,
       isLoading: false,
 
-      // Initialize settings
-      initialize: () => {
-        const savedSettings = localStorage.getItem('admin-settings');
-        if (savedSettings) {
-          set({ settings: JSON.parse(savedSettings) });
-        } else {
-          set({ settings: defaultSettings });
-          localStorage.setItem('admin-settings', JSON.stringify(defaultSettings));
-        }
-      },
-
-      // Get settings
-      getSettings: () => {
-        const state = get();
-        if (!state.settings) {
-          state.initialize();
-        }
-        return get().settings;
-      },
-
-      // Update settings
-      updateSettings: (category, settingsData) => {
+      // Initialize public settings
+      initialize: async () => {
         set({ isLoading: true });
         try {
-          const currentSettings = get().settings;
-          const updatedSettings = {
-            ...currentSettings,
-            [category]: {
-              ...currentSettings[category],
-              ...settingsData,
-            },
-          };
-          set({ settings: updatedSettings, isLoading: false });
-          localStorage.setItem('admin-settings', JSON.stringify(updatedSettings));
-          toast.success('Settings updated successfully');
-          return updatedSettings;
+          // Use public settings for initial global load (BrandManager)
+          const response = await adminSettingsApi.getPublicSettings();
+          if (response.success && response.data.settings) {
+            const mergedSettings = { ...get().settings };
+            Object.keys(response.data.settings).forEach(key => {
+              if (mergedSettings[key]) {
+                mergedSettings[key] = {
+                  ...mergedSettings[key],
+                  ...response.data.settings[key]
+                };
+              } else {
+                mergedSettings[key] = response.data.settings[key];
+              }
+            });
+            set({ settings: mergedSettings });
+          }
         } catch (error) {
+          // Silent failure for public settings to avoid annoying toasts on login pages
+          console.error('Failed to fetch public settings:', error);
+        } finally {
           set({ isLoading: false });
+        }
+      },
+
+      // Fetch full settings (admin only)
+      fetchFullSettings: async () => {
+        set({ isLoading: true });
+        try {
+          const response = await adminSettingsApi.getSettings();
+          if (response.success && response.data.settings) {
+            const mergedSettings = { ...defaultSettings };
+            Object.keys(response.data.settings).forEach(key => {
+              if (mergedSettings[key]) {
+                mergedSettings[key] = {
+                  ...mergedSettings[key],
+                  ...response.data.settings[key]
+                };
+              } else {
+                mergedSettings[key] = response.data.settings[key];
+              }
+            });
+            set({ settings: mergedSettings });
+          }
+        } catch (error) {
+          console.error('Failed to fetch full settings:', error);
+          // Don't toast here as the api interceptor already does it for protected routes
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      // Update settings in backend
+      updateSettings: async (category, settingsData) => {
+        set({ isLoading: true });
+        try {
+          const response = await adminSettingsApi.updateSettings(category, settingsData);
+          if (response.success && response.data.settings) {
+            // Merge the updated settings back into the store
+            const mergedSettings = { ...defaultSettings };
+            Object.keys(response.data.settings).forEach(key => {
+              if (mergedSettings[key]) {
+                mergedSettings[key] = {
+                  ...mergedSettings[key],
+                  ...response.data.settings[key]
+                };
+              } else {
+                mergedSettings[key] = response.data.settings[key];
+              }
+            });
+
+            set({ settings: mergedSettings });
+            toast.success(`${category.charAt(0).toUpperCase() + category.slice(1)} settings updated`);
+            return mergedSettings;
+          }
+        } catch (error) {
           toast.error('Failed to update settings');
           throw error;
+        } finally {
+          set({ isLoading: false });
         }
       },
     }),
