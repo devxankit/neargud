@@ -146,27 +146,33 @@ const subcategoryMap: Record<number, Array<{ name: string; keywords: string[]; i
 
 // Start 2045: Helper to get cards from dynamic categories
 const getDynamicCategoryCards = (categories: any[], categoryProductsMap?: Record<string, any[]>): PromoCard[] => {
+  if (!categories || categories.length === 0) return [];
+  
   return categories.slice(0, 4).map((category, index) => {
+    if (!category) return null;
+    
     // Generate some mock discount/badge if no data
     const discount = 20 + (index * 5);
     const bgColors = ['bg-purple-50', 'bg-blue-50', 'bg-yellow-50', 'bg-red-50'];
     const catId = category._id || category.id;
 
+    if (!catId) return null;
+
     // Get product images for this category
     const productImages = categoryProductsMap && categoryProductsMap[catId]
-      ? categoryProductsMap[catId].slice(0, 4).map(p => p.images?.[0] || p.image)
+      ? categoryProductsMap[catId].slice(0, 4).map(p => p?.images?.[0] || p?.image).filter(Boolean)
       : [];
 
     return {
       id: catId,
       badge: `Up to ${discount}% OFF`,
-      title: category.name,
+      title: category.name || 'Category',
       categoryId: catId.toString(),
       imageUrl: category.image,
       bgColor: bgColors[index % bgColors.length],
       productImages: productImages.length > 0 ? productImages : undefined
     };
-  });
+  }).filter(Boolean) as PromoCard[];
 };
 
 // Get category cards based on active tab or categoryId - using actual categories
@@ -225,7 +231,7 @@ export default function PromoStrip({
   const theme = getTheme(activeTab);
   const bannerText = categoryName ? categoryName.toUpperCase() : (activeTab === 'all' ? housefullText : theme.bannerText);
 
-  const categoryCards = getCategoryCards(activeTab, categoryId, dynamicCategories, categoryProducts);
+  const categoryCards = getCategoryCards(activeTab, categoryId, dynamicCategories, categoryProducts) || [];
 
 
 
@@ -237,8 +243,8 @@ export default function PromoStrip({
       originalPrice: p.originalPrice || (p.price * 1.2).toFixed(0),
       discountedPrice: p.price,
       image: p.images?.[0] || p.image
-    }))
-    : getFeaturedProducts(activeTab, categoryId);
+    })).filter(p => p.id) // Filter out any items without an id
+    : (getFeaturedProducts(activeTab, categoryId) || []);
 
   // ... (refs and effects) ...
   const containerRef = useRef<HTMLDivElement>(null);
@@ -370,6 +376,8 @@ export default function PromoStrip({
 
   // Product rotation animation
   useEffect(() => {
+    if (featuredProducts.length === 0) return;
+    
     const interval = setInterval(() => {
       setCurrentProductIndex((prev) => (prev + 1) % featuredProducts.length);
     }, 3000); // Change product every 3 seconds
@@ -422,11 +430,20 @@ export default function PromoStrip({
     return () => ctx.revert();
   }, [currentProductIndex]);
 
-  const currentProduct = featuredProducts[currentProductIndex];
+  const currentProduct = featuredProducts[currentProductIndex] || featuredProducts[0] || {
+    id: 'default',
+    name: 'Product',
+    originalPrice: 0,
+    discountedPrice: 0,
+    image: undefined
+  };
+  
   // Try to find in static products first (legacy), otherwise use currentProduct which has the necessary fields mapped from dynamic data
-  const product = products.find(p => p.id.toString() === currentProduct.id) ||
+  const product = currentProduct?.id ? (
+    products.find(p => p.id.toString() === currentProduct.id) ||
     products.find(p => p.id === parseInt(currentProduct.id)) ||
-    currentProduct;
+    currentProduct
+  ) : currentProduct;
 
   // Check if this is the leather/bags theme
   const isLeatherTheme = activeTab === 'leather' || categoryId === 3;
@@ -665,7 +682,7 @@ export default function PromoStrip({
               <div ref={priceContainerRef} className="flex flex-col items-center mb-0.5 relative">
                 {/* Original Price - Darker Gray, Smaller Banner */}
                 <div className="bg-neutral-600 rounded px-1.5 inline-block relative z-10" style={{ height: 'fit-content', lineHeight: '1', paddingTop: '2px', paddingBottom: '2px' }}>
-                  <span className="text-white text-[8px] font-medium line-through leading-none">₹{currentProduct.originalPrice}</span>
+                  <span className="text-white text-[8px] font-medium line-through leading-none">₹{currentProduct?.originalPrice || 0}</span>
                 </div>
                 {/* Discounted Price - Theme colored Banner */}
                 <div
@@ -678,13 +695,13 @@ export default function PromoStrip({
                     backgroundColor: isLeatherTheme ? '#8B6F47' : isJewelryTheme ? '#B8860B' : '#f97316', // Tan brown for leather, rich gold for jewelry, orange for others
                   }}
                 >
-                  <span className="text-white text-[9px] font-bold leading-none">₹{currentProduct.discountedPrice}</span>
+                  <span className="text-white text-[9px] font-bold leading-none">₹{currentProduct?.discountedPrice || 0}</span>
                 </div>
               </div>
 
               {/* Product Name - Compact */}
               <div ref={productNameRef} className="text-neutral-900 font-black text-[9px] text-center mb-0.5">
-                {currentProduct.name}
+                {currentProduct?.name || 'Product'}
               </div>
 
               {/* Product Thumbnail - Bottom Center, sized to container */}
