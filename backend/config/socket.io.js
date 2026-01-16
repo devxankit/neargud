@@ -25,7 +25,8 @@ export const setupSocketIO = (httpServer) => {
   const defaultOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://dealing-india.vercel.app'
+    'https://dealing-india.vercel.app',
+    'https://neargud.vercel.app'
   ];
 
   // Get origins from environment variable if set

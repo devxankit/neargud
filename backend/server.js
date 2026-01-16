@@ -105,6 +105,7 @@ const defaultOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://dealing-india.vercel.app',
+  'https://neargud.vercel.app',
   'https://dealing-india-*.vercel.app', // Allow all Vercel preview deployments
 ];
 
