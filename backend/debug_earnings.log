@@ -554,3 +554,19 @@
 [2026-01-15T12:57:26.365Z] Found 7 products
 [2026-01-15T12:57:26.447Z] Found 36 orders in DB
 [2026-01-15T12:57:26.448Z] Final: Orders=36, Total=532134.5, Pending=531434.5, Commission=64770.5
+[2026-01-15T13:16:25.823Z] Vendor: 695f5547dbe9aabaff451e03
+[2026-01-15T13:16:25.844Z] Found 7 products
+[2026-01-15T13:16:25.962Z] Found 36 orders in DB
+[2026-01-15T13:16:25.964Z] Final: Orders=36, Total=532134.5, Pending=531434.5, Commission=64770.5
+[2026-01-15T13:16:26.278Z] Vendor: 695f5547dbe9aabaff451e03
+[2026-01-15T13:16:26.279Z] Found 7 products
+[2026-01-15T13:16:26.372Z] Found 36 orders in DB
+[2026-01-15T13:16:26.390Z] Final: Orders=36, Total=532134.5, Pending=531434.5, Commission=64770.5
+[2026-01-15T13:28:21.451Z] Vendor: 695f5547dbe9aabaff451e03
+[2026-01-15T13:28:21.453Z] Found 7 products
+[2026-01-15T13:28:21.538Z] Found 36 orders in DB
+[2026-01-15T13:28:21.540Z] Final: Orders=36, Total=532134.5, Pending=478744, Commission=64770.5
+[2026-01-15T13:28:21.686Z] Vendor: 695f5547dbe9aabaff451e03
+[2026-01-15T13:28:21.687Z] Found 7 products
+[2026-01-15T13:28:21.758Z] Found 36 orders in DB
+[2026-01-15T13:28:21.759Z] Final: Orders=36, Total=532134.5, Pending=478744, Commission=64770.5

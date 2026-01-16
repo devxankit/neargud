@@ -13,8 +13,8 @@ export const themes: Record<string, Theme> = {
     secondary: ['rgb(139, 92, 246)', 'rgb(124, 58, 237)', 'rgb(109, 40, 217)'],
     textColor: '#5b21b6',
     accentColor: '#6d28d9',
-    bannerText: 'HOUSEFULL',
-    saleText: 'SALE',
+    bannerText: 'HOUSEFULL'
+    // saleText: 'SALE',
   },
   wedding: {
     primary: ['rgb(252, 165, 165)', 'rgb(253, 182, 182)', 'rgb(254, 202, 202)', 'rgb(255, 228, 228)'],

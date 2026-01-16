@@ -95,9 +95,23 @@ const MobileDailyDeals = () => {
                   <button onClick={() => setShowFilters(!showFilters)} className={`p-2 glass-card rounded-xl ${showFilters ? "bg-white/80" : ""}`}><FiFilter className={`text-lg ${hasActiveFilters ? "text-blue-600" : "text-gray-600"}`} /></button>
                   <AnimatePresence>
                     {showFilters && (
-                      <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowFilters(false)} className="fixed inset-0 bg-black/20 z-[10000]" />
-                        <motion.div initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }} className="filter-dropdown absolute right-0 top-full w-56 bg-white rounded-xl shadow-2xl z-[10001] overflow-hidden" style={{ marginTop: "-50px" }}>
+                      <div key="filter-controls">
+                        <motion.div
+                          key="filter-backdrop"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setShowFilters(false)}
+                          className="fixed inset-0 bg-black/20 z-[10000]"
+                        />
+                        <motion.div
+                          key="filter-content"
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          className="filter-dropdown absolute right-0 top-full w-56 bg-white rounded-xl shadow-2xl z-[10001] overflow-hidden"
+                          style={{ marginTop: "-50px" }}
+                        >
                           <div className="p-3 border-b bg-gray-50 flex justify-between items-center"><span className="font-bold text-sm">Filters</span><button onClick={() => setShowFilters(false)}><FiX /></button></div>
                           <div className="p-3 space-y-3">
                             <input type="number" placeholder="Min Price" value={filters.minPrice} onChange={e => handleFilterChange('minPrice', e.target.value)} className="w-full border p-2 rounded text-xs" />
@@ -108,7 +122,7 @@ const MobileDailyDeals = () => {
                             <button onClick={() => setShowFilters(false)} className="flex-1 gradient-green text-white py-2 rounded text-xs font-bold">Apply</button>
                           </div>
                         </motion.div>
-                      </>
+                      </div>
                     )}
                   </AnimatePresence>
                 </div>

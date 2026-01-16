@@ -41,9 +41,9 @@ const LongPressMenu = ({ isOpen, onClose, position, onAddToCart, onAddToWishlist
   const menuContent = (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop */}
+        <div key="long-press-menu-container">
           <motion.div
+            key="long-press-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -51,8 +51,8 @@ const LongPressMenu = ({ isOpen, onClose, position, onAddToCart, onAddToWishlist
             className="fixed inset-0 bg-black/20 z-[10001]"
           />
 
-          {/* Menu */}
           <motion.div
+            key="long-press-content"
             initial={{ opacity: 0, scale: 0.8, y: position.y - 20 }}
             animate={{ opacity: 1, scale: 1, y: position.y }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -86,7 +86,7 @@ const LongPressMenu = ({ isOpen, onClose, position, onAddToCart, onAddToWishlist
               })}
             </div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

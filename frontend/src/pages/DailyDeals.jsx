@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiClock, FiGrid, FiList, FiZap, FiX } from 'react-icons/fi';
+import { FiClock, FiGrid, FiList, FiZap, FiX, FiLoader } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCampaignStore } from '../store/campaignStore';
@@ -32,6 +32,7 @@ const DailyDeals = () => {
         setLoading(true);
         const { fetchPublicProducts } = await import('../services/publicApi');
         const res = await fetchPublicProducts({ isDailyDeal: true, limit: 50 });
+
         if (res.success) {
           setAllDeals(res.data.products || []);
         }

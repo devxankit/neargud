@@ -6,19 +6,20 @@ import { fetchContent, updateContentApi } from '../services/contentApi';
 // Default content structure
 const defaultContent = {
     homepage: {
-        heroTitle: 'Welcome to Our Store',
-        heroSubtitle: 'Discover Amazing Products',
+        heroTitle: '',
+        heroSubtitle: '',
         promoStrip: {
-            housefullText: 'HOUSEFULL',
-            saleDateText: '30TH NOV, 2025 - 7TH DEC, 2025',
+            housefullText: '',
+            saleDateText: '',
             crazyDealsText: {
-                line1: 'CRAZY',
-                line2: 'DEALS'
+                line1: '',
+                line2: ''
             }
         },
         lowestPrices: {
-            title: 'LOWEST PRICES EVER'
-        }
+            title: ''
+        },
+        trendingTitle: 'Trending Now'
     },
     about: 'About us content...',
     terms: 'Terms and conditions content...',

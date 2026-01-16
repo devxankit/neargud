@@ -177,7 +177,7 @@ const MobileProductDetail = () => {
 
   const handleWishlist = () => {
     if (isWishlisted) {
-      removeFromWishlist(product?._id || product?._id);
+      removeFromWishlist(product?._id || product?.id);
       toast.success('Removed from wishlist');
     } else {
       addToWishlist({
@@ -187,6 +187,21 @@ const MobileProductDetail = () => {
         image: product?.image,
       });
       toast.success('Added to wishlist');
+    }
+  };
+
+  const handleLike = () => {
+    if (isLiked) {
+      removeFromFavorites(product?._id || product?.id);
+      toast.success('Removed from liked items');
+    } else {
+      addToFavorites({
+        id: product?._id || product?.id,
+        name: product?.name,
+        price: product?.price,
+        image: product?.image,
+      });
+      toast.success('Added to liked items');
     }
   };
 
@@ -254,155 +269,148 @@ const MobileProductDetail = () => {
   return (
     <PageTransition>
       <MobileLayout showBottomNav={false} showCartBar={true} showHeader={false}>
-        <div className="w-full bg-slate-50/50 pb-32">
-          {/* Header Actions */}
-          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-transparent">
+        <div className="w-full pb-24 bg-white">
+          {/* Back Button */}
+          <div className="px-4 pt-4">
             <button
               onClick={() => navigate(-1)}
-              className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-white/50 flex items-center justify-center text-slate-800 transition-all active:scale-90"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
-              <FiArrowLeft size={24} />
+              <FiArrowLeft className="text-xl" />
+              <span className="font-medium">Back</span>
             </button>
-            <div className="flex gap-3">
-              <button
-                onClick={handleShare}
-                className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-white/50 flex items-center justify-center text-slate-800 transition-all active:scale-90"
-              >
-                <FiShare2 size={24} />
-              </button>
-              <button
-                onClick={handleWishlist}
-                className={`w-12 h-12 rounded-2xl backdrop-blur-md shadow-lg border border-white/50 flex items-center justify-center transition-all active:scale-90 ${isWishlisted ? 'bg-rose-500 text-white' : 'bg-white/80 text-rose-500'}`}
-              >
-                <FiHeart size={24} fill={isWishlisted ? "currentColor" : "none"} />
-              </button>
+          </div>
+
+          {/* Product Image */}
+          <div className="px-4 py-4">
+            <div className="relative rounded-3xl overflow-hidden shadow-sm border border-gray-100 bg-white">
+              <ImageGallery images={productImages} productName={product.name} />
+              {product.flashSale && (
+                <div className="absolute top-4 left-4 z-10">
+                  <Badge variant="flash">Flash Sale</Badge>
+                </div>
+              )}
+              {product.isNew && (
+                <div className="absolute top-4 right-4 z-10">
+                  <Badge variant="primary" className="bg-indigo-600 text-white border-0 shadow-lg shadow-indigo-200">New</Badge>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Product Image Gallery */}
-          <div className="w-full bg-white rounded-b-[3.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden relative border-b border-slate-100">
-            <ImageGallery images={productImages} productName={product.name} />
-            {product.flashSale && (
-              <div className="absolute top-24 left-6">
-                <Badge variant="flash">Flash Sale</Badge>
+          {/* Product Info */}
+          <div className="px-5 py-2">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h1 className="text-2xl font-bold text-gray-900 leading-tight flex-1">{product.name}</h1>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={handleLike}
+                  className={`p-2.5 rounded-2xl transition-all active:scale-95 ${isLiked
+                    ? 'bg-amber-50 text-amber-500'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                    }`}
+                >
+                  <FiStar className={`text-xl ${isLiked ? 'fill-current' : ''}`} />
+                </button>
+                <button
+                  onClick={handleWishlist}
+                  className={`p-2.5 rounded-2xl transition-all active:scale-95 ${isWishlisted
+                    ? 'bg-rose-50 text-rose-500'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                    }`}
+                >
+                  <FiHeart className={`text-xl ${isWishlisted ? 'fill-current' : ''}`} />
+                </button>
               </div>
-            )}
-            {product.isNew && (
-              <div className="absolute top-24 left-32">
-                <Badge variant="primary" className="bg-indigo-600 text-white border-0 shadow-lg shadow-indigo-200">New Arrival</Badge>
-              </div>
-            )}
-          </div>
+            </div>
 
-          {/* Product Main Info Card */}
-          <div className="px-5 -mt-10 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] p-6 shadow-xl shadow-slate-200/40 border border-white"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
-                  <FiStar className="text-orange-500 fill-orange-500" size={12} />
-                  <span className="text-[10px] font-black text-orange-700 ml-1">{product.rating || '4.5'}</span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.reviewCount || '120'} Reviews</span>
-              </div>
-
-              <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-4 uppercase">{product.name}</h1>
-              <p className="text-slate-500 font-bold text-sm mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-primary-500 rounded-full"></span>
-                {product.unit}
-              </p>
-
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-tighter mb-1">Total Price</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl font-black text-slate-900 tracking-tighter">
-                      {formatPrice(currentPrice)}
-                    </span>
-                    {product.originalPrice && product.originalPrice > currentPrice && (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-400 line-through decoration-slate-300">
-                          {formatPrice(product.originalPrice)}
-                        </span>
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                          {Math.round(((product.originalPrice - currentPrice) / product.originalPrice) * 100)}% OFF
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center bg-slate-100 rounded-2xl p-1 gap-1">
-                  <button
-                    onClick={() => handleQuantityChange(-1)}
-                    className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-800 active:scale-90 transition-transform"
-                  >
-                    <FiMinus size={18} strokeWidth={3} />
-                  </button>
-                  <span className="w-10 text-center font-black text-slate-800">{cartItem?.quantity || quantity}</span>
-                  <button
-                    onClick={() => handleQuantityChange(1)}
-                    className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-800 active:scale-90 transition-transform"
-                    disabled={(cartItem?.quantity || quantity) >= (product.stockQuantity || 10)}
-                  >
-                    <FiPlus size={18} strokeWidth={3} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Detailed Content */}
-          <div className="px-5 mt-8 space-y-8">
-            {/* Vendor High End Section */}
+            {/* Vendor Section */}
             {vendor && (
-              <Link
-                to={`/app/vendor/${vendor._id || vendor.id}`}
-                className="block group"
-              >
-                <div className="bg-white rounded-[2rem] p-5 shadow-lg shadow-slate-200/30 border border-slate-100 flex items-center gap-4 transition-all active:scale-[0.98]">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-50 border-2 border-slate-100 shadow-sm group-hover:border-primary-200 transition-colors">
-                      {vendor.storeLogo ? (
-                        <img src={vendor.storeLogo} alt={vendor.storeName} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                          <FiShoppingBag size={24} />
-                        </div>
+              <div className="mb-6 space-y-3">
+                <Link
+                  to={`/app/vendor/${vendor._id || vendor.id}`}
+                  className="inline-flex items-center gap-3 w-full px-4 py-3 bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 transition-all duration-300 border border-gray-100 rounded-2xl shadow-sm"
+                >
+                  {vendor.storeLogo && (
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-white border border-gray-100 flex-shrink-0">
+                      <img
+                        src={vendor.storeLogo}
+                        alt={vendor.storeName || vendor.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-gray-900">{vendor.storeName || vendor.name}</span>
+                      {vendor.isVerified && (
+                        <FiCheckCircle className="text-blue-500 text-sm" />
                       )}
                     </div>
-                    {vendor.isVerified && (
-                      <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-1 rounded-full border-2 border-white shadow-md">
-                        <FiCheckCircle size={10} fill="currentColor" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Dispatched by</span>
-                    <h4 className="font-black text-slate-900 tracking-tight text-lg">{vendor.storeName}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-0.5">
-                        <FiStar size={10} className="text-orange-400 fill-orange-400" />
-                        <span className="text-xs font-black text-slate-700">{vendor.rating || '4.8'}</span>
-                      </div>
-                      <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                      <span className="text-xs font-bold text-slate-400 line-clamp-1">{vendor.address?.city || 'Near You'}</span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <FiStar className="text-xs text-amber-400 fill-amber-400" />
+                      <span className="text-[11px] font-bold text-gray-600">
+                        {vendor.rating?.toFixed(1) || '4.5'} ({vendor.reviewCount || 0} reviews)
+                      </span>
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all">
-                    <FiArrowLeft className="rotate-180" size={20} />
-                  </div>
-                </div>
-              </Link>
+                  <FiArrowLeft className="rotate-180 text-gray-400" />
+                </Link>
+                <Link
+                  to={`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.name)}&productId=${product._id || product.id}&productName=${encodeURIComponent(product.name)}&productImage=${encodeURIComponent(product.image)}&productPrice=${product.price}`}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border border-primary-100 text-primary-700 rounded-2xl transition-all active:scale-[0.98] shadow-sm text-sm font-bold"
+                >
+                  <FiMessageCircle />
+                  <span>Chat with Seller</span>
+                </Link>
+              </div>
             )}
 
-            {/* Variant Selector Enhancement */}
+            {/* Rating Summary */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                <span className="text-xs font-bold text-emerald-700">{product.rating || '4.5'}</span>
+                <FiStar className="text-[10px] text-emerald-700 fill-emerald-700 ml-0.5" />
+              </div>
+              <span className="text-xs font-medium text-gray-400">
+                {product.reviewCount || '0'} Ratings & Reviews
+              </span>
+            </div>
+
+            {/* Price section */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl font-black text-gray-900 tracking-tight">
+                {formatPrice(currentPrice)}
+              </span>
+              {product.originalPrice && product.originalPrice > currentPrice && (
+                <div className="flex items-center gap-2">
+                  <span className="text-lg text-gray-400 line-through font-medium">
+                    {formatPrice(product.originalPrice)}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                    {Math.round(((product.originalPrice - currentPrice) / product.originalPrice) * 100)}% OFF
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Stock and Unit */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${product.stock === 'out_of_stock'
+                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                }`}>
+                {product.stock === 'out_of_stock' ? 'Out of Stock' : 'In Stock'}
+              </div>
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Unit: {product.unit}
+              </div>
+            </div>
+
+            {/* Variant Selector */}
             {product.variants && (
-              <div className="bg-white rounded-[2rem] p-6 shadow-lg shadow-slate-200/30 border border-slate-100">
-                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Select Option</h4>
+              <div className="mb-8 p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
+                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Select Variation</h4>
                 <VariantSelector
                   variants={product.variants}
                   onVariantChange={setSelectedVariant}
@@ -411,112 +419,114 @@ const MobileProductDetail = () => {
               </div>
             )}
 
-            {/* Description Card */}
-            <div className="bg-white rounded-[2rem] p-6 shadow-lg shadow-slate-200/30 border border-slate-100 overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50/50 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 relative z-10">Description</h4>
-              <div className="relative z-10 prose prose-slate">
-                <p className="text-slate-600 font-medium leading-relaxed text-sm">
-                  {product.description || `Experience the premium quality of our ${product.name}. This ${product.unit.toLowerCase()} is sourced directly from certified suppliers to guarantee maximum freshness and authenticity. Ideal for your daily lifestyle needs.`}
-                </p>
-                {product.attributes && product.attributes.length > 0 && (
-                  <div className="grid grid-cols-2 gap-3 mt-6">
-                    {product.attributes.map((attr, idx) => (
-                      <div key={idx} className="bg-slate-50 p-3 rounded-2xl border border-slate-200/50">
-                        <span className="block text-[8px] font-black text-slate-400 uppercase mb-0.5 tracking-tighter">{attr.name}</span>
-                        <span className="text-xs font-bold text-slate-800">{attr.value}</span>
-                      </div>
-                    ))}
-                  </div>
+            {/* Quantity and Actions */}
+            <div className="mb-8">
+              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
+                Quantity
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
+                  <button
+                    onClick={() => handleQuantityChange(-1)}
+                    className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-800 active:scale-90 transition-transform"
+                  >
+                    <FiMinus strokeWidth={3} />
+                  </button>
+                  <span className="w-12 text-center font-bold text-gray-900 text-lg">
+                    {cartItem?.quantity || quantity}
+                  </span>
+                  <button
+                    onClick={() => handleQuantityChange(1)}
+                    className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-800 active:scale-90 transition-transform"
+                    disabled={(cartItem?.quantity || quantity) >= (product.stockQuantity || 10)}
+                  >
+                    <FiPlus strokeWidth={3} />
+                  </button>
+                </div>
+                {!cartItem && (
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={product.stock === 'out_of_stock'}
+                    className={`flex-1 h-14 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 border-2 ${product.stock === 'out_of_stock'
+                      ? 'bg-gray-100 border-gray-200 text-gray-400'
+                      : 'bg-white border-primary-600 text-primary-700 hover:bg-primary-50'
+                      }`}
+                  >
+                    <FiShoppingBag />
+                    <span>Add to Cart</span>
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* Reviews Section */}
-            <div className="bg-white rounded-[2rem] p-6 shadow-lg shadow-slate-200/30 border border-slate-100">
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Customer Reviews</h4>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      if (!user) {
-                        toast.error('Please login to write a review');
-                        return;
-                      }
-                      setIsReviewModalOpen(true);
-                    }}
-                    className="text-[10px] font-black text-primary-600 bg-primary-50 px-3 py-1.5 rounded-xl uppercase tracking-wider border border-primary-100"
-                  >
-                    Write Review
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <FiStar className="text-orange-400 fill-orange-400" size={14} />
-                    <span className="text-sm font-black text-slate-800">{product.rating || '0.0'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {productReviews.length > 0 ? (
-                <div className="space-y-6">
-                  {productReviews.map((review, idx) => (
-                    <div key={review._id || idx} className="border-b border-slate-50 last:border-0 pb-6 last:pb-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase">
-                            {review.customerName?.charAt(0) || 'C'}
-                          </div>
-                          <div>
-                            <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">
-                              {review.customerName || 'Verified Customer'}
-                            </h5>
-                            <div className="flex items-center gap-0.5 mt-0.5">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <FiStar
-                                  key={s}
-                                  size={8}
-                                  className={s <= review.rating ? 'text-orange-400 fill-orange-400' : 'text-slate-200'}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">
-                          {new Date(review.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-xs font-medium text-slate-600 leading-relaxed italic ml-10">
-                        "{review.review || review.comment}"
-                      </p>
-
-                      {review.vendorResponse && (
-                        <div className="mt-3 ml-10 p-3 bg-primary-50/50 rounded-2xl border border-primary-100/30">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <div className="w-4 h-4 rounded-full bg-primary-500 flex items-center justify-center">
-                              <FiCheckCircle size={8} className="text-white" />
-                            </div>
-                            <span className="text-[9px] font-black text-primary-700 uppercase tracking-widest">Vendor Response</span>
-                          </div>
-                          <p className="text-[11px] font-bold text-slate-700 leading-relaxed">
-                            {review.vendorResponse}
-                          </p>
-                        </div>
-                      )}
+            {/* Description */}
+            <div className="mb-8 p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">Product Details</h3>
+              <p className="text-gray-600 leading-relaxed text-sm font-medium">
+                {product.description || `High-quality ${product.name.toLowerCase()} available in ${product.unit.toLowerCase()}. Carefully selected to ensure safety, performance, and best value for your requirements.`}
+              </p>
+              {product.attributes && product.attributes.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  {product.attributes.map((attr, idx) => (
+                    <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">{attr.name}</span>
+                      <span className="text-xs font-bold text-gray-800">{attr.value}</span>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="py-2 text-center">
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-tighter">No reviews yet for this product</p>
                 </div>
               )}
             </div>
 
-            {/* Similar Products Grid */}
+            {/* Reviews Section */}
+            <div className="mb-8 bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h4 className="text-lg font-bold text-gray-900 tracking-tight">Reviews</h4>
+                <button
+                  onClick={() => setIsReviewModalOpen(true)}
+                  className="text-xs font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-xl uppercase tracking-wider"
+                >
+                  Write Review
+                </button>
+              </div>
+
+              {productReviews.length > 0 ? (
+                <div className="space-y-6">
+                  {productReviews.slice(0, 3).map((review, idx) => (
+                    <div key={review._id || idx} className="space-y-2 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 capitalize">
+                            {review.customerName?.charAt(0) || 'U'}
+                          </div>
+                          <span className="text-xs font-bold text-gray-800">{review.customerName || 'User'}</span>
+                        </div>
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <FiStar
+                              key={s}
+                              size={10}
+                              className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                        "{review.review || review.comment}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm font-medium text-gray-400 text-center py-4">No reviews yet for this product</p>
+              )}
+            </div>
+
+            {/* Similar Products */}
             {similarProducts.length > 0 && (
-              <div>
+              <div className="mb-8">
                 <div className="flex items-center justify-between mb-6 px-1">
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">You May Also Like</h3>
-                  <Link to="/app/categories" className="text-xs font-black text-primary-600 underline underline-offset-4 tracking-tighter decoration-primary-200">VIEW ALL</Link>
+                  <h3 className="text-lg font-bold text-gray-900 tracking-tight">You May Also Like</h3>
+                  <Link to="/app/categories" className="text-xs font-bold text-primary-600 underline">SEE ALL</Link>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   {similarProducts.map((p) => (
@@ -525,58 +535,66 @@ const MobileProductDetail = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
 
-            {/* Review Modal */}
-            {isReviewModalOpen && (
-              <ReviewModal
-                isOpen={isReviewModalOpen}
-                onClose={() => setIsReviewModalOpen(false)}
-                product={product}
-                orderId={eligibleOrderId}
-              />
+        {/* Sticky Bottom Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 pb-8 z-40 safe-area-bottom">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleShare}
+              className="w-14 h-14 bg-gray-100 text-gray-700 rounded-2xl flex items-center justify-center transition-all active:scale-90"
+            >
+              <FiShare2 className="text-xl" />
+            </button>
+            {vendor?.deliveryAvailable !== false ? (
+              <div className="flex-1 flex gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 'out_of_stock'}
+                  className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === 'out_of_stock'
+                    ? 'bg-gray-50 border-gray-100 text-gray-400'
+                    : 'bg-white border-primary-600 text-primary-600'
+                    }`}
+                >
+                  <FiShoppingBag />
+                  {cartItem ? 'UPDATE' : 'ADD TO CART'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!cartItem) handleAddToCart();
+                    navigate('/app/checkout');
+                  }}
+                  disabled={product.stock === 'out_of_stock'}
+                  className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg ${product.stock === 'out_of_stock'
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                    : 'bg-primary-600 text-white shadow-primary-100'
+                    }`}
+                >
+                  BUY NOW
+                </button>
+              </div>
+            ) : (
+              <Link
+                to={`/app/chat?vendorId=${vendor?._id || vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || '')}`}
+                className="flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 bg-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+              >
+                <FiMessageCircle className="text-xl" />
+                <span>Chat to Buy</span>
+              </Link>
             )}
           </div>
         </div>
 
-        {/* High-End Sticky Bottom Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-[60] p-5 pb-8 bg-white/80 backdrop-blur-2xl border-t border-slate-100/50">
-          <div className="flex gap-4">
-            <Link
-              to={`/app/chat?vendorId=${vendor?._id || vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || '')}`}
-              className="w-16 h-16 rounded-[1.5rem] bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
-            >
-              <FiMessageCircle size={28} />
-            </Link>
-
-            <div className="flex-1 flex gap-3">
-              <button
-                onClick={handleAddToCart}
-                disabled={product.stock === 'out_of_stock'}
-                className={`flex-1 rounded-[1.5rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === 'out_of_stock'
-                  ? 'bg-slate-100 border-slate-200 text-slate-400'
-                  : 'bg-white border-primary-600 text-primary-600 hover:bg-primary-50'
-                  }`}
-              >
-                <FiShoppingBag size={18} strokeWidth={2.5} />
-                {cartItem ? 'UPDATE CART' : 'ADD TO CART'}
-              </button>
-
-              <button
-                onClick={() => {
-                  if (!cartItem) handleAddToCart();
-                  navigate('/checkout');
-                }}
-                disabled={product.stock === 'out_of_stock'}
-                className={`flex-1 rounded-[1.5rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl shadow-primary-200 ${product.stock === 'out_of_stock'
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-                  }`}
-              >
-                BUY NOW
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Review Modal */}
+        {isReviewModalOpen && (
+          <ReviewModal
+            isOpen={isReviewModalOpen}
+            onClose={() => setIsReviewModalOpen(false)}
+            product={product}
+            orderId={eligibleOrderId}
+          />
+        )}
       </MobileLayout>
     </PageTransition>
   );

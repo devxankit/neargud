@@ -46,6 +46,7 @@
     "route": "/admin/customers",
     "children": [
       "View Customers",
+      "Addresses",
       "Transactions"
     ]
   },
@@ -121,7 +122,8 @@
       "Order Trends",
       "Payment Breakdown",
       "Tax Reports",
-      "Refund Reports"
+      "Refund Reports",
+      "Vendor Withdrawals"
     ]
   },
   {

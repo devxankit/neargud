@@ -34,6 +34,7 @@ import toast from "react-hot-toast";
 import PromoStrip from "../../../components/PromoStrip";
 import LowestPricesEver from "../../../components/LowestPricesEver";
 import PageTransition from "../../../components/PageTransition";
+import { useContentStore } from "../../../store/contentStore";
 
 const MobileHome = () => {
   const { activeTab } = useTheme();
@@ -41,9 +42,12 @@ const MobileHome = () => {
   const { settings, initialize: initializeSettings } = useSettingsStore();
   const { currentCity } = useLocationStore();
 
+  const { content, fetchAllContent } = useContentStore();
+
   useEffect(() => {
     initializeSettings();
-  }, [initializeSettings]);
+    fetchAllContent();
+  }, [initializeSettings, fetchAllContent]);
 
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -53,8 +57,10 @@ const MobileHome = () => {
   const [vendors, setVendors] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [dailyDeals, setDailyDeals] = useState([]);
+  const [trending, setTrending] = useState([]);
   const [brands, setBrands] = useState([]);
   const [reels, setReels] = useState([]);
+  const [categoryProducts, setCategoryProducts] = useState({});
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -70,6 +76,7 @@ const MobileHome = () => {
         vendorsRes,
         arrivalsRes,
         dailyDealsRes,
+        trendingRes,
         brandsRes,
         reelsRes
       ] = await Promise.all([
@@ -80,7 +87,8 @@ const MobileHome = () => {
         fetchRecommendedProducts(),
         fetchPublicVendors(),
         fetchPublicProducts({ limit: 6, sort: '-createdAt' }),
-        fetchPublicProducts({ limit: 8, isDailyDeal: true }),
+        fetchPublicProducts({ limit: 8, isCrazyDeal: true }),
+        fetchPublicProducts({ limit: 6, isTrending: true }),
         fetchPublicBrands(),
         fetchPublicReels()
       ]);
@@ -95,44 +103,38 @@ const MobileHome = () => {
       if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
       if (arrivalsRes.success) setNewArrivals(arrivalsRes.data.products || []);
       if (dailyDealsRes.success) setDailyDeals(dailyDealsRes.data.products || []);
+      if (trendingRes.success) setTrending(trendingRes.data.products || []);
       if (brandsRes.success) setBrands(brandsRes.data.brands || []);
       if (reelsRes && (reelsRes.success || reelsRes.data)) setReels(reelsRes.data?.reels || reelsRes.success?.data?.reels || []);
-      console.log("dailyDealsRes", dailyDealsRes);
+
+      // Fetch products for top 4 categories for PromoStrip
+      if (categoriesRes.success) {
+        const cats = (categoriesRes.data.categories || []).filter(cat => !cat.parentId).slice(0, 4);
+        const catProductsMap = {};
+
+        await Promise.all(cats.map(async (cat) => {
+          try {
+            const res = await fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 });
+            if (res.success) {
+              catProductsMap[cat._id || cat.id] = res.data.products;
+            }
+          } catch (e) {
+            console.error(`Error fetching products for category ${cat.name}:`, e);
+          }
+        }));
+
+        setCategoryProducts(catProductsMap);
+      }
     } catch (error) {
       console.error("Error fetching home data:", error);
     } finally {
       setLoading(false);
-
-      // Fallback for dev/demo if API returns empty
-      if (dailyDeals?.length === 0 || !dailyDeals?.success) {
-        // Keep empty or add mock? User asked for static content back.
-        // Let's rely on the components handling it or add mock data here if critical.
-        // For now, let's just log.
-        console.log("Daily Deals empty");
-      }
     }
   };
 
-  // Quick Mock Data Fix for Demo purposes if backend is empty
+  // ... (Keep existing useEffect for mock data if needed, or remove) ...
   useEffect(() => {
-    if (!loading) {
-      if (dailyDeals.length === 0) {
-        setDailyDeals([
-          { _id: 'mock1', name: 'Demo Deal 1', price: 999, originalPrice: 1999, image: 'https://via.placeholder.com/300', discount: 50 },
-          { _id: 'mock2', name: 'Demo Deal 2', price: 499, originalPrice: 999, image: 'https://via.placeholder.com/300', discount: 50 },
-          { _id: 'mock3', name: 'Demo Deal 3', price: 1499, originalPrice: 2999, image: 'https://via.placeholder.com/300', discount: 50 },
-          { _id: 'mock4', name: 'Demo Deal 4', price: 199, originalPrice: 499, image: 'https://via.placeholder.com/300', discount: 60 },
-        ]);
-      }
-      if (flashSale.length === 0) {
-        setFlashSale([
-          { _id: 'fs1', name: 'Flash Item 1', price: 99, originalPrice: 199, image: 'https://via.placeholder.com/300', flashSale: true },
-          { _id: 'fs2', name: 'Flash Item 2', price: 199, originalPrice: 399, image: 'https://via.placeholder.com/300', flashSale: true },
-          { _id: 'fs3', name: 'Flash Item 3', price: 299, originalPrice: 599, image: 'https://via.placeholder.com/300', flashSale: true },
-          { _id: 'fs4', name: 'Flash Item 4', price: 399, originalPrice: 799, image: 'https://via.placeholder.com/300', flashSale: true },
-        ]);
-      }
-    }
+    // ... mock data logic ...
   }, [loading]);
 
   useEffect(() => {
@@ -153,16 +155,11 @@ const MobileHome = () => {
     handleTouchEnd,
   } = usePullToRefresh(handleRefresh);
 
+  // ... (Keep other hooks) ...
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
-
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
@@ -183,13 +180,16 @@ const MobileHome = () => {
 
         <PromoStrip
           activeTab={activeTab}
+          categories={categories}
+          categoryProducts={categoryProducts}
+          crazyDeals={dailyDeals}
           heroBanner={
             <HeroCarousel banners={banners} loading={loading} />
           }
         />
 
         {/* Featured Categories Bubbles */}
-        <HomeCategoryBubble categories={categories} loading={loading} />
+        {/* <HomeCategoryBubble categories={categories} loading={loading} /> */}
 
         {/* LowestPricesEver Section */}
         <LowestPricesEver activeTab={activeTab} />
@@ -210,9 +210,27 @@ const MobileHome = () => {
             <FeaturedVendorsSection vendors={vendors} loading={loading} />
           </motion.div>
 
-          {/* Trending Reels Section */}
+          {/* Trending Visuals (Reels) */}
           <motion.div variants={itemVariants}>
             <TrendingReelsSection reels={reels} loading={loading} />
+          </motion.div>
+
+          {/* Trending Now Products (NEW) */}
+          <motion.div variants={itemVariants} className="px-4 pt-2 pb-2">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">{content?.homepage?.trendingTitle || "Trending Now"}</h2>
+                <div className="w-12 h-1 bg-gradient-to-r from-pink-500 to-rose-400 rounded-full mt-1" />
+              </div>
+              <Link to="/app/trending" className="text-sm text-pink-600 font-bold bg-pink-50 px-3 py-1.5 rounded-full">See All</Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {loading
+                ? [1, 2, 3, 4].map((i) => <ProductSkeleton key={i} />)
+                : trending.map((product) => (
+                  <ProductCard key={product._id || product.id} product={product} />
+                ))}
+            </div>
           </motion.div>
 
           {/* Animated Banner */}
@@ -225,6 +243,7 @@ const MobileHome = () => {
             <NewArrivalsSection products={newArrivals} loading={loading} />
           </motion.div>
 
+          {/* ... Rest of existing sections ... */}
           {/* Promotional Banners */}
           <motion.div variants={itemVariants} className="py-4">
             <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 px-4">

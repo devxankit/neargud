@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FiX, FiSave, FiUpload } from 'react-icons/fi';
+import { FiX, FiSave, FiUpload, FiSearch } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCategoryStore } from '../../../store/categoryStore';
+import { iconComponents, getIconComponent } from '../../../utils/categoryIcons';
 import AnimatedSelect from '../AnimatedSelect';
 import toast from 'react-hot-toast';
 import Button from '../Button';
@@ -15,10 +16,14 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
   const isSubcategory = !isEdit && parentId !== null;
   const parentCategory = parentId ? getCategoryById(parentId) : (category?.parentId ? getCategoryById(category.parentId) : null);
 
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [iconSearch, setIconSearch] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     image: '',
+    icon: '',
     parentId: null,
     isActive: true,
     order: 0,
@@ -30,6 +35,7 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
         name: category.name || '',
         description: category.description || '',
         image: category.image || '',
+        icon: category.icon || '',
         parentId: category.parentId || null,
         isActive: category.isActive !== undefined ? category.isActive : true,
         order: category.order || 0,
@@ -39,12 +45,15 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
         name: '',
         description: '',
         image: '',
+        icon: '',
         parentId: parentId,
         isActive: true,
         order: 0,
       });
     }
   }, [category, parentId]);
+
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -305,6 +314,95 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
                 </div>
               </div>
 
+
+
+              {/* Icon Selection */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Category Icon</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    {formData.icon && (
+                      <div className="flex flex-col items-center p-2 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="text-3xl text-primary-600 mb-1">
+                          {(() => {
+                            const Icon = getIconComponent(formData.icon);
+                            return Icon ? <Icon /> : null;
+                          })()}
+                        </div>
+                        <span className="text-[10px] text-gray-500 font-mono max-w-[80px] truncate">{formData.icon}</span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowIconPicker(!showIconPicker)}
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                      >
+                        <FiSearch />
+                        {formData.icon ? 'Change Icon' : 'Select Icon'}
+                      </button>
+
+                      {formData.icon && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, icon: '' })}
+                          className="text-red-500 text-xs hover:underline"
+                        >
+                          Remove Icon
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {showIconPicker && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      className="border border-gray-200 rounded-xl p-4 bg-gray-50"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Search icons..."
+                        value={iconSearch}
+                        onChange={(e) => setIconSearch(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                        autoFocus
+                      />
+                      <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-60 overflow-y-auto p-1 custom-scrollbar">
+                        {Object.keys(iconComponents)
+                          .filter(k => k.toLowerCase().includes(iconSearch.toLowerCase()))
+                          .map(iconName => {
+                            const Icon = iconComponents[iconName];
+                            return (
+                              <button
+                                key={iconName}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ ...formData, icon: iconName });
+                                  setShowIconPicker(false);
+                                }}
+                                className={`aspect-square rounded-lg flex items-center justify-center hover:bg-white hover:shadow-md transition-all text-xl
+                                  ${formData.icon === iconName
+                                    ? 'bg-primary-100 text-primary-600 ring-2 ring-primary-500 shadow-sm'
+                                    : 'text-gray-600 hover:text-primary-600 bg-white/50'}`}
+                                title={iconName}
+                              >
+                                <Icon />
+                              </button>
+                            )
+                          })}
+                        {Object.keys(iconComponents).filter(k => k.toLowerCase().includes(iconSearch.toLowerCase())).length === 0 && (
+                          <div className="col-span-full text-center py-4 text-gray-500 text-sm">
+                            No icons found
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
               {/* Settings */}
               <div>
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Settings</h3>
@@ -357,7 +455,7 @@ const CategoryForm = ({ category, parentId, onClose, onSave }) => {
           </motion.div>
         </motion.div>
       </>
-    </AnimatePresence>
+    </AnimatePresence >
   );
 };
 

@@ -35,4 +35,14 @@ router.post('/:requestId/approve', asyncHandler(approveWithdrawal));
 // Reject withdrawal
 router.post('/:requestId/reject', asyncHandler(rejectWithdrawal));
 
+// Release pending funds (manual trigger)
+router.post('/release-pending-funds', async (req, res) => {
+    try {
+        const { releasePendingFunds } = await import('../controllers/admin-controllers/adminFunds.controller.js');
+        await releasePendingFunds(req, res);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 export default router;

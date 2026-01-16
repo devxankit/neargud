@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiChevronDown, FiChevronRight, FiEdit, FiTrash2, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi';
 import { useCategoryStore } from '../../../store/categoryStore';
+import { getIconComponent } from '../../../utils/categoryIcons';
 import Badge from '../../Badge';
 import toast from 'react-hot-toast';
 import Button from '../Button';
@@ -27,9 +28,8 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
         {/* Mobile Card Design */}
         <div className="sm:hidden">
           <div
-            className={`bg-white border border-gray-200 rounded-2xl p-3.5 mb-2.5 shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${
-              level > 0 ? 'ml-3' : ''
-            }`}
+            className={`bg-white border border-gray-200 rounded-2xl p-3.5 mb-2.5 shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${level > 0 ? 'ml-3' : ''
+              }`}
           >
             {/* Header Section - Image, Name, Badge, Expand */}
             <div className="flex items-start gap-3 mb-3">
@@ -45,6 +45,7 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
               {!hasChildren && <div className="w-6" />}
 
               {/* Category Image */}
+              {/* Category Image or Icon */}
               {category.image ? (
                 <img
                   src={category.image}
@@ -54,6 +55,13 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
                     e.target.style.display = 'none';
                   }}
                 />
+              ) : category.icon ? (
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 flex-shrink-0 border border-gray-100 flex items-center justify-center text-primary-600 text-2xl">
+                  {(() => {
+                    const Icon = getIconComponent(category.icon);
+                    return Icon ? <Icon /> : null;
+                  })()}
+                </div>
               ) : (
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 border border-gray-100 flex items-center justify-center">
                   <span className="text-gray-400 text-xs font-semibold">
@@ -66,17 +74,17 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 text-base leading-tight line-clamp-1">
-                    {category.name}
-                  </h3>
+                    <h3 className="font-bold text-gray-900 text-base leading-tight line-clamp-1">
+                      {category.name}
+                    </h3>
                     {hasChildren && (
                       <p className="text-[10px] text-gray-500 mt-0.5">
                         {children.length} subcategor{children.length !== 1 ? 'ies' : 'y'}
                       </p>
                     )}
                   </div>
-                  <Badge 
-                    variant={category.isActive ? 'success' : 'error'} 
+                  <Badge
+                    variant={category.isActive ? 'success' : 'error'}
                     className="flex-shrink-0 text-[10px] px-2 py-0.5"
                   >
                     {category.isActive ? 'Active' : 'Inactive'}
@@ -140,9 +148,8 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
 
         {/* Desktop Design */}
         <div
-          className={`hidden sm:flex items-center gap-2 p-3 rounded-lg hover:bg-gray-50 transition-colors ${
-            level > 0 ? 'ml-6' : ''
-          }`}
+          className={`hidden sm:flex items-center gap-2 p-3 rounded-lg hover:bg-gray-50 transition-colors ${level > 0 ? 'ml-6' : ''
+            }`}
         >
           {hasChildren && (
             <Button
@@ -155,7 +162,7 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
           {!hasChildren && <div className="w-6" />}
 
           <div className="flex-1 flex items-center gap-3">
-            {category.image && (
+            {category.image ? (
               <img
                 src={category.image}
                 alt={category.name}
@@ -164,10 +171,17 @@ const CategoryTree = ({ categories, onEdit, onDelete, onAddSubcategory, level = 
                   e.target.style.display = 'none';
                 }}
               />
-            )}
+            ) : category.icon ? (
+              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 text-xl">
+                {(() => {
+                  const Icon = getIconComponent(category.icon);
+                  return Icon ? <Icon /> : null;
+                })()}
+              </div>
+            ) : null}
             <div className="flex-1">
               <div className="flex items-center gap-2">
-              <p className="font-semibold text-gray-800">{category.name}</p>
+                <p className="font-semibold text-gray-800">{category.name}</p>
                 {hasChildren && (
                   <Badge variant="info" className="text-[10px] px-1.5 py-0.5">
                     {children.length}

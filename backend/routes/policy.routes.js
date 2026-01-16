@@ -12,7 +12,7 @@ const router = express.Router();
 
 // All routes require admin authentication
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(authorize('admin' , "user"));
 
 // Routes
 router.get('/', asyncHandler(getAll));

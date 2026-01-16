@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiDollarSign, FiCheck, FiX, FiClock, FiCheckCircle, FiXCircle, FiFilter, FiDownload } from 'react-icons/fi';
+import { FiDollarSign, FiCheck, FiX, FiClock, FiCheckCircle, FiXCircle, FiFilter, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
-import { fetchPendingWithdrawals, approveWithdrawal, rejectWithdrawal, fetchWithdrawalReports } from '../../../services/adminVendorWalletApi';
+import { fetchPendingWithdrawals, approveWithdrawal, rejectWithdrawal, fetchWithdrawalReports, releasePendingFunds } from '../../../services/adminVendorWalletApi';
 import { formatPrice } from '../../../utils/helpers';
 import Badge from '../../../components/Badge';
 import ExportButton from '../../../components/Admin/ExportButton';
@@ -20,6 +20,7 @@ const VendorWithdrawals = () => {
     const [adminNotes, setAdminNotes] = useState('');
     const [rejectionReason, setRejectionReason] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [releasing, setReleasing] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -88,6 +89,25 @@ const VendorWithdrawals = () => {
         }
     };
 
+    const handleReleaseFunds = async () => {
+        setReleasing(true);
+        try {
+            const result = await releasePendingFunds();
+            const data = result?.data || {};
+
+            if (data.processedCount > 0) {
+                toast.success(`Successfully released funds for ${data.processedCount} orders! Total: ${formatPrice(data.totalReleased || 0)}`);
+                loadData(); // Reload data to show updated balances
+            } else {
+                toast.info('No eligible orders found for fund release');
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Failed to release pending funds');
+        } finally {
+            setReleasing(false);
+        }
+    };
+
     const filteredRequests = allRequests.filter(req => {
         if (filterStatus === 'all') return true;
         return req.status === filterStatus;
@@ -126,6 +146,14 @@ const VendorWithdrawals = () => {
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Vendor Withdrawals</h1>
                     <p className="text-gray-600 mt-1">Manage vendor payment withdrawal requests</p>
                 </div>
+                <button
+                    onClick={handleReleaseFunds}
+                    disabled={releasing}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                    <FiRefreshCw className={releasing ? 'animate-spin' : ''} />
+                    <span>{releasing ? 'Releasing...' : 'Release Pending Funds'}</span>
+                </button>
             </div>
 
             {/* Stats Cards */}
@@ -167,8 +195,8 @@ const VendorWithdrawals = () => {
                         <button
                             onClick={() => setActiveTab('pending')}
                             className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'pending'
-                                    ? 'border-purple-600 text-purple-600 font-semibold'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                                ? 'border-purple-600 text-purple-600 font-semibold'
+                                : 'border-transparent text-gray-600 hover:text-gray-800'
                                 }`}
                         >
                             <FiClock />
@@ -182,8 +210,8 @@ const VendorWithdrawals = () => {
                         <button
                             onClick={() => setActiveTab('history')}
                             className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'history'
-                                    ? 'border-purple-600 text-purple-600 font-semibold'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                                ? 'border-purple-600 text-purple-600 font-semibold'
+                                : 'border-transparent text-gray-600 hover:text-gray-800'
                                 }`}
                         >
                             <FiCheckCircle />
@@ -313,10 +341,10 @@ const VendorWithdrawals = () => {
                                         <div
                                             key={request._id}
                                             className={`rounded-xl p-6 border transition-all ${request.status === 'approved'
-                                                    ? 'bg-green-50 border-green-200'
-                                                    : request.status === 'rejected'
-                                                        ? 'bg-red-50 border-red-200'
-                                                        : 'bg-yellow-50 border-yellow-200'
+                                                ? 'bg-green-50 border-green-200'
+                                                : request.status === 'rejected'
+                                                    ? 'bg-red-50 border-red-200'
+                                                    : 'bg-yellow-50 border-yellow-200'
                                                 }`}
                                         >
                                             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">

@@ -174,13 +174,24 @@ const Content = () => {
                                 <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Promo Strip</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Housefull Text</label>
-                                        <input
-                                            type="text"
-                                            value={formData.homepage.promoStrip?.housefullText || ''}
-                                            onChange={(e) => handleHomepageSectionChange('promoStrip', 'housefullText', e.target.value)}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                        />
+                                      <div className="relative">
+  <label className="block text-sm font-semibold text-gray-700 mb-1">
+    Housefull Text
+  </label>
+
+  <textarea
+    rows={3}
+    placeholder="Enter housefull banner text..."
+    value={formData.homepage.promoStrip?.housefullText || ""}
+    onChange={(e) =>
+      handleHomepageSectionChange("promoStrip", "housefullText", e.target.value)
+    }
+    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white shadow-sm 
+               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+               transition-all duration-200 resize-none"
+  />
+</div>
+
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">Sale Date Text</label>

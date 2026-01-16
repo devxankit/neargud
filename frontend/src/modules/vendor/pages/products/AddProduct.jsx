@@ -61,6 +61,7 @@ const AddProduct = () => {
     flashSale: false,
     isNew: false,
     isFeatured: false,
+    isCrazyDeal: false,
     isVisible: true,
     codAllowed: true,
     returnable: true,
@@ -978,6 +979,7 @@ const AddProduct = () => {
                       { id: 'isNew', label: 'New Arrival', icon: '✨' },
                       { id: 'isTrending', label: 'Trending Now', icon: '🔥' },
                       { id: 'isFeatured', label: 'Featured Product', icon: '⭐' },
+                      { id: 'isCrazyDeal', label: 'Crazy Deal', icon: '🤪' },
                       { id: 'isVisible', label: 'Visible to Customers', icon: '👁️' },
                     ].map(opt => (
                       <label key={opt.id} className={`

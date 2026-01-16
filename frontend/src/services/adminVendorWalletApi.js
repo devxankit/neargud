@@ -5,7 +5,7 @@ import api from '../utils/api';
  */
 export const fetchPendingWithdrawals = async () => {
     try {
-        const response = await api.get('/admin/vendor-wallet/pending-withdrawals');
+        const response = await api.get('/admin/vendor-wallets/pending-withdrawals');
         return response.data;
     } catch (error) {
         console.error('Error fetching pending withdrawals:', error);
@@ -18,7 +18,7 @@ export const fetchPendingWithdrawals = async () => {
  */
 export const approveWithdrawal = async (requestId, data) => {
     try {
-        const response = await api.post(`/admin/vendor-wallet/withdrawals/${requestId}/approve`, data);
+        const response = await api.post(`/admin/vendor-wallets/${requestId}/approve`, data);
         return response.data;
     } catch (error) {
         console.error('Error approving withdrawal:', error);
@@ -31,7 +31,7 @@ export const approveWithdrawal = async (requestId, data) => {
  */
 export const rejectWithdrawal = async (requestId, data) => {
     try {
-        const response = await api.post(`/admin/vendor-wallet/withdrawals/${requestId}/reject`, data);
+        const response = await api.post(`/admin/vendor-wallets/${requestId}/reject`, data);
         return response.data;
     } catch (error) {
         console.error('Error rejecting withdrawal:', error);
@@ -44,7 +44,7 @@ export const rejectWithdrawal = async (requestId, data) => {
  */
 export const fetchWithdrawalReports = async (params = {}) => {
     try {
-        const response = await api.get('/admin/vendor-wallet/reports', { params });
+        const response = await api.get('/admin/vendor-wallets/reports', { params });
         return response.data;
     } catch (error) {
         console.error('Error fetching withdrawal reports:', error);
@@ -57,7 +57,7 @@ export const fetchWithdrawalReports = async (params = {}) => {
  */
 export const fetchAllVendorWallets = async () => {
     try {
-        const response = await api.get('/admin/vendor-wallet/wallets');
+        const response = await api.get('/admin/vendor-wallets');
         return response.data;
     } catch (error) {
         console.error('Error fetching vendor wallets:', error);
@@ -70,10 +70,23 @@ export const fetchAllVendorWallets = async () => {
  */
 export const fetchVendorWallet = async (vendorId) => {
     try {
-        const response = await api.get(`/admin/vendor-wallet/wallets/${vendorId}`);
+        const response = await api.get(`/admin/vendor-wallets/${vendorId}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching vendor wallet:', error);
+        throw error;
+    }
+};
+
+/**
+ * Manually release pending funds for eligible orders
+ */
+export const releasePendingFunds = async () => {
+    try {
+        const response = await api.post('/admin/vendor-wallets/release-pending-funds');
+        return response.data;
+    } catch (error) {
+        console.error('Error releasing pending funds:', error);
         throw error;
     }
 };

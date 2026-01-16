@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { FiPlus, FiSearch, FiTrash2, FiEdit } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useCategoryStore } from '../../../store/categoryStore';
+import { getIconComponent } from '../../../utils/categoryIcons';
 import CategoryForm from '../../../components/Admin/Categories/CategoryForm';
 import CategoryTree from '../../../components/Admin/Categories/CategoryTree';
 import ExportButton from '../../../components/Admin/ExportButton';
@@ -86,6 +87,7 @@ const ManageCategories = () => {
     }
   };
 
+
   const handleFormClose = () => {
     setShowForm(false);
     setEditingCategory(null);
@@ -141,21 +143,19 @@ const ManageCategories = () => {
           <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
             <button
               onClick={() => setViewMode('tree')}
-              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${
-                viewMode === 'tree'
+              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${viewMode === 'tree'
                   ? 'bg-white text-primary-600 shadow-sm'
                   : 'text-gray-600'
-              }`}
+                }`}
             >
               Tree View
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${
-                viewMode === 'list'
+              className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${viewMode === 'list'
                   ? 'bg-white text-primary-600 shadow-sm'
                   : 'text-gray-600'
-              }`}
+                }`}
             >
               List View
             </button>
@@ -196,12 +196,23 @@ const ManageCategories = () => {
                   key={category.id}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  {category.image && (
+                  {category.image ? (
                     <img
                       src={category.image}
                       alt={category.name}
-                      className="w-10 h-10 object-cover rounded-lg"
+                      className="w-10 h-10 object-cover rounded-lg bg-gray-50"
                     />
+                  ) : category.icon ? (
+                    <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center text-xl text-primary-600">
+                      {(() => {
+                        const Icon = getIconComponent(category.icon);
+                        return Icon ? <Icon /> : null;
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl text-gray-400">
+                      <span className="text-xs font-bold">{category.name.charAt(0)}</span>
+                    </div>
                   )}
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">{category.name}</p>

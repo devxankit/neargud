@@ -215,6 +215,12 @@ export const getPublicProducts = async (filters = {}) => {
       query.isDailyDeal = isDailyDeal === true || isDailyDeal === 'true';
     }
 
+    // isCrazyDeal filter
+    const isCrazyDeal = filters.isCrazyDeal;
+    if (isCrazyDeal !== undefined && isCrazyDeal !== null) {
+      query.isCrazyDeal = isCrazyDeal === true || isCrazyDeal === 'true';
+    }
+
     // hasDiscount filter
     const hasDiscount = filters.hasDiscount;
     if (hasDiscount === 'true' || hasDiscount === true) {

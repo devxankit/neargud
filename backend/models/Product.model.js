@@ -147,6 +147,10 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isCrazyDeal: {
+      type: Boolean,
+      default: false,
+    },
     isVisible: {
       type: Boolean,
       default: true,
