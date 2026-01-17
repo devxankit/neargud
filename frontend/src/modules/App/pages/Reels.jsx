@@ -248,6 +248,7 @@ const MobileReels = () => {
       toast.error("Please login to like");
       return;
     }
+    if (showComments) setShowComments(false);
     const reelId = reel.id || reel._id;
     socketService.likeReel(reelId);
     triggerHeartAnimation();
@@ -303,6 +304,10 @@ const MobileReels = () => {
   };
 
   const handleCommentClick = async (reelId) => {
+    if (showComments && activeReelId === reelId) {
+      setShowComments(false);
+      return;
+    }
     setActiveReelId(reelId);
     setShowComments(true);
     setLoadingComments(true);
@@ -504,7 +509,7 @@ const MobileReels = () => {
             </div>
 
             {/* Right Actions Bar */}
-            <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-30">
+            <div className={`absolute right-3 bottom-24 flex flex-col items-center gap-5 z-[60] transition-opacity duration-300 ${showComments ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <button
                 onClick={(e) => { e.stopPropagation(); toggleLike(reel); }}
                 className="flex flex-col items-center gap-1.5 transition-all active:scale-90"
@@ -544,7 +549,7 @@ const MobileReels = () => {
             </div>
 
             {/* Overlay Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-5 pb-10 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20">
+            <div className={`absolute bottom-0 left-0 right-0 p-5 pb-10 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20 transition-opacity duration-300 ${showComments ? 'opacity-0' : 'opacity-100'}`}>
               <div className="flex items-end justify-between pointer-events-auto">
                 <div className="flex-1 mr-12 group">
                   {/* User/Vendor Info */}
@@ -618,14 +623,25 @@ const MobileReels = () => {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40 px-4"
             />
             <motion.div
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.3}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 100 || info.velocity.y > 500) {
+                  setShowComments(false);
+                }
+              }}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-[32px] z-50 h-[75vh] flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col items-center pt-3 pb-2">
+              {/* Drag Handle Area */}
+              <div
+                className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+              >
                 <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mb-4"></div>
                 <div className="w-full flex items-center justify-between px-6">
                   <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
