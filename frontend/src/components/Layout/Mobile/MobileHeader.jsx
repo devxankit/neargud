@@ -257,7 +257,7 @@ const MobileHeader = () => {
   return (
     <>
       {headerContent}
-      {typeof document !== "undefined" &&
+      {typeof document !== "undefined" && showCartAnimation && positionsReady &&
         createPortal(animationContent, document.body)}
     </>
   );

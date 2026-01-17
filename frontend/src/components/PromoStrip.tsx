@@ -645,7 +645,7 @@ export default function PromoStrip({
 
       {/* Hero Banner Carousel - Inserted between HOUSEFULL SALE and Category Cards */}
       {heroBanner && (
-        <div className="pl-0 mb-2">
+        <div className="pl-0 mb-4">
           {heroBanner}
         </div>
       )}

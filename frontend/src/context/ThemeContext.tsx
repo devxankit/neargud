@@ -89,7 +89,6 @@ const tabs: Tab[] = [
         <path d="M11 12L13 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M4 12L2 12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M20 12L22 12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <span className="text-xs font-medium text-center line-clamp-1 transition-colors duration-300 text-gray-700 hover:text-primary-600" style={{ fontSize: '10px' }}>Fashion</span>
       </svg>
     ),
   },

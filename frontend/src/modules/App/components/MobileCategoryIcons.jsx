@@ -55,7 +55,8 @@ const MobileCategoryIcons = ({ isTopRowVisible = true }) => {
   }, [currentCategoryId, categories]);
 
   return (
-    <div className="relative w-full" style={{ marginTop: "-20px" }}>
+          <div className="relative w-full" style={{ marginTop: "-20px" }}>
+
       <div
         ref={scrollContainerRef}
         className="flex items-start w-full overflow-x-auto no-scrollbar"
