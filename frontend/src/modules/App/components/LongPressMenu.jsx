@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiShoppingBag, FiHeart, FiShare2, FiX } from 'react-icons/fi';
 import { createPortal } from 'react-dom';
 
-const LongPressMenu = ({ isOpen, onClose, position, onAddToCart, onAddToWishlist, onShare, isInWishlist }) => {
+const LongPressMenu = ({ isOpen, onClose, position, onAddToCart, onAddToWishlist, onShare, isInWishlist, isBuy = true }) => {
   if (!isOpen) return null;
 
   const menuItems = [
@@ -36,7 +36,10 @@ const LongPressMenu = ({ isOpen, onClose, position, onAddToCart, onAddToWishlist
       color: 'text-gray-600',
       bgColor: 'bg-gray-50',
     },
-  ];
+  ].filter(item => {
+    if (item.label === 'Add to Cart' && isBuy === false) return false;
+    return true;
+  });
 
   const menuContent = (
     <AnimatePresence>

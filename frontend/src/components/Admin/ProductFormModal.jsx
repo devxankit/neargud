@@ -56,6 +56,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
     seoTitle: "",
     seoDescription: "",
     relatedProducts: [],
+    isBuy: true,
   });
 
   useEffect(() => {
@@ -113,6 +114,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
               seoTitle: product.seoTitle || "",
               seoDescription: product.seoDescription || "",
               relatedProducts: product.relatedProducts || [],
+              isBuy: product.isBuy !== undefined ? product.isBuy : true,
             });
           }
         } catch (error) {
@@ -167,6 +169,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
           seoTitle: "",
           seoDescription: "",
           relatedProducts: [],
+          isBuy: true,
         });
       }
     }
@@ -313,7 +316,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
             onClick={onClose}
             className="fixed inset-0 bg-black/50 z-[10000]"
           />
-          
+
           {/* Modal Content - Mobile: Slide up from bottom, Desktop: Center with scale */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -323,27 +326,27 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
           >
             <motion.div
               variants={{
-                hidden: { 
+                hidden: {
                   y: isAppRoute ? '-100%' : '100%',
                   scale: 0.95,
                   opacity: 0
                 },
-                visible: { 
+                visible: {
                   y: 0,
                   scale: 1,
                   opacity: 1,
-                  transition: { 
+                  transition: {
                     type: 'spring',
                     damping: 22,
                     stiffness: 350,
                     mass: 0.7
                   }
                 },
-                exit: { 
+                exit: {
                   y: isAppRoute ? '-100%' : '100%',
                   scale: 0.95,
                   opacity: 0,
-                  transition: { 
+                  transition: {
                     type: 'spring',
                     damping: 30,
                     stiffness: 400
@@ -900,6 +903,18 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
                         />
                         <span className="text-sm font-semibold text-gray-700">
                           Visible to Customers
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          name="isBuy"
+                          checked={formData.isBuy}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-semibold text-gray-700">
+                          Enable Buy/Cart
                         </span>
                       </label>
                     </div>

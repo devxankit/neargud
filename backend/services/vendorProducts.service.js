@@ -217,6 +217,7 @@ export const createVendorProduct = async (productData, vendorId) => {
       productType,
       isCouponEligible,
       applicableCoupons,
+      isBuy,
     } = productData;
 
     // Validate required fields
@@ -625,6 +626,7 @@ export const createVendorProduct = async (productData, vendorId) => {
       isDailyDeal: isDailyDeal || false,
       isCrazyDeal: isCrazyDeal || false,
       isVisible: isVisible !== undefined ? isVisible : true,
+      isBuy: isBuy !== undefined ? isBuy : true,
       codAllowed: codAllowed !== undefined ? codAllowed : true,
       returnable: returnable !== undefined ? returnable : true,
       cancelable: cancelable !== undefined ? cancelable : true,
@@ -720,6 +722,7 @@ export const updateVendorProduct = async (productId, productData, vendorId) => {
       productType,
       isCouponEligible,
       applicableCoupons,
+      isBuy,
     } = productData;
 
     // Validate category if provided
@@ -1128,6 +1131,7 @@ export const updateVendorProduct = async (productId, productData, vendorId) => {
         ...(isDailyDeal !== undefined && { isDailyDeal }),
         ...(isCrazyDeal !== undefined && { isCrazyDeal }),
         ...(isVisible !== undefined && { isVisible }),
+        ...(isBuy !== undefined && { isBuy }),
         ...(codAllowed !== undefined && { codAllowed }),
         ...(returnable !== undefined && { returnable }),
         ...(cancelable !== undefined && { cancelable }),

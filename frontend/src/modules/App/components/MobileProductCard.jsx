@@ -174,13 +174,15 @@ const MobileProductCard = ({ product }) => {
                   )}
                 </div>
 
-                <button
-                  ref={buttonRef}
-                  onClick={handleAddToCart}
-                  className="w-9 h-9 rounded-xl bg-primary-600 text-white flex items-center justify-center shadow-lg shadow-primary-200 active:scale-90 transition-transform"
-                >
-                  <FiShoppingBag size={18} />
-                </button>
+                {product.isBuy !== false && (
+                  <button
+                    ref={buttonRef}
+                    onClick={handleAddToCart}
+                    className="w-9 h-9 rounded-xl bg-primary-600 text-white flex items-center justify-center shadow-lg shadow-primary-200 active:scale-90 transition-transform"
+                  >
+                    <FiShoppingBag size={18} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -195,6 +197,7 @@ const MobileProductCard = ({ product }) => {
         onAddToWishlist={handleFavorite}
         onShare={handleShare}
         isInWishlist={isFavorite}
+        isBuy={product.isBuy}
       />
 
       {showFlyingItem && (

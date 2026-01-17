@@ -64,6 +64,7 @@ const ProductForm = () => {
     seoTitle: "",
     seoDescription: "",
     relatedProducts: [],
+    isBuy: true,
   });
 
   useEffect(() => {
@@ -141,6 +142,7 @@ const ProductForm = () => {
         seoTitle: product.seoTitle || "",
         seoDescription: product.seoDescription || "",
         relatedProducts: product.relatedProducts || [],
+        isBuy: product.isBuy !== undefined ? product.isBuy : true,
       });
     } catch (error) {
       console.error("Load product error:", error);
@@ -852,6 +854,18 @@ const ProductForm = () => {
               />
               <span className="text-xs font-semibold text-gray-700">
                 Visible
+              </span>
+            </label>
+            <label className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                name="isBuy"
+                checked={formData.isBuy}
+                onChange={handleChange}
+                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <span className="text-xs font-semibold text-gray-700">
+                Enable Buy/Cart
               </span>
             </label>
             <label className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">

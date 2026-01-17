@@ -143,12 +143,18 @@ const MobileProductDetail = () => {
     } else {
       const newQuantity = quantity + change;
       if (newQuantity >= 1 && newQuantity <= (product.stockQuantity || 10)) {
-        setQuantity(newQuantity);
+        if (product.isBuy !== false) {
+          setQuantity(newQuantity);
+        }
       }
     }
   };
 
   const handleAddToCart = () => {
+    if (product?.isBuy === false) {
+      toast.error('Ordering is currently disabled for this product');
+      return;
+    }
     if (product?.stock === 'out_of_stock') {
       toast.error('Product is out of stock');
       return;
@@ -443,160 +449,171 @@ const MobileProductDetail = () => {
                     <FiPlus strokeWidth={3} />
                   </button>
                 </div>
-                {!cartItem && (
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={product.stock === 'out_of_stock'}
-                    className={`flex-1 h-14 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 border-2 ${product.stock === 'out_of_stock'
-                      ? 'bg-gray-100 border-gray-200 text-gray-400'
-                      : 'bg-white border-primary-600 text-primary-700 hover:bg-primary-50'
-                      }`}
-                  >
-                    <FiShoppingBag />
-                    <span>Add to Cart</span>
-                  </button>
-                )}
-              </div>
+               {!cartItem && (
+  <button
+    onClick={handleAddToCart}
+    disabled={product.stock === 'out_of_stock' || product.isBuy === false}
+    className={`flex-1 h-14 rounded-2xl font-bold transition-all active:scale-[0.98] 
+      flex items-center justify-center gap-2 border-2 
+      ${
+        product.stock === 'out_of_stock' || product.isBuy === false
+          ? 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed'
+          : 'bg-white border-primary-600 text-primary-700 hover:bg-primary-50'
+      }`}
+  >
+    <FiShoppingBag />
+    <span>
+      {product.stock === 'out_of_stock'
+        ? 'Out of Stock'
+        : product.isBuy === false
+        ? 'Ordering Disabled'
+        : 'Add to Cart'}
+    </span>
+  </button>
+)}
+
             </div>
+          </div>
 
-            {/* Description */}
-            <div className="mb-8 p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">Product Details</h3>
-              <p className="text-gray-600 leading-relaxed text-sm font-medium">
-                {product.description || `High-quality ${product.name.toLowerCase()} available in ${product.unit.toLowerCase()}. Carefully selected to ensure safety, performance, and best value for your requirements.`}
-              </p>
-              {product.attributes && product.attributes.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 mt-6">
-                  {product.attributes.map((attr, idx) => (
-                    <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                      <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">{attr.name}</span>
-                      <span className="text-xs font-bold text-gray-800">{attr.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Reviews Section */}
-            <div className="mb-8 bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="text-lg font-bold text-gray-900 tracking-tight">Reviews</h4>
-                <button
-                  onClick={() => setIsReviewModalOpen(true)}
-                  className="text-xs font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-xl uppercase tracking-wider"
-                >
-                  Write Review
-                </button>
-              </div>
-
-              {productReviews.length > 0 ? (
-                <div className="space-y-6">
-                  {productReviews.slice(0, 3).map((review, idx) => (
-                    <div key={review._id || idx} className="space-y-2 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 capitalize">
-                            {review.customerName?.charAt(0) || 'U'}
-                          </div>
-                          <span className="text-xs font-bold text-gray-800">{review.customerName || 'User'}</span>
-                        </div>
-                        <div className="flex items-center">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <FiStar
-                              key={s}
-                              size={10}
-                              className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                        "{review.review || review.comment}"
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-gray-400 text-center py-4">No reviews yet for this product</p>
-              )}
-            </div>
-
-            {/* Similar Products */}
-            {similarProducts.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-6 px-1">
-                  <h3 className="text-lg font-bold text-gray-900 tracking-tight">You May Also Like</h3>
-                  <Link to="/app/categories" className="text-xs font-bold text-primary-600 underline">SEE ALL</Link>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {similarProducts.map((p) => (
-                    <MobileProductCard key={p._id || p.id} product={p} />
-                  ))}
-                </div>
+          {/* Description */}
+          <div className="mb-8 p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 tracking-tight">Product Details</h3>
+            <p className="text-gray-600 leading-relaxed text-sm font-medium">
+              {product.description || `High-quality ${product.name.toLowerCase()} available in ${product.unit.toLowerCase()}. Carefully selected to ensure safety, performance, and best value for your requirements.`}
+            </p>
+            {product.attributes && product.attributes.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                {product.attributes.map((attr, idx) => (
+                  <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">{attr.name}</span>
+                    <span className="text-xs font-bold text-gray-800">{attr.value}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Sticky Bottom Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 pb-8 z-40 safe-area-bottom">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleShare}
-              className="w-14 h-14 bg-gray-100 text-gray-700 rounded-2xl flex items-center justify-center transition-all active:scale-90"
-            >
-              <FiShare2 className="text-xl" />
-            </button>
-            {vendor?.deliveryAvailable !== false ? (
-              <div className="flex-1 flex gap-3">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 'out_of_stock'}
-                  className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === 'out_of_stock'
-                    ? 'bg-gray-50 border-gray-100 text-gray-400'
-                    : 'bg-white border-primary-600 text-primary-600'
-                    }`}
-                >
-                  <FiShoppingBag />
-                  {cartItem ? 'UPDATE' : 'ADD TO CART'}
-                </button>
-                <button
-                  onClick={() => {
-                    if (!cartItem) handleAddToCart();
-                    navigate('/app/checkout');
-                  }}
-                  disabled={product.stock === 'out_of_stock'}
-                  className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg ${product.stock === 'out_of_stock'
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                    : 'bg-primary-600 text-white shadow-primary-100'
-                    }`}
-                >
-                  BUY NOW
-                </button>
+          {/* Reviews Section */}
+          <div className="mb-8 bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-lg font-bold text-gray-900 tracking-tight">Reviews</h4>
+              <button
+                onClick={() => setIsReviewModalOpen(true)}
+                className="text-xs font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-xl uppercase tracking-wider"
+              >
+                Write Review
+              </button>
+            </div>
+
+            {productReviews.length > 0 ? (
+              <div className="space-y-6">
+                {productReviews.slice(0, 3).map((review, idx) => (
+                  <div key={review._id || idx} className="space-y-2 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 capitalize">
+                          {review.customerName?.charAt(0) || 'U'}
+                        </div>
+                        <span className="text-xs font-bold text-gray-800">{review.customerName || 'User'}</span>
+                      </div>
+                      <div className="flex items-center">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <FiStar
+                            key={s}
+                            size={10}
+                            className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                      "{review.review || review.comment}"
+                    </p>
+                  </div>
+                ))}
               </div>
             ) : (
-              <Link
-                to={`/app/chat?vendorId=${vendor?._id || vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || '')}`}
-                className="flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 bg-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
-              >
-                <FiMessageCircle className="text-xl" />
-                <span>Chat to Buy</span>
-              </Link>
+              <p className="text-sm font-medium text-gray-400 text-center py-4">No reviews yet for this product</p>
             )}
           </div>
-        </div>
 
-        {/* Review Modal */}
-        {isReviewModalOpen && (
-          <ReviewModal
-            isOpen={isReviewModalOpen}
-            onClose={() => setIsReviewModalOpen(false)}
-            product={product}
-            orderId={eligibleOrderId}
-          />
-        )}
-      </MobileLayout>
-    </PageTransition>
+          {/* Similar Products */}
+          {similarProducts.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6 px-1">
+                <h3 className="text-lg font-bold text-gray-900 tracking-tight">You May Also Like</h3>
+                <Link to="/app/categories" className="text-xs font-bold text-primary-600 underline">SEE ALL</Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {similarProducts.map((p) => (
+                  <MobileProductCard key={p._id || p.id} product={p} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 pb-8 z-40 safe-area-bottom">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleShare}
+            className="w-14 h-14 bg-gray-100 text-gray-700 rounded-2xl flex items-center justify-center transition-all active:scale-90"
+          >
+            <FiShare2 className="text-xl" />
+          </button>
+          {vendor?.deliveryAvailable !== false ? (
+            <div className="flex-1 flex gap-3">
+              <button
+                onClick={handleAddToCart}
+                disabled={product.stock === 'out_of_stock' || product.isBuy === false}
+                className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === 'out_of_stock' || product.isBuy === false
+                  ? 'bg-gray-50 border-gray-100 text-gray-400'
+                  : 'bg-white border-primary-600 text-primary-600'
+                  }`}
+              >
+                <FiShoppingBag />
+                {product.isBuy === false ? 'DISABLED' : (cartItem ? 'UPDATE' : 'ADD TO CART')}
+              </button>
+              <button
+                onClick={() => {
+                  if (product.isBuy === false) return;
+                  if (!cartItem) handleAddToCart();
+                  navigate('/app/checkout');
+                }}
+                disabled={product.stock === 'out_of_stock' || product.isBuy === false}
+                className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg ${product.stock === 'out_of_stock' || product.isBuy === false
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                  : 'bg-primary-600 text-white shadow-primary-100'
+                  }`}
+              >
+                {product.isBuy === false ? 'DISABLED' : 'BUY NOW'}
+              </button>
+            </div>
+          ) : (
+            <Link
+              to={`/app/chat?vendorId=${vendor?._id || vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || '')}`}
+              className="flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 bg-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+            >
+              <FiMessageCircle className="text-xl" />
+              <span>Chat to Buy</span>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Review Modal */}
+      {isReviewModalOpen && (
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          product={product}
+          orderId={eligibleOrderId}
+        />
+      )}
+    </MobileLayout>
+    </PageTransition >
   );
 };
 

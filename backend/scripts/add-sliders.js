@@ -79,7 +79,7 @@ async function addSlider(token, sliderData) {
     formData.append('link', sliderData.link);
     formData.append('order', sliderData.order.toString());
     formData.append('status', sliderData.status);
-    
+
     // Read and append image file
     const imageStream = fs.createReadStream(sliderData.imagePath);
     const filename = path.basename(sliderData.imagePath);
@@ -129,7 +129,7 @@ async function main() {
       console.log(`📸 Adding slider ${i + 1}/${slidersData.length}...`);
       await addSlider(token, slider);
       console.log('');
-      
+
       // Small delay between requests
       if (i < slidersData.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));

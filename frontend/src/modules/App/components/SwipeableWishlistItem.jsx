@@ -118,13 +118,22 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            <button
-              onClick={() => onMoveToCart(item)}
-              className="flex-1 py-2.5 gradient-green text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:shadow-glow-green transition-all"
-            >
-              <FiShoppingBag className="text-base" />
-              Add to Cart
-            </button>
+            {item.isBuy !== false ? (
+              <button
+                onClick={() => onMoveToCart(item)}
+                className="flex-1 py-2.5 gradient-green text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:shadow-glow-green transition-all"
+              >
+                <FiShoppingBag className="text-base" />
+                Add to Cart
+              </button>
+            ) : (
+              <button
+                disabled
+                className="flex-1 py-2.5 bg-gray-50 text-gray-400 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border border-gray-100 cursor-not-allowed"
+              >
+                Not Buyable
+              </button>
+            )}
             <button
               onClick={() => onRemove(item._id || item.id)}
               className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"

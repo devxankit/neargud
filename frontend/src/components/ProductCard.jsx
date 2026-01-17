@@ -247,6 +247,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
         onAddToWishlist={handleFavorite}
         onShare={handleShare}
         isInWishlist={isFavorite}
+        isBuy={product.isBuy}
       />
 
       {showFlyingItem && (

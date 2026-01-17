@@ -81,7 +81,8 @@ const AddProduct = () => {
     },
     isTrending: false,
     seoTitle: "",
-    seoDescription: ""
+    seoDescription: "",
+    isBuy: true
   });
 
   const [newAttr, setNewAttr] = useState({ name: "", value: "" });
@@ -981,6 +982,7 @@ const AddProduct = () => {
                       { id: 'isFeatured', label: 'Featured Product', icon: '⭐' },
                       { id: 'isCrazyDeal', label: 'Crazy Deal', icon: '🤪' },
                       { id: 'isVisible', label: 'Visible to Customers', icon: '👁️' },
+                      { id: 'isBuy', label: 'Enable Buy/Cart', icon: '🛒' },
                     ].map(opt => (
                       <label key={opt.id} className={`
                         flex flex-col items-center gap-3 p-4 rounded-2xl cursor-pointer transition-all border-2

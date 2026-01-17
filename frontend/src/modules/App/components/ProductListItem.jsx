@@ -158,6 +158,13 @@ const ProductListItem = ({ product, index }) => {
             >
               <span>Chat to order</span>
             </button>
+          ) : product.isBuy === false ? (
+            <button
+              disabled
+              className="w-full py-1.5 bg-gray-50 text-gray-400 rounded-lg font-semibold text-xs flex items-center justify-center gap-1 border border-gray-100 cursor-not-allowed"
+            >
+              Ordering Disabled
+            </button>
           ) : cartItem ? (
             <div className="flex items-center justify-between bg-gray-100 rounded-lg p-1">
               <button

@@ -47,6 +47,7 @@ const ProductForm = () => {
     seoTitle: "",
     seoDescription: "",
     relatedProducts: [],
+    isBuy: true,
   });
 
   useEffect(() => {
@@ -89,6 +90,7 @@ const ProductForm = () => {
           isNew: product.isNew || false,
           isFeatured: product.isFeatured || false,
           isVisible: product.isVisible !== undefined ? product.isVisible : true,
+          isBuy: product.isBuy !== undefined ? product.isBuy : true,
           description: product.description || "",
           tags: product.tags || [],
           variants: {
@@ -164,28 +166,28 @@ const ProductForm = () => {
     const finalCategoryId = formData.subcategoryId
       ? parseInt(formData.subcategoryId)
       : formData.categoryId
-      ? parseInt(formData.categoryId)
-      : null;
+        ? parseInt(formData.categoryId)
+        : null;
 
     if (isEdit) {
       // Update existing product
       const updatedProducts = products.map((p) =>
         p.id === parseInt(id)
           ? {
-              ...p,
-              ...formData,
-              id: parseInt(id),
-              price: parseFloat(formData.price),
-              originalPrice: formData.originalPrice
-                ? parseFloat(formData.originalPrice)
-                : null,
-              stockQuantity: parseInt(formData.stockQuantity),
-              categoryId: finalCategoryId,
-              subcategoryId: formData.subcategoryId
-                ? parseInt(formData.subcategoryId)
-                : null,
-              brandId: formData.brandId ? parseInt(formData.brandId) : null,
-            }
+            ...p,
+            ...formData,
+            id: parseInt(id),
+            price: parseFloat(formData.price),
+            originalPrice: formData.originalPrice
+              ? parseFloat(formData.originalPrice)
+              : null,
+            stockQuantity: parseInt(formData.stockQuantity),
+            categoryId: finalCategoryId,
+            subcategoryId: formData.subcategoryId
+              ? parseInt(formData.subcategoryId)
+              : null,
+            brandId: formData.brandId ? parseInt(formData.brandId) : null,
+          }
           : p
       );
       localStorage.setItem("admin-products", JSON.stringify(updatedProducts));
@@ -598,6 +600,18 @@ const ProductForm = () => {
               />
               <span className="text-sm font-semibold text-gray-700">
                 Visible to Customers
+              </span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="isBuy"
+                checked={formData.isBuy}
+                onChange={handleChange}
+                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <span className="text-sm font-semibold text-gray-700">
+                Enable Buy/Cart
               </span>
             </label>
           </div>

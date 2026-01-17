@@ -131,6 +131,11 @@ const ProductDetail = () => {
       return;
     }
 
+    if (product.isBuy === false) {
+      toast.error('Ordering is currently disabled for this product');
+      return;
+    }
+
     // Get variant price if variant is selected
     let finalPrice = product.price;
     if (selectedVariant && product.variants?.prices) {
@@ -200,6 +205,7 @@ const ProductDetail = () => {
   };
 
   const handleQuantityChange = (change) => {
+    if (product.isBuy === false) return;
     const newQuantity = quantity + change;
     if (newQuantity >= 1 && newQuantity <= (product.stockQuantity || 10)) {
       setQuantity(newQuantity);
@@ -388,15 +394,15 @@ const ProductDetail = () => {
                   <div className="flex flex-col sm:flex-row gap-4 mb-8">
                     <button
                       onClick={handleAddToCart}
-                      disabled={product.stock === 'out_of_stock'}
-                      className={`flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 ${product.stock === 'out_of_stock'
+                      disabled={product.stock === 'out_of_stock' || product.isBuy === false}
+                      className={`flex-1 py-4 rounded-xl font-semibold text-base transition-all duration-300 flex items-center justify-center gap-2 ${product.stock === 'out_of_stock' || product.isBuy === false
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'gradient-green text-white hover:shadow-glow-green hover:scale-105'
                         }`}
                     >
                       <FiShoppingBag className="text-xl" />
                       <span>
-                        {product.stock === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
+                        {product.stock === 'out_of_stock' ? 'Out of Stock' : product.isBuy === false ? 'Ordering Disabled' : 'Add to Cart'}
                       </span>
                     </button>
                     <button

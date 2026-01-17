@@ -52,6 +52,7 @@ const AddProduct = () => {
     seoTitle: "",
     seoDescription: "",
     relatedProducts: [],
+    isBuy: true,
   });
 
   useEffect(() => {
@@ -697,6 +698,18 @@ const AddProduct = () => {
               />
               <span className="text-xs font-semibold text-gray-700">
                 Visible to Customers
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="isBuy"
+                checked={formData.isBuy}
+                onChange={handleChange}
+                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <span className="text-xs font-semibold text-gray-700">
+                Enable Buy/Cart
               </span>
             </label>
           </div>

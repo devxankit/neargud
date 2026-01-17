@@ -190,6 +190,7 @@ export const createProduct = async (productData) => {
       seoDescription,
       relatedProducts,
       vendorId,
+      isBuy,
     } = productData;
 
     // Validate required fields
@@ -260,6 +261,7 @@ export const createProduct = async (productData) => {
       isNew: isNew || false,
       isTrending: isTrending || false,
       isVisible: isVisible !== undefined ? isVisible : true,
+      isBuy: isBuy !== undefined ? isBuy : true,
       codAllowed: codAllowed !== undefined ? codAllowed : true,
       returnable: returnable !== undefined ? returnable : true,
       cancelable: cancelable !== undefined ? cancelable : true,
@@ -343,6 +345,7 @@ export const updateProduct = async (productId, updateData) => {
       seoTitle,
       seoDescription,
       relatedProducts,
+      isBuy,
     } = updateData;
 
     // Build update object
@@ -376,6 +379,7 @@ export const updateProduct = async (productId, updateData) => {
     if (isNew !== undefined) updateObj.isNew = isNew;
     if (isTrending !== undefined) updateObj.isTrending = isTrending;
     if (isVisible !== undefined) updateObj.isVisible = isVisible;
+    if (isBuy !== undefined) updateObj.isBuy = isBuy;
     if (codAllowed !== undefined) updateObj.codAllowed = codAllowed;
     if (returnable !== undefined) updateObj.returnable = returnable;
     if (cancelable !== undefined) updateObj.cancelable = cancelable;

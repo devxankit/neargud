@@ -66,8 +66,8 @@ const WishlistGridItem = ({ item, index, onMoveToCart, onRemove }) => {
                 <FiStar
                   key={i}
                   className={`text-[8px] ${i < Math.floor(item.rating)
-                      ? 'text-yellow-400 fill-yellow-400'
-                      : 'text-gray-300'
+                    ? 'text-yellow-400 fill-yellow-400'
+                    : 'text-gray-300'
                     }`}
                 />
               ))}
@@ -91,18 +91,24 @@ const WishlistGridItem = ({ item, index, onMoveToCart, onRemove }) => {
         </div>
 
         {/* Add Button */}
-        <motion.button
-          onClick={(e) => {
-            e.stopPropagation();
-            onMoveToCart(item);
-          }}
-          whileTap={{ scale: 0.95 }}
-          style={{ willChange: 'transform', transform: 'translateZ(0)' }}
-          className="w-full py-1 rounded-md font-semibold text-[10px] transition-all duration-300 flex items-center justify-center gap-1 mt-auto gradient-green text-white group/btn"
-        >
-          <FiShoppingBag className="text-xs transition-transform" />
-          <span>Add</span>
-        </motion.button>
+        {item.isBuy !== false ? (
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveToCart(item);
+            }}
+            whileTap={{ scale: 0.95 }}
+            style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+            className="w-full py-1 rounded-md font-semibold text-[10px] transition-all duration-300 flex items-center justify-center gap-1 mt-auto gradient-green text-white group/btn"
+          >
+            <FiShoppingBag className="text-xs transition-transform" />
+            <span>Add</span>
+          </motion.button>
+        ) : (
+          <div className="w-full py-1 bg-gray-50 text-gray-400 rounded-md font-semibold text-[10px] flex items-center justify-center border border-gray-100 mt-auto">
+            Not Buyable
+          </div>
+        )}
       </div>
     </motion.div>
   );

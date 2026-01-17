@@ -159,6 +159,10 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isBuy: {
+      type: Boolean,
+      default: true,
+    },
     returnable: {
       type: Boolean,
       default: true,
