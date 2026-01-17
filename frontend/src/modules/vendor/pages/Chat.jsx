@@ -7,6 +7,7 @@ import { useVendorAuthStore } from '../store/vendorAuthStore';
 import { getVendorCustomers } from '../../../services/contactsApi';
 import { createOrGetVendorChat, createOrGetSupportChat } from '../../../services/chatApi';
 import toast from 'react-hot-toast';
+import { formatPrice, getImageUrl } from '../../../utils/helpers';
 
 const VendorChat = () => {
   const navigate = useNavigate();
@@ -558,6 +559,17 @@ const VendorChat = () => {
                         : 'bg-white text-gray-900 rounded-2xl rounded-tl-none border border-gray-100'
                         } px-4 py-2.5`}
                     >
+                      {msg.messageType === 'product' && msg.productData && (
+                        <div className={`mb-2 p-2 rounded-xl border ${isVendor ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-100'} flex gap-3 items-center overflow-hidden`}>
+                          <div className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                            <img src={getImageUrl(msg.productData.image)} alt={msg.productData.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-bold truncate ${isVendor ? 'text-white' : 'text-gray-900'}`}>{msg.productData.name}</p>
+                            <p className={`text-[10px] font-medium ${isVendor ? 'text-white/80' : 'text-primary-600'}`}>{formatPrice(msg.productData.price)}</p>
+                          </div>
+                        </div>
+                      )}
                       <p className="text-[15px] leading-relaxed break-words">{msg.message}</p>
                       <p className={`text-[10px] mt-1 text-right ${isVendor ? 'text-primary-100' : 'text-gray-400'
                         }`}>

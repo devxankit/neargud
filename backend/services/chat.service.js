@@ -452,7 +452,11 @@ class ChatService {
       const senderRoleModel = senderRole === 'user' ? 'User' : (senderRole === 'admin' ? 'Admin' : 'Vendor');
       const receiverRoleModel = receiverRole === 'user' ? 'User' : (receiverRole === 'admin' ? 'Admin' : 'Vendor');
 
-      console.log('Creating message document...');
+      console.log('Creating message document with:', {
+        messageType,
+        hasProductData: !!productData,
+        productDataContent: productData
+      });
       const newMessage = await Message.create({
         conversationId,
         senderId: new mongoose.Types.ObjectId(senderId),
@@ -464,12 +468,18 @@ class ChatService {
         message,
         messageType,
         productData: productData ? {
-          ...productData,
-          productId: mongoose.Types.ObjectId.isValid(productData.productId) ? new mongoose.Types.ObjectId(productData.productId) : null
+          productId: mongoose.Types.ObjectId.isValid(productData.productId) ? new mongoose.Types.ObjectId(productData.productId) : null,
+          name: productData.name,
+          price: productData.price,
+          image: productData.image
         } : null,
         readStatus: false,
       });
-      console.log('Message created:', newMessage._id);
+      console.log('Message created successfully:', {
+        id: newMessage._id,
+        messageType: newMessage.messageType,
+        productData: newMessage.productData
+      });
 
       // Update conversation last message and timestamp
       // Ensure unreadCount is initialized and usable as a Map

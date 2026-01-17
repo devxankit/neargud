@@ -9,7 +9,7 @@ import { useAuthStore } from '../store/authStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { getAvailableVendors } from '../services/contactsApi';
-import { formatPrice } from '../utils/helpers';
+import { formatPrice, getImageUrl } from '../utils/helpers';
 
 const Chat = () => {
     const navigate = useNavigate();
@@ -588,9 +588,9 @@ const Chat = () => {
                                                         } px-4 py-2.5`}
                                                 >
                                                     {msg.messageType === 'product' && msg.productData && (
-                                                        <div className={`mb-2 p-2 rounded-xl border ${isUser ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-100'} flex gap-3 items-center`}>
+                                                        <div className={`mb-2 p-2 rounded-xl border ${isUser ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-100'} flex gap-3 items-center overflow-hidden`}>
                                                             <div className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
-                                                                <img src={msg.productData.image} alt={msg.productData.name} className="w-full h-full object-cover" />
+                                                                <img src={getImageUrl(msg.productData.image)} alt={msg.productData.name} className="w-full h-full object-cover" />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className={`text-xs font-bold truncate ${isUser ? 'text-white' : 'text-gray-900'}`}>{msg.productData.name}</p>
