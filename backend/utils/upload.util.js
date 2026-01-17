@@ -6,11 +6,11 @@ const storage = multer.memoryStorage();
 
 // File filter for images
 const imageFileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const allowedTypes = /jpeg|jpg|png|gif|webp|avif|jfif|heic|heif/;
   const extname = allowedTypes.test(
     path.extname(file.originalname).toLowerCase()
   );
-  const mimetype = allowedTypes.test(file.mimetype);
+  const mimetype = allowedTypes.test(file.mimetype) || file.mimetype.startsWith('image/');
 
   if (mimetype && extname) {
     return cb(null, true);
@@ -21,7 +21,7 @@ const imageFileFilter = (req, file, cb) => {
 
 // File filter for videos
 const videoFileFilter = (req, file, cb) => {
-  const allowedTypes = /mp4|mov|avi|wmv|flv|webm|mkv/;
+  const allowedTypes = /mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3gpp|quicktime/;
   const extname = allowedTypes.test(
     path.extname(file.originalname).toLowerCase()
   );
@@ -36,14 +36,14 @@ const videoFileFilter = (req, file, cb) => {
 
 // File filter for both images and videos
 const mediaFileFilter = (req, file, cb) => {
-  const imageTypes = /jpeg|jpg|png|gif|webp/;
-  const videoTypes = /mp4|mov|avi|wmv|flv|webm|mkv/;
-  const extname = imageTypes.test(path.extname(file.originalname).toLowerCase()) || 
-                  videoTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = imageTypes.test(file.mimetype) || 
-                   videoTypes.test(file.mimetype) || 
-                   file.mimetype.startsWith('image/') || 
-                   file.mimetype.startsWith('video/');
+  const imageTypes = /jpeg|jpg|png|gif|webp|avif|jfif|heic|heif/;
+  const videoTypes = /mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3gpp|quicktime/;
+  const extname = imageTypes.test(path.extname(file.originalname).toLowerCase()) ||
+    videoTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = imageTypes.test(file.mimetype) ||
+    videoTypes.test(file.mimetype) ||
+    file.mimetype.startsWith('image/') ||
+    file.mimetype.startsWith('video/');
 
   if (mimetype || extname) {
     return cb(null, true);

@@ -84,7 +84,7 @@ export const create = async (req, res, next) => {
 
     // Validate subscription before processing upload
     // const subscription = await SubscriptionService.getVendorSubscription(vendorId);
-    
+
     // if (!subscription) {
     //   return res.status(403).json({
     //     success: false,
@@ -121,7 +121,7 @@ export const create = async (req, res, next) => {
         const uploadResult = await uploadToCloudinary(
           videoFile.buffer,
           'reels/videos',
-          { resource_type: 'video' }
+          { resource_type: 'auto' }
         );
         reelData.videoUrl = uploadResult.secure_url;
       } catch (uploadError) {
@@ -196,7 +196,7 @@ export const update = async (req, res, next) => {
         const uploadResult = await uploadToCloudinary(
           videoFile.buffer,
           'reels/videos',
-          { resource_type: 'video' }
+          { resource_type: 'auto' }
         );
         reelData.videoUrl = uploadResult.secure_url;
       } catch (uploadError) {
