@@ -286,7 +286,7 @@ const ProductDetail = () => {
                           <span className="text-sm text-primary-600">→ View Store</span>
                         </Link>
                         <Link
-                          to={`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}`}
+                          to={`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}&productId=${product?._id || product?.id || id}&productName=${encodeURIComponent(product?.name || '')}&productImage=${encodeURIComponent(product?.image || '')}&productPrice=${product?.price}`}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-primary-100 hover:border-primary-200 text-primary-700 rounded-lg transition-colors"
                         >
                           <FiMessageCircle />

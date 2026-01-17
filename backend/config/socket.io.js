@@ -126,7 +126,7 @@ export const setupSocketIO = (httpServer) => {
       // Handle sending messages completely via Socket.IO
       socket.on('send_message', async (data, callback) => {
         try {
-          const { conversationId, receiverId, message, receiverRole } = data;
+          const { conversationId, receiverId, message, receiverRole, messageType, productData } = data;
 
           if (!conversationId || !receiverId || !message) {
             if (callback) callback({ success: false, error: 'Missing required fields' });
@@ -144,7 +144,9 @@ export const setupSocketIO = (httpServer) => {
             userRole,
             receiverId,
             receiverRole,
-            message
+            message,
+            messageType,
+            productData
           );
 
           if (callback) {

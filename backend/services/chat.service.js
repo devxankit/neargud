@@ -408,8 +408,17 @@ class ChatService {
    * @param {String} message - Message text
    * @returns {Promise<Object>} Created message
    */
-  async sendMessage(conversationId, senderId, senderRole, receiverId, receiverRole, message) {
-    console.log('ChatService.sendMessage called with:', { conversationId, senderId, senderRole, receiverId, receiverRole });
+  async sendMessage(
+    conversationId,
+    senderId,
+    senderRole,
+    receiverId,
+    receiverRole,
+    message,
+    messageType = 'text',
+    productData = null
+  ) {
+    console.log('ChatService.sendMessage called with:', { conversationId, senderId, senderRole, receiverId, receiverRole, messageType });
     try {
       // Validate IDs
       if (!mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId)) {
@@ -427,7 +436,7 @@ class ChatService {
       console.log('Conversation found:', conversation._id);
 
       const isParticipant = conversation.participants.some((p) => {
-        const pUserId = (p.userId._id || p.userId).toString();
+        const pUserId = (p.userId?._id || p.userId).toString();
         const sId = senderId.toString();
         const match = pUserId === sId && p.role === senderRole;
         console.log(`Checking participant: ${pUserId} (${p.role}) vs ${sId} (${senderRole}) -> Match: ${match}`);
@@ -453,6 +462,11 @@ class ChatService {
         receiverRole,
         receiverRoleModel,
         message,
+        messageType,
+        productData: productData ? {
+          ...productData,
+          productId: mongoose.Types.ObjectId.isValid(productData.productId) ? new mongoose.Types.ObjectId(productData.productId) : null
+        } : null,
         readStatus: false,
       });
       console.log('Message created:', newMessage._id);

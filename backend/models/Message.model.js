@@ -43,6 +43,17 @@ const messageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    messageType: {
+      type: String,
+      enum: ['text', 'product'],
+      default: 'text'
+    },
+    productData: {
+      productId: mongoose.Schema.Types.ObjectId,
+      name: String,
+      price: Number,
+      image: String
+    },
     readStatus: {
       type: Boolean,
       default: false,

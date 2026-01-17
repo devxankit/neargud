@@ -140,9 +140,9 @@ export const useChatStore = create((set, get) => ({
 
     // Send message
     // Send message (Via Socket.IO)
-    sendChatMessage: async (text, receiverId, receiverRole, role) => {
+    sendChatMessage: async (text, receiverId, receiverRole, role, messageType = 'text', productData = null) => {
         const { activeChatId, messages, isSocketConnected } = get();
-        if (!activeChatId || !text.trim()) return;
+        if (!activeChatId || (!text.trim() && !productData)) return;
 
         if (!isSocketConnected) {
             console.warn('Socket not connected, falling back to API or queuing not implemented');
@@ -156,7 +156,9 @@ export const useChatStore = create((set, get) => ({
                     conversationId: activeChatId,
                     receiverId,
                     message: text,
-                    receiverRole
+                    receiverRole,
+                    messageType,
+                    productData
                 }, (response) => {
                     if (response.success) {
                         resolve(response.data);

@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { getAvailableVendors } from '../services/contactsApi';
+import { formatPrice } from '../utils/helpers';
 
 const Chat = () => {
     const navigate = useNavigate();
@@ -42,10 +43,15 @@ const Chat = () => {
     const [loadingVendors, setLoadingVendors] = useState(false);
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const processedProductRef = useRef(null);
 
     // Get query params for initial chat
     const vendorId = searchParams.get('vendorId');
     const vendorName = searchParams.get('vendorName');
+    const productId = searchParams.get('productId');
+    const productName = searchParams.get('productName');
+    const productImage = searchParams.get('productImage');
+    const productPrice = searchParams.get('productPrice');
 
     // Initialize socket on mount
     useEffect(() => {
@@ -78,38 +84,74 @@ const Chat = () => {
     // Handle vendor from URL params
     useEffect(() => {
         const initializeVendorChat = async () => {
-            if (vendorId) {
-                // If we have text in conversations, try to find it
+            if (!vendorId || !user) return;
+
+            try {
+                let conversation = null;
+
+                // 1. Try to find existing conversation in the loaded list
                 if (conversations.length > 0) {
-                    let conversation = conversations.find(c =>
+                    conversation = conversations.find(c =>
                         c.participants?.some(p =>
-                            p.userId?._id === vendorId || p.userId === vendorId
+                            (p.userId?._id || p.userId) === vendorId
                         )
                     );
-                    if (conversation) {
-                        handleSelectChat(conversation);
-                        return;
-                    }
                 }
 
-                // If not found in conversations, find in vendors list and select it
-                // Or just create it immediately
-                try {
-                    const conversation = await createConversationWithVendor(vendorId);
-                    toast.success(`Started chat with ${vendorName || 'vendor'}`);
-                    handleSelectChat(conversation);
-                } catch (error) {
-                    console.error('Failed to create conversation:', error);
-                    // If we fail, we might just stay on the vendors list
+                // 2. If not found, create or get from server
+                if (!conversation) {
+                    conversation = await createConversationWithVendor(vendorId);
+                    // Refresh conversations list to include the new one
+                    loadConversations('user');
                 }
+
+                if (conversation) {
+                    // Select the chat (this is async)
+                    await handleSelectChat(conversation);
+
+                    // 3. Handle automatic product inquiry message
+                    // Only send if we have product info AND we haven't already processed it for this conversation
+                    const inquiryKey = `${conversation._id}_${productId}`;
+                    if (productId && productName && processedProductRef.current !== inquiryKey) {
+                        processedProductRef.current = inquiryKey;
+
+                        // Slight delay to ensure socket and activeChatId are ready
+                        setTimeout(async () => {
+                            try {
+                                const receiver = conversation.participants?.find(p => p.role === 'vendor');
+                                const receiverId = receiver?.userId?._id || receiver?.userId;
+
+                                if (receiverId) {
+                                    await sendChatMessage(
+                                        `I'm interested in this product: ${productName}`,
+                                        receiverId,
+                                        'vendor',
+                                        'user',
+                                        'product',
+                                        {
+                                            productId,
+                                            name: productName,
+                                            image: productImage,
+                                            price: parseFloat(productPrice)
+                                        }
+                                    );
+                                }
+                            } catch (err) {
+                                console.error('Failed to send auto product message:', err);
+                            }
+                        }, 800);
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing vendor chat:', error);
             }
         };
 
-        if (vendorId && user) { // Run when user is loaded and vendorId exists
+        if (vendorId && user) {
             initializeVendorChat();
         }
 
-    }, [vendorId, user, conversations.length]); // Depend on conversations.length to retry if they load later? Actually better to just do it once.
+    }, [vendorId, user, !!conversations.length]); // Use boolean to avoid re-triggering on every length change if not needed, but length 0 to >0 transition is key.
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -545,6 +587,17 @@ const Chat = () => {
                                                         : 'bg-white text-gray-900 rounded-2xl rounded-tl-none border border-gray-100'
                                                         } px-4 py-2.5`}
                                                 >
+                                                    {msg.messageType === 'product' && msg.productData && (
+                                                        <div className={`mb-2 p-2 rounded-xl border ${isUser ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-100'} flex gap-3 items-center`}>
+                                                            <div className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                                                                <img src={msg.productData.image} alt={msg.productData.name} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-xs font-bold truncate ${isUser ? 'text-white' : 'text-gray-900'}`}>{msg.productData.name}</p>
+                                                                <p className={`text-[10px] font-medium ${isUser ? 'text-white/80' : 'text-primary-600'}`}>{formatPrice(msg.productData.price)}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <p className="text-[15px] leading-relaxed break-words">{msg.message}</p>
                                                     <p className={`text-[10px] mt-1 text-right ${isUser ? 'text-primary-100' : 'text-gray-400'
                                                         }`}>
