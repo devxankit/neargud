@@ -279,7 +279,7 @@ const SearchBar = () => {
             <button
               onClick={handleSubmit}
               className={`
-                px-4 lg:px-6 py-2 lg:py-1.5 rounded-xl font-black text-[10px] lg:text-[11px] uppercase tracking-widest transition-all flex items-center gap-2
+                px-4 lg:px-6 py-2 lg:py-1.5 rounded-xl font-black text-[14px] lg:text-[14px] uppercase tracking-widest transition-all flex items-center gap-2
                 ${query.trim()
                   ? "bg-purple-600 text-white shadow-lg shadow-purple-200 hover:bg-purple-700 hover:-translate-y-0.5 active:translate-y-0"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"}
@@ -305,7 +305,7 @@ const SearchBar = () => {
             {/* Results for query */}
             {query.trim() && suggestions.length > 0 ? (
               <div className="px-3">
-                <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+                <p className="px-4 py-2 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
                   Products Found
                 </p>
                 <div className="space-y-1">
@@ -356,7 +356,7 @@ const SearchBar = () => {
                 <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
                   {recentSearches.length > 0 && (
                     <div className="px-3 flex-1">
-                      <p className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                      <p className="px-4 py-3 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
                         <FiClock className="text-xs" /> Recent Activity
                       </p>
                       <div className="grid grid-cols-1 gap-1">
@@ -378,7 +378,7 @@ const SearchBar = () => {
                   )}
 
                   <div className="px-3 flex-[1.5]">
-                    <p className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                    <p className="px-4 py-3 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
                       <FiTrendingUp className="text-xs" /> Popular Right Now
                     </p>
                     <div className="flex flex-wrap gap-2 px-4 py-2">

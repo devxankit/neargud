@@ -195,7 +195,7 @@ const MobileHeader = () => {
         boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
       }}
       initial={{ y: -120, opacity: 0 }}
-      animate={{ y: isTopRowVisible ? 0 : -60, opacity: 1 }}
+      animate={{ y: isTopRowVisible ? 0 : -84, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 28 }}
     >
       <div className="px-4 pt-4 pb-3 flex flex-col gap-5 max-w-[640px] mx-auto">

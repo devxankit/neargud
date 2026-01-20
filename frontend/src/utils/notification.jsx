@@ -5,6 +5,10 @@ import toast from 'react-hot-toast';
 
 export const requestNotificationPermission = async () => {
     try {
+        if (Notification.permission === 'denied') {
+            return null;
+        }
+
         const permission = await Notification.requestPermission();
 
         if (permission === 'granted') {

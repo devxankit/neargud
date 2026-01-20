@@ -35,9 +35,11 @@ import PromoStrip from "../../../components/PromoStrip";
 import LowestPricesEver from "../../../components/LowestPricesEver";
 import PageTransition from "../../../components/PageTransition";
 import { useContentStore } from "../../../store/contentStore";
+import { getTheme } from "../../../utils/themes";
 
 const MobileHome = () => {
   const { activeTab } = useTheme();
+  const theme = getTheme(activeTab);
   const { user } = useAuthStore();
   const { settings, initialize: initializeSettings } = useSettingsStore();
   const { currentCity } = useLocationStore();
@@ -66,7 +68,6 @@ const MobileHome = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching data for city:', currentCity?.name || 'No city selected (Universal)');
       const [
         bannersRes,
         categoriesRes,
@@ -169,13 +170,14 @@ const MobileHome = () => {
     <MobileLayout>
       <div
         ref={elementRef}
-        className="w-full overflow-x-hidden scrollbar-hide bg-gradient-to-b from-slate-50 via-white to-slate-50 min-h-screen"
+        className="w-full overflow-x-hidden scrollbar-hide min-h-screen"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
           transform: `translateY(${Math.min(pullDistance, 80)}px)`,
           transition: isPulling ? "none" : "transform 0.3s ease-out",
+          background: `linear-gradient(to bottom, ${theme.primary[0]} 0%, ${theme.primary[1]} 15%, #f8fafc 30%, #f8fafc 100%)`
         }}>
 
         <PromoStrip
@@ -355,7 +357,6 @@ const MobileHome = () => {
           </div>
         </motion.div>
 
-        <div className="h-8" />
       </div>
     </MobileLayout>
   );

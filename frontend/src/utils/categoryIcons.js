@@ -121,16 +121,16 @@ import {
     IoWineOutline, IoWomanOutline
 } from 'react-icons/io5';
 
-import { LuFootprints, LuUtensilsCrossed, LuDumbbell, LuBaby, LuIndianRupee, LuArmchair, LuBanana, LuBeef, LuBike, LuBird, LuBone, LuBriefcase, LuBug, LuCake, LuCandy, LuCarrot, LuCat, LuCherry, LuCigarette, LuCitrus, LuClapperboard, LuCloudRain, LuCloudSnow, LuCloudSun, LuCodepen, LuCoins, LuComponent, LuConciergeBell, LuConstruction, LuContact, LuCookie, LuCroissant, LuCrown, LuCupSoda, LuDatabase, LuDog, LuDoorOpen, LuDrumstick, LuEgg, LuEggFried, LuFactory, LuFan, LuFerrisWheel, LuFish, LuFlower, LuFlower2, LuGamepad, LuGamepad2, LuGhost, LuGlassWater, LuGrape, LuHammer, LuHardHat, LuJoystick, LuLamp, LuLandmark, LuLanguages, LuLibrary, LuLollipop, LuMartini, LuMegaphone, LuMic, LuMilk, LuMountain, LuMountainSnow, LuMusic, LuNut, LuPackage, LuPackage2, LuPackageCheck, LuPackageMinus, LuPackageOpen, LuPackagePlus, LuPackageSearch, LuPackageX, LuPaintbrush, LuPalette, LuPartyPopper, LuPenTool, LuPencil, LuPiggyBank, LuPizza, LuPlane, LuPlug, LuPlug2, LuPocket, LuPopsicle, LuPuzzle, LuRadio, LuRatio, LuRefrigerator, LuRocket, LuRockingChair, LuRuler, LuSalad, LuSandwich, LuScale, LuScissors, LuScroll, LuSearch, LuServer, LuSheet, LuShield, LuShip, LuShirt, LuShovel, LuShrub, LuSkull, LuSlice, LuSmartphone, LuSmile, LuSnowflake, LuSofa, LuSoup, LuSpeaker, LuSpline, LuSprout, LuStamp, LuStar, LuStethoscope, LuSticker, LuStickyNote, LuStore, LuSun, LuSunrise, LuSunset, LuSword, LuSyringe, LuTable, LuTablet, LuTag, LuTarget, LuTent, LuTerminal, LuTestTube, LuThermometer, LuThermometerSun, LuTicket, LuTimer, LuTornado, LuToyBrick, LuTrash, LuTrash2, LuTreeDeciduous, LuTreePine, LuTrendingDown, LuTrendingUp, LuTrophy, LuTruck, LuTv,  LuTwitch, LuTwitter, LuType, LuUmbrella, LuUndo, LuUndo2, LuUpload, LuUsb, LuUser, LuUserCheck, LuUserCog, LuUserMinus, LuUserPlus, LuUserX, LuUsers, LuUtensils, LuVegan, LuVenetianMask, LuVibrate, LuVideo, LuVideoOff, LuVoicemail, LuVolume, LuVolume1, LuVolume2, LuVolumeX, LuVote, LuWallet, LuWand,  LuWarehouse, LuWatch, LuWaves, LuWebcam, LuWheat, LuWifi, LuWifiOff, LuWind, LuWine, LuWrench, LuX, LuYoutube, LuZap, LuZapOff, LuZoomIn, LuZoomOut } from 'react-icons/lu';
+import { LuFootprints, LuUtensilsCrossed, LuDumbbell, LuBaby, LuIndianRupee, LuArmchair, LuBanana, LuBeef, LuBike, LuBird, LuBone, LuBriefcase, LuBug, LuCake, LuCandy, LuCarrot, LuCat, LuCherry, LuCigarette, LuCitrus, LuClapperboard, LuCloudRain, LuCloudSnow, LuCloudSun, LuCodepen, LuCoins, LuComponent, LuConciergeBell, LuConstruction, LuContact, LuCookie, LuCroissant, LuCrown, LuCupSoda, LuDatabase, LuDog, LuDoorOpen, LuDrumstick, LuEgg, LuEggFried, LuFactory, LuFan, LuFerrisWheel, LuFish, LuFlower, LuFlower2, LuGamepad, LuGamepad2, LuGhost, LuGlassWater, LuGrape, LuHammer, LuHardHat, LuJoystick, LuLamp, LuLandmark, LuLanguages, LuLibrary, LuLollipop, LuMartini, LuMegaphone, LuMic, LuMilk, LuMountain, LuMountainSnow, LuMusic, LuNut, LuPackage, LuPackage2, LuPackageCheck, LuPackageMinus, LuPackageOpen, LuPackagePlus, LuPackageSearch, LuPackageX, LuPaintbrush, LuPalette, LuPartyPopper, LuPenTool, LuPencil, LuPiggyBank, LuPizza, LuPlane, LuPlug, LuPlug2, LuPocket, LuPopsicle, LuPuzzle, LuRadio, LuRatio, LuRefrigerator, LuRocket, LuRockingChair, LuRuler, LuSalad, LuSandwich, LuScale, LuScissors, LuScroll, LuSearch, LuServer, LuSheet, LuShield, LuShip, LuShirt, LuShovel, LuShrub, LuSkull, LuSlice, LuSmartphone, LuSmile, LuSnowflake, LuSofa, LuSoup, LuSpeaker, LuSpline, LuSprout, LuStamp, LuStar, LuStethoscope, LuSticker, LuStickyNote, LuStore, LuSun, LuSunrise, LuSunset, LuSword, LuSyringe, LuTable, LuTablet, LuTag, LuTarget, LuTent, LuTerminal, LuTestTube, LuThermometer, LuThermometerSun, LuTicket, LuTimer, LuTornado, LuToyBrick, LuTrash, LuTrash2, LuTreeDeciduous, LuTreePine, LuTrendingDown, LuTrendingUp, LuTrophy, LuTruck, LuTv, LuTwitch, LuTwitter, LuType, LuUmbrella, LuUndo, LuUndo2, LuUpload, LuUsb, LuUser, LuUserCheck, LuUserCog, LuUserMinus, LuUserPlus, LuUserX, LuUsers, LuUtensils, LuVegan, LuVenetianMask, LuVibrate, LuVideo, LuVideoOff, LuVoicemail, LuVolume, LuVolume1, LuVolume2, LuVolumeX, LuVote, LuWallet, LuWand, LuWarehouse, LuWatch, LuWaves, LuWebcam, LuWheat, LuWifi, LuWifiOff, LuWind, LuWine, LuWrench, LuX, LuYoutube, LuZap, LuZapOff, LuZoomIn, LuZoomOut, LuChefHat, LuShoppingBasket, LuLayoutGrid, LuGraduationCap, LuCoffee } from 'react-icons/lu';
 
 export const iconComponents = {
     // Top/Header Categories
     FiHome, FiShoppingBag, FiShoppingCart, FiPackage, FiGrid, FiLayers, FiBox,
-    MdCategory, MdStore, MdStorefront, MdStoreMallDirectory,
+    MdCategory: LuLayoutGrid, MdStore: LuStore, MdStorefront: LuStore, MdStoreMallDirectory: LuStore,
 
     // Fashion & Apparel (Men, Women, Kids etc)
     IoShirtOutline, IoShirt, LuFootprints, IoBagHandleOutline, FiWatch, IoWatchOutline,
-    IoGlassesOutline, MdStyle, IoWomanOutline, IoManOutline, LuShirt, LuWatch,
+    IoGlassesOutline, LuPalette, IoWomanOutline, IoManOutline, LuShirt, LuWatch,
 
     // Electronics & Gadgets
     FiSmartphone, IoPhonePortraitOutline, IoLaptopOutline, FiMonitor, FiCamera, IoCameraOutline,
@@ -140,24 +140,24 @@ export const iconComponents = {
 
     // Home & Kitchen
     IoHomeOutline, IoBedOutline, FiCoffee, LuUtensilsCrossed, IoRestaurantOutline, FiTool,
-    MdKitchen, MdMicrowave, MdLiving, MdOutlineChair, MdOutlineBed,
+    MdKitchen: LuChefHat, MdMicrowave: LuChefHat, MdLiving: LuSofa, MdOutlineChair: LuArmchair, MdOutlineBed: IoBedOutline,
     LuSofa, LuArmchair, LuLamp, LuRefrigerator, LuUtensils, LuConciergeBell,
 
     // Grocery & Food
-    MdLocalGroceryStore, MdFastfood, MdRestaurant, MdOutlineLocalGasStation,
+    MdLocalGroceryStore: LuShoppingBasket, MdFastfood: LuUtensils, MdRestaurant: LuUtensils, MdOutlineLocalGasStation: LuZap,
     LuCarrot, LuBanana, LuCherry, LuGrape, LuCitrus,
     LuBeef, LuDrumstick, LuFish, LuSandwich, LuPizza, LuCake, LuCookie, LuCandy, LuLollipop, LuPopcorn: LuCupSoda, LuCoffee: FiCoffee, LuMilk, LuWine, LuMartini, LuBeer: MdLocalBar,
-    MdLocalPizza, MdSetMeal, MdEmojiFoodBeverage, MdLocalCafe,
+    MdLocalPizza: LuPizza, MdSetMeal: LuUtensils, MdEmojiFoodBeverage: LuCoffee || FiCoffee, MdLocalCafe: FiCoffee,
 
     // Beauty & Personal Care
     FiDroplet, FiScissors, FiHeart, FiStar, MdSpa, MdHealthAndSafety, MdFace,
     LuSyringe, LuStethoscope, LuPill: MdMedicalServices, LuThermometer,
 
     // Sports & Fitness
-    IoFitnessOutline, LuDumbbell, FiActivity, FiAward, MdFitnessCenter, MdPool, MdSports,
-    MdSportsFootball, MdSportsBaseball, MdSportsBasketball: MdOutlineSportsBasketball,
-    MdSportsTennis: MdOutlineSportsTennis, MdSportsGolf, MdSportsHockey, MdSportsVolleyball: MdOutlineSportsVolleyball,
-    MdOutlineSportsCricket, MdOutlineSportsSoccer, MdPedalBike: MdOutlinePedalBike, IoBicycleOutline,
+    IoFitnessOutline, LuDumbbell, FiActivity, FiAward, MdFitnessCenter: LuDumbbell, MdPool: LuWaves, MdSports: LuTrophy,
+    MdSportsFootball: LuTrophy, MdSportsBaseball: LuTrophy, MdSportsBasketball: LuTrophy,
+    MdSportsTennis: LuTrophy, MdSportsGolf: LuTrophy, MdSportsHockey: LuTrophy, MdSportsVolleyball: LuTrophy,
+    MdOutlineSportsCricket: LuTrophy, MdOutlineSportsSoccer: LuTrophy, MdPedalBike: LuBike, IoBicycleOutline,
     LuTrophy, LuMedal: FiAward, LuTarget,
 
     // Books & Media & Entertainment
@@ -170,7 +170,7 @@ export const iconComponents = {
     LuCar: IoCarOutline, LuTruck, LuBus: IoBusOutline, LuBike, LuTractor: MdOutlineAgriculture,
 
     // Baby & Kids
-    LuBaby, FiGift, MdChildCare, MdStroller: LuBaby, MdToys, LuToyBrick,
+    LuBaby, FiGift, MdChildCare: LuBaby, MdStroller: LuBaby, MdToys: LuGamepad2, LuToyBrick,
 
     // Nature & Outdoors & Gardening
     MdNature, MdForest, MdGrass, MdOutlineYard, LuFlower, LuTreePine, LuLeaf: IoLeafOutline,
@@ -221,11 +221,41 @@ export const iconComponents = {
 // Add backward compatibility
 iconComponents.IoFitnessOutline = IoFitnessOutline;
 
-export const getIconComponent = (iconValue) => {
+export const getIconComponent = (iconValue, categoryName = '') => {
+    // 1. Priority: Manual overrides based on Category Name for strict consistency with design reference
+    if (categoryName) {
+        const normalizedName = categoryName.toLowerCase().trim();
+        const iconOverrides = {
+            'clothing': LuShirt,
+            'clothes': LuShirt,
+            'footwear': LuFootprints,
+            'shoes': LuFootprints,
+            'bags': IoBagHandleOutline,
+            'jewelry': LuStar,
+            'jewelery': LuStar,
+            'accessories': LuTag,
+            'food': LuUtensils,
+            'sports': LuTrophy,
+            'electronics': LuSmartphone,
+            'mobile': LuSmartphone,
+            'home': IoHomeOutline,
+            'kitchen': LuUtensilsCrossed,
+            'grocery': LuShoppingBasket
+        };
+
+        if (iconOverrides[normalizedName]) {
+            return iconOverrides[normalizedName];
+        }
+    }
+
+    // 2. Secondary: Handle iconValue mapping
     if (!iconValue) return null;
-    // Handle backward compatibility
+
+    // Handle backward compatibility/specific mappings
     if (iconValue === "FiDollarSign") {
         return LuIndianRupee;
     }
+
+    // Return the mapped component from iconComponents
     return iconComponents[iconValue] || null;
 };

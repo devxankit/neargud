@@ -25,7 +25,7 @@ const HeroCarousel = ({ banners, loading }) => {
                 spaceBetween={16}
                 slidesPerView={1.25}
                 centeredSlides={true}
-                loop={banners.length > 1}
+                loop={banners.length >= 4}
                 autoplay={{
                     delay: 4000,
                     disableOnInteraction: false,

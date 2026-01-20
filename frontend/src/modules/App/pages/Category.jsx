@@ -277,7 +277,7 @@ const MobileCategory = () => {
 
   return (
     <MobileLayout showBottomNav={true} showCartBar={true}>
-      <div className="w-full pb-24 overflow-x-hidden">
+      <div className="w-full overflow-x-hidden">
         {/* PromoStrip - HOUSEFULL SALE Section with Hero Banner inside */}
         <PromoStrip
           activeTab={activeTab}

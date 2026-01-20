@@ -55,7 +55,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true }) => {
   }, [currentCategoryId, categories]);
 
   return (
-          <div className="relative w-full" style={{ marginTop: "-20px" }}>
+    <div className="relative w-full" style={{ marginTop: "-20px" }}>
 
       <div
         ref={scrollContainerRef}
@@ -74,7 +74,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true }) => {
           ))
         ) : (
           categories.map((category) => {
-            const IconComponent = getIconComponent(category.icon);
+            const IconComponent = getIconComponent(category.icon, category.name);
             const categoryId = category._id || category.id;
             const isActive = currentCategoryId === categoryId;
 
@@ -123,7 +123,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true }) => {
                 </motion.div>
 
                 <span className={`
-                  text-[9px] tracking-wide text-center transition-all duration-300 whitespace-nowrap px-1 w-full overflow-hidden text-ellipsis
+                  text-[13px] tracking-wide text-center transition-all duration-300 whitespace-nowrap px-1 w-full overflow-hidden text-ellipsis
                   ${isActive ? "text-white font-bold opacity-100" : "text-white font-medium opacity-80 group-hover:opacity-100"}
                 `}>
                   {category.name}
