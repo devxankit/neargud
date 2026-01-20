@@ -99,7 +99,7 @@ const DeliveryDashboard = () => {
 
   return (
     <PageTransition>
-      <div className="px-4 py-6 space-y-6">
+      <div className="min-h-screen bg-gray-50 px-4 py-6 space-y-6">
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

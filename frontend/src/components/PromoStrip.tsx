@@ -147,10 +147,10 @@ const subcategoryMap: Record<number, Array<{ name: string; keywords: string[]; i
 // Start 2045: Helper to get cards from dynamic categories
 const getDynamicCategoryCards = (categories: any[], categoryProductsMap?: Record<string, any[]>): PromoCard[] => {
   if (!categories || categories.length === 0) return [];
-  
+
   return categories.slice(0, 4).map((category, index) => {
     if (!category) return null;
-    
+
     // Generate some mock discount/badge if no data
     const discount = 20 + (index * 5);
     const bgColors = ['bg-purple-50', 'bg-blue-50', 'bg-yellow-50', 'bg-red-50'];
@@ -288,30 +288,32 @@ export default function PromoStrip({
         );
       }
 
-      // 2. Snowflake animation
-      const snowflakesContainer = snowflakesRef.current;
-      if (snowflakesContainer) {
-        const snowflakes = q('.snowflake');
-        snowflakes.forEach((snowflake, index) => {
-          const delay = index * 0.3;
-          const duration = 3 + Math.random() * 2;
-          const xOffset = (Math.random() - 0.5) * 40;
+      // 2. Snowflake animation - smooth falling effect
+      const snowflakes = q('.snowflake');
+      if (snowflakes.length > 0) {
+        snowflakes.forEach((snowflake) => {
+          const duration = 5 + Math.random() * 5;
+          const xStart = (Math.random() - 0.5) * 30;
+          const xEnd = xStart + (Math.random() - 0.5) * 50;
 
-          gsap.set(snowflake, {
-            y: -20,
-            x: xOffset,
-            opacity: 0.8 + Math.random() * 0.2,
-            scale: 0.6 + Math.random() * 0.4,
-          });
-
-          gsap.to(snowflake, {
-            y: '+=200',
-            x: `+=${xOffset}`,
-            duration: duration,
-            delay: delay,
-            ease: 'none',
-            repeat: -1,
-          });
+          gsap.fromTo(snowflake,
+            {
+              y: -40,
+              x: xStart,
+              rotation: 0,
+              opacity: 0
+            },
+            {
+              y: 140,
+              x: xEnd,
+              rotation: 360,
+              opacity: 0.8,
+              duration: duration,
+              delay: Math.random() * -duration, // Start at random progress
+              repeat: -1,
+              ease: 'none'
+            }
+          );
         });
       }
 
@@ -377,7 +379,7 @@ export default function PromoStrip({
   // Product rotation animation
   useEffect(() => {
     if (featuredProducts.length === 0) return;
-    
+
     const interval = setInterval(() => {
       setCurrentProductIndex((prev) => (prev + 1) % featuredProducts.length);
     }, 3000); // Change product every 3 seconds
@@ -437,7 +439,7 @@ export default function PromoStrip({
     discountedPrice: 0,
     image: undefined
   };
-  
+
   // Try to find in static products first (legacy), otherwise use currentProduct which has the necessary fields mapped from dynamic data
   const product = currentProduct?.id ? (
     products.find(p => p.id.toString() === currentProduct.id) ||
@@ -503,6 +505,7 @@ export default function PromoStrip({
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full overflow-x-hidden"
       style={{
         background: `linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]}, ${theme.primary[3]}, ${theme.primary[3]})`,
@@ -515,7 +518,7 @@ export default function PromoStrip({
       }}
     >
       {/* HOUSEFULL SALE Banner */}
-      <div className="px-4 mb-3 text-center relative" style={{ minHeight: '80px' }}>
+      <div className="px-4 mb-3 text-center relative" style={{ minHeight: '110px' }}>
         {/* Snowflakes Container */}
         <div
           ref={snowflakesRef}
@@ -559,7 +562,7 @@ export default function PromoStrip({
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center justify-center gap-3 mb-0">
+          <div className="flex items-center justify-center gap-3 mb-0 pt-4">
             {/* Left Lightning Bolt */}
             <svg width="28" height="36" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
               <path
@@ -652,7 +655,7 @@ export default function PromoStrip({
 
       {/* Main Content: Crazy Deals + Category Cards */}
       <div className="px-4 mt-2 w-full overflow-x-hidden">
-        <div ref={containerRef} className="flex gap-2 w-full">
+        <div className="flex gap-2 w-full">
           {/* Crazy Deals Section - Left */}
           <div className="flex-shrink-0 w-[100px] promo-card">
             <div

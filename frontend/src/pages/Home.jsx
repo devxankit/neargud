@@ -30,7 +30,7 @@ import PromoStrip from '../components/PromoStrip';
 import LowestPricesEver from '../components/LowestPricesEver';
 
 const Home = () => {
-  const { responsivePadding } = useResponsiveHeaderPadding();
+  const { responsivePadding, isDesktop } = useResponsiveHeaderPadding();
   const { theme, activeTab, setActiveTab, tabs } = useTheme();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [autoSlidePaused, setAutoSlidePaused] = useState(false);
@@ -67,10 +67,10 @@ const Home = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: 'rgba(241,242,244,1.00)' }}>
+      <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: '#6d28d9' }}>
         <Header />
         <Navbar />
-        <main className="w-full overflow-x-hidden" style={{ paddingTop: `${responsivePadding}px` }}>
+        <main className="w-full overflow-x-hidden" style={{ paddingTop: isDesktop ? `${responsivePadding}px` : '0px' }}>
           {/* Desktop Layout - Redesigned with multi-column layout */}
           <div className="hidden md:block">
             <div className="mx-auto desktop-container" style={{ maxWidth: '996px', padding: '0 12px' }}>
@@ -115,8 +115,8 @@ const Home = () => {
                           setTimeout(() => setAutoSlidePaused(false), 2000);
                         }}
                         className={`h-2 rounded-full transition-all ${index === currentSlide
-                            ? "bg-white w-8"
-                            : "bg-white/50 w-2"
+                          ? "bg-white w-8"
+                          : "bg-white/50 w-2"
                           }`}
                       />
                     ))}
@@ -418,19 +418,25 @@ const Home = () => {
 
           {/* Mobile Layout - Unchanged */}
           <div className="md:hidden">
+            {/* Top Section (Purple bg from parent) */}
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <HeroBanner />
               <PromoStrip activeTab={activeTab} />
-              <LowestPricesEver activeTab={activeTab} />
-              <BrandLogosScroll />
-              <CategoriesSection />
-              <PromotionalBanners />
-              <MostPopularSection />
-              <TrendingBanner />
-              <TrendingItemsSection />
-              <FlashSaleSection />
-              <PopularBrandsSection />
-              <FeaturesSection />
+            </div>
+
+            {/* Bottom Content Sheet (Light bg) */}
+            <div className="bg-[#F8FAFC] rounded-t-[2rem] pt-6 pb-24 mt-0 min-h-screen -mx-0 relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <LowestPricesEver activeTab={activeTab} />
+                <BrandLogosScroll />
+                <CategoriesSection />
+                <PromotionalBanners />
+                <MostPopularSection />
+                <TrendingBanner />
+                <TrendingItemsSection />
+                <FlashSaleSection />
+                <PopularBrandsSection />
+                <FeaturesSection />
+              </div>
             </div>
           </div>
           <style>{`
