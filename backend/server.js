@@ -106,7 +106,8 @@ const defaultOrigins = [
   'http://localhost:3000',
   'https://dealing-india.vercel.app',
   'https://neargud.vercel.app',
-  'https://dealing-india-*.vercel.app', // Allow all Vercel preview deployments
+  'https://dealing-india-*.vercel.app',
+  'https://www.neargud.com', // Allow all Vercel preview deployments
 ];
 
 // Get origins from environment variable if set
