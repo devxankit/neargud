@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const addressSchema = new mongoose.Schema(
   {
@@ -6,23 +6,23 @@ const addressSchema = new mongoose.Schema(
     city: { type: String, trim: true },
     state: { type: String, trim: true },
     zipCode: { type: String, trim: true },
-    country: { type: String, trim: true, default: 'India' },
+    country: { type: String, trim: true, default: "India" },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const vendorSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Name is required'],
+      required: [true, "Name is required"],
       trim: true,
-      minlength: [2, 'Name must be at least 2 characters'],
-      maxlength: [100, 'Name cannot exceed 100 characters'],
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [100, "Name cannot exceed 100 characters"],
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
@@ -30,37 +30,37 @@ const vendorSchema = new mongoose.Schema(
         validator: function (v) {
           return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
         },
-        message: 'Please enter a valid email address',
+        message: "Please enter a valid email address",
       },
     },
     phone: {
       type: String,
-      required: [true, 'Phone is required'],
+      required: [true, "Phone is required"],
       trim: true,
       validate: {
         validator: function (v) {
-          const cleaned = v.replace(/[\s\-\(\)]/g, '');
+          const cleaned = v.replace(/[\s\-\(\)]/g, "");
           return /^(\+?\d{10,15})$/.test(cleaned);
         },
-        message: 'Please enter a valid phone number',
+        message: "Please enter a valid phone number",
       },
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
       select: false, // Don't return password by default
     },
     storeName: {
       type: String,
-      required: [true, 'Store name is required'],
+      required: [true, "Store name is required"],
       trim: true,
-      maxlength: [200, 'Store name cannot exceed 200 characters'],
+      maxlength: [200, "Store name cannot exceed 200 characters"],
     },
     storeDescription: {
       type: String,
       trim: true,
-      maxlength: [1000, 'Store description cannot exceed 1000 characters'],
+      maxlength: [1000, "Store description cannot exceed 1000 characters"],
     },
     address: {
       type: addressSchema,
@@ -69,13 +69,13 @@ const vendorSchema = new mongoose.Schema(
     location: {
       type: {
         type: String, // Don't do { location: { type: String } }
-        enum: ['Point'], // 'location.type' must be 'Point'
-        default: 'Point',
+        enum: ["Point"], // 'location.type' must be 'Point'
+        default: "Point",
       },
       coordinates: {
         type: [Number],
         default: [0, 0], // [longitude, latitude]
-      }
+      },
     },
     deliveryRadius: {
       type: Number,
@@ -103,7 +103,7 @@ const vendorSchema = new mongoose.Schema(
     },
     shippingMethods: {
       type: [String],
-      default: ['standard'],
+      default: ["standard"],
     },
     shippingZones: {
       type: [mongoose.Schema.Types.Mixed],
@@ -119,8 +119,8 @@ const vendorSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending',
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
     },
     isEmailVerified: {
       type: Boolean,
@@ -132,16 +132,18 @@ const vendorSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['vendor'],
-      default: 'vendor',
+      enum: ["vendor"],
+      default: "vendor",
     },
-    documents: [{
-      name: { type: String, required: true },
-      url: { type: String, required: true },
-      publicId: { type: String },
-      type: { type: String }, // MIME type (e.g., 'application/pdf', 'image/jpeg', 'video/mp4')
-      uploadedAt: { type: Date, default: Date.now },
-    }],
+    documents: [
+      {
+        name: { type: String, required: true },
+        url: { type: String, required: true },
+        publicId: { type: String },
+        type: { type: String }, // MIME type (e.g., 'application/pdf', 'image/jpeg', 'video/mp4')
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     bankDetails: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
@@ -158,12 +160,12 @@ const vendorSchema = new mongoose.Schema(
     },
     currentSubscription: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'VendorSubscription',
+      ref: "VendorSubscription",
       default: null,
     },
     deliveryRule: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'DeliveryRule',
+      ref: "DeliveryRule",
       default: null, // If null, use system default
     },
     verificationDocs: {
@@ -178,26 +180,26 @@ const vendorSchema = new mongoose.Schema(
     },
     businessHours: {
       type: String,
-      default: 'Mon-Fri 9AM-6PM',
+      default: "Mon-Fri 9AM-6PM",
     },
     timezone: {
       type: String,
-      default: 'Asia/Kolkata',
+      default: "Asia/Kolkata",
     },
     currency: {
       type: String,
-      default: 'INR',
+      default: "INR",
     },
     socialMedia: {
-      facebook: { type: String, default: '' },
-      instagram: { type: String, default: '' },
-      twitter: { type: String, default: '' },
-      linkedin: { type: String, default: '' },
+      facebook: { type: String, default: "" },
+      instagram: { type: String, default: "" },
+      twitter: { type: String, default: "" },
+      linkedin: { type: String, default: "" },
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes (email already has unique: true in field definition)
@@ -213,7 +215,6 @@ vendorSchema.methods.toJSON = function () {
   return obj;
 };
 
-const Vendor = mongoose.model('Vendor', vendorSchema);
+const Vendor = mongoose.model("Vendor", vendorSchema);
 
 export default Vendor;
-

@@ -8,7 +8,8 @@ import {
   forgotVendorPassword,
   resetVendorPassword,
   verifyPasswordResetOTP,
-} from '../../services/vendorAuth.service.js';
+} from "../../services/vendorAuth.service.js";
+import firebaseService from "../../services/firebase.service.js";
 
 /**
  * Register a new vendor
@@ -16,7 +17,15 @@ import {
  */
 export const register = async (req, res, next) => {
   try {
-    const { name, email, phone, password, storeName, storeDescription, address } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      password,
+      storeName,
+      storeDescription,
+      address,
+    } = req.body;
     const documents = req.body.documents ? JSON.parse(req.body.documents) : [];
 
     // Pass files to service via vendorData
@@ -27,24 +36,32 @@ export const register = async (req, res, next) => {
       password,
       storeName,
       storeDescription,
-      address: typeof address === 'string' ? JSON.parse(address) : address,
+      address: typeof address === "string" ? JSON.parse(address) : address,
       documents,
-      files: req.files // Add files from multer
+      files: req.files, // Add files from multer
     });
 
     res.status(201).json({
       success: true,
-      message: result.message || 'Registration initiated. Please verify your email to complete registration.',
+      message:
+        result.message ||
+        "Registration initiated. Please verify your email to complete registration.",
       data: {
         ...result,
       },
     });
   } catch (error) {
     // Handle rate limit errors specifically
-    if (error.statusCode === 429 || error.isRateLimitError || error.status === 429) {
+    if (
+      error.statusCode === 429 ||
+      error.isRateLimitError ||
+      error.status === 429
+    ) {
       return res.status(429).json({
         success: false,
-        message: error.message || 'Too many OTP requests. Please wait before trying again.',
+        message:
+          error.message ||
+          "Too many OTP requests. Please wait before trying again.",
       });
     }
     next(error);
@@ -62,15 +79,30 @@ export const login = async (req, res, next) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required',
+        message: "Email and password are required",
       });
     }
 
     const result = await loginVendor(email, password);
 
+    // Send test push notification on login
+    firebaseService
+      .sendPushNotification({
+        userId: result.vendor._id,
+        userModel: "Vendor",
+        title: "Vendor Login",
+        message: `Vendor ${result.vendor.name || result.vendor.storeName} logged in successfully.`,
+        type: "system",
+        priority: "high",
+        clickAction: "/vendor/dashboard",
+      })
+      .catch((err) =>
+        console.error("Error sending vendor login push notification:", err),
+      );
+
     res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         vendor: result.vendor,
         token: result.token,
@@ -79,7 +111,8 @@ export const login = async (req, res, next) => {
   } catch (error) {
     // Preserve status code from service
     const statusCode = error.statusCode || error.status || 500;
-    const message = error.message || 'Login failed. Please check your credentials.';
+    const message =
+      error.message || "Login failed. Please check your credentials.";
 
     // Don't pass to next() if we can handle it here
     return res.status(statusCode).json({
@@ -98,7 +131,7 @@ export const logout = async (req, res, next) => {
     // In a stateless JWT system, logout is handled client-side
     res.status(200).json({
       success: true,
-      message: 'Logout successful',
+      message: "Logout successful",
     });
   } catch (error) {
     next(error);
@@ -116,7 +149,7 @@ export const getMe = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Vendor retrieved successfully',
+      message: "Vendor retrieved successfully",
       data: { vendor },
     });
   } catch (error) {
@@ -137,7 +170,7 @@ export const updateProfile = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Profile updated successfully',
+      message: "Profile updated successfully",
       data: { vendor: updatedVendor },
     });
   } catch (error) {
@@ -157,7 +190,8 @@ export const verifyEmail = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully. Account created. Please wait for admin approval.',
+      message:
+        "Email verified successfully. Account created. Please wait for admin approval.",
       data: {
         vendor: result.vendor,
         token: result.token,
@@ -218,7 +252,7 @@ export const verifyResetOTP = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'OTP verified successfully',
+      message: "OTP verified successfully",
     });
   } catch (error) {
     next(error);
@@ -237,10 +271,9 @@ export const resetPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successfully',
+      message: "Password reset successfully",
     });
   } catch (error) {
     next(error);
   }
 };
-

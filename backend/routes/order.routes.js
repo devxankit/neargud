@@ -6,13 +6,13 @@ import {
   getOrders,
   cancelOrder,
 } from '../controllers/user-controllers/order.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, requireAuth } from '../middleware/auth.middleware.js';
 import { asyncHandler } from '../middleware/errorHandler.middleware.js';
 
 const router = express.Router();
 
 // All order routes require authentication
-router.use(authenticate);
+router.use(authenticate, requireAuth);
 
 // Create order and initialize payment
 router.post('/create', asyncHandler(createOrder));

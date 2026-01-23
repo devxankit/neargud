@@ -10,14 +10,13 @@ import { asyncHandler } from '../middleware/errorHandler.middleware.js';
 
 const router = express.Router();
 
-// All routes require admin authentication
-router.use(authenticate);
-router.use(authorize('admin' , "user"));
-
-// Routes
+// GET routes are public
 router.get('/', asyncHandler(getAll));
 router.get('/:key', asyncHandler(getByKey));
-router.put('/:key', asyncHandler(upsert));
+
+// PUT route requires admin authentication
+router.use(authenticate);
+router.put('/:key', authorize('admin'), asyncHandler(upsert));
 
 export default router;
 

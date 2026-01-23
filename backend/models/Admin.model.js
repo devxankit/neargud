@@ -1,17 +1,17 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const adminSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Name is required'],
+      required: [true, "Name is required"],
       trim: true,
-      minlength: [2, 'Name must be at least 2 characters'],
-      maxlength: [100, 'Name cannot exceed 100 characters'],
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [100, "Name cannot exceed 100 characters"],
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
@@ -19,19 +19,19 @@ const adminSchema = new mongoose.Schema(
         validator: function (v) {
           return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
         },
-        message: 'Please enter a valid email address',
+        message: "Please enter a valid email address",
       },
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
       select: false, // Don't return password by default
     },
     role: {
       type: String,
-      enum: ['admin'],
-      default: 'admin',
+      enum: ["admin"],
+      default: "admin",
     },
     isActive: {
       type: Boolean,
@@ -40,7 +40,7 @@ const adminSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes (email already has unique: true in schema, so don't duplicate)
@@ -54,7 +54,6 @@ adminSchema.methods.toJSON = function () {
   return obj;
 };
 
-const Admin = mongoose.model('Admin', adminSchema);
+const Admin = mongoose.model("Admin", adminSchema);
 
 export default Admin;
-

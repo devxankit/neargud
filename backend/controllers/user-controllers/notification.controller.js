@@ -1,5 +1,5 @@
-import notificationService from '../../services/notification.service.js';
-import firebaseService from '../../services/firebase.service.js';
+import notificationService from "../../services/notification.service.js";
+import firebaseService from "../../services/firebase.service.js";
 
 /**
  * Get user notifications
@@ -18,7 +18,11 @@ export const getNotifications = async (req, res, next) => {
       sortOrder: req.query.sortOrder,
     };
 
-    const result = await notificationService.getNotifications(userId, 'user', filters);
+    const result = await notificationService.getNotifications(
+      userId,
+      "user",
+      filters,
+    );
 
     return res.status(200).json({
       success: true,
@@ -36,7 +40,7 @@ export const getNotifications = async (req, res, next) => {
 export const getUnreadCount = async (req, res, next) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const count = await notificationService.getUnreadCount(userId, 'user');
+    const count = await notificationService.getUnreadCount(userId, "user");
 
     return res.status(200).json({
       success: true,
@@ -55,14 +59,19 @@ export const markAsRead = async (req, res, next) => {
   try {
     const userId = req.user.userId || req.user.id;
     const { id } = req.params;
-    const io = req.app.get('io'); // Get socket.io instance from app
+    const io = req.app.get("io"); // Get socket.io instance from app
 
-    const notification = await notificationService.markAsRead(id, userId, 'user', io);
+    const notification = await notificationService.markAsRead(
+      id,
+      userId,
+      "user",
+      io,
+    );
 
     return res.status(200).json({
       success: true,
       data: notification,
-      message: 'Notification marked as read',
+      message: "Notification marked as read",
     });
   } catch (error) {
     next(error);
@@ -76,14 +85,14 @@ export const markAsRead = async (req, res, next) => {
 export const markAllAsRead = async (req, res, next) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const io = req.app.get('io');
+    const io = req.app.get("io");
 
-    const result = await notificationService.markAllAsRead(userId, 'user', io);
+    const result = await notificationService.markAllAsRead(userId, "user", io);
 
     return res.status(200).json({
       success: true,
       data: { modifiedCount: result.modifiedCount },
-      message: 'All notifications marked as read',
+      message: "All notifications marked as read",
     });
   } catch (error) {
     next(error);
@@ -98,13 +107,13 @@ export const deleteNotification = async (req, res, next) => {
   try {
     const userId = req.user.userId || req.user.id;
     const { id } = req.params;
-    const io = req.app.get('io');
+    const io = req.app.get("io");
 
-    await notificationService.deleteNotification(id, userId, 'user', io);
+    await notificationService.deleteNotification(id, userId, "user", io);
 
     return res.status(200).json({
       success: true,
-      message: 'Notification deleted successfully',
+      message: "Notification deleted successfully",
     });
   } catch (error) {
     next(error);
@@ -118,14 +127,14 @@ export const deleteNotification = async (req, res, next) => {
 export const deleteAllRead = async (req, res, next) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const io = req.app.get('io');
+    const io = req.app.get("io");
 
-    const result = await notificationService.deleteAllRead(userId, 'user', io);
+    const result = await notificationService.deleteAllRead(userId, "user", io);
 
     return res.status(200).json({
       success: true,
       data: { deletedCount: result.deletedCount },
-      message: 'All read notifications deleted',
+      message: "All read notifications deleted",
     });
   } catch (error) {
     next(error);
@@ -138,25 +147,61 @@ export const deleteAllRead = async (req, res, next) => {
  */
 export const registerFCMToken = async (req, res, next) => {
   try {
-    const userId = req.user.userId || req.user.id;
-    const { fcmToken, deviceInfo } = req.body;
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+    const userId =
+      req.user._id ||
+      req.user.userId ||
+      req.user.id ||
+      req.user.adminId ||
+      req.user.vendorId;
+    const userRole = req.user.role || "user";
+    const { fcmToken, deviceInfo, platform } = req.body;
+
+    console.log(`Registration attempt for ${userRole} ${userId}:`, {
+      fcmToken: fcmToken ? `${fcmToken.substring(0, 10)}...` : "missing",
+      deviceInfo,
+      platform,
+    });
 
     if (!fcmToken) {
       return res.status(400).json({
         success: false,
-        message: 'FCM token is required',
+        message: "FCM token is required",
       });
+    }
+
+    // Map role to userModel
+    let userModel = "User";
+    if (userRole === "admin") userModel = "Admin";
+    else if (userRole === "vendor") userModel = "Vendor";
+
+    // Handle platform parameter (simpler API)
+    let finalDeviceInfo = deviceInfo || {};
+
+    if (platform) {
+      // If platform is provided, map it to deviceType
+      if (platform === "mobile") {
+        finalDeviceInfo.deviceType = "android"; // Default mobile to android
+      } else if (platform === "web") {
+        finalDeviceInfo.deviceType = "web";
+      }
     }
 
     const device = await firebaseService.registerFCMToken(
       userId,
       fcmToken,
-      deviceInfo || {}
+      finalDeviceInfo,
+      userModel,
     );
 
     res.status(200).json({
       success: true,
-      message: 'FCM token registered successfully',
+      message: "FCM token registered successfully",
       data: { device },
     });
   } catch (error) {
@@ -175,7 +220,7 @@ export const unregisterFCMToken = async (req, res, next) => {
     if (!fcmToken) {
       return res.status(400).json({
         success: false,
-        message: 'FCM token is required',
+        message: "FCM token is required",
       });
     }
 
@@ -183,7 +228,7 @@ export const unregisterFCMToken = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'FCM token unregistered successfully',
+      message: "FCM token unregistered successfully",
     });
   } catch (error) {
     next(error);
@@ -196,25 +241,38 @@ export const unregisterFCMToken = async (req, res, next) => {
  */
 export const sendTestNotification = async (req, res, next) => {
   try {
-    const userId = req.user.userId || req.user.id;
-    const { title = 'Test Notification', message = 'This is a test notification from NearGud' } = req.body;
+    const userId =
+      req.user._id ||
+      req.user.userId ||
+      req.user.id ||
+      req.user.adminId ||
+      req.user.vendorId;
+    const userRole = req.user.role || "user";
+    const {
+      title = "Test Notification",
+      message = "This is a test notification from NearGud",
+    } = req.body;
+
+    // Map role to userModel
+    let userModel = "User";
+    if (userRole === "admin") userModel = "Admin";
+    else if (userRole === "vendor") userModel = "Vendor";
 
     const result = await firebaseService.sendPushNotification({
       userId,
       title,
       message,
-      type: 'test',
-      priority: 'high',
-      userModel: 'User'
+      type: "test",
+      priority: "high",
+      userModel,
     });
 
     res.status(200).json({
       success: true,
-      message: 'Test notification sent',
-      data: result
+      message: "Test notification sent",
+      data: result,
     });
   } catch (error) {
     next(error);
   }
 };
-

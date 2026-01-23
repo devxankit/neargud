@@ -1,26 +1,29 @@
-import Notification from '../models/Notification.model.js';
-import mongoose from 'mongoose';
+import Notification from "../models/Notification.model.js";
+import mongoose from "mongoose";
+import firebaseService from "./firebase.service.js";
 
 class NotificationService {
   /**
    * Create a single notification
    * @param {Object} notificationData - Notification data
    * @param {Object} io - Socket.io instance (optional, for real-time updates)
+   * @param {Boolean} shouldSendPush - Whether to send a push notification (default: true)
    * @returns {Promise<Object>} Created notification
    */
-  async createNotification(notificationData, io = null) {
+  async createNotification(notificationData, io = null, shouldSendPush = true) {
     try {
       // Map recipientType to recipientTypeModel
       const recipientTypeModelMap = {
-        user: 'User',
-        vendor: 'Vendor',
-        admin: 'Admin',
-        delivery_partner: 'DeliveryPartner',
+        user: "User",
+        vendor: "Vendor",
+        admin: "Admin",
+        delivery_partner: "DeliveryPartner",
       };
 
       const notification = new Notification({
         ...notificationData,
-        recipientTypeModel: recipientTypeModelMap[notificationData.recipientType],
+        recipientTypeModel:
+          recipientTypeModelMap[notificationData.recipientType],
       });
 
       const savedNotification = await notification.save();
@@ -28,7 +31,15 @@ class NotificationService {
       // Emit socket event if io instance is provided
       if (io) {
         const roomName = `notifications_${notificationData.recipientId}_${notificationData.recipientType}`;
-        io.to(roomName).emit('new_notification', savedNotification);
+        io.to(roomName).emit("new_notification", savedNotification);
+      }
+
+      // Send push notification if requested
+      if (shouldSendPush) {
+        // Run in background, don't await to avoid delaying the response
+        this.sendPushForNotification(savedNotification).catch((err) =>
+          console.error("Error sending push for notification:", err),
+        );
       }
 
       return savedNotification;
@@ -38,33 +49,77 @@ class NotificationService {
   }
 
   /**
+   * Helper to send push for a notification object
+   */
+  async sendPushForNotification(notification) {
+    try {
+      return await firebaseService.sendPushNotification({
+        userId: notification.recipientId,
+        userModel: notification.recipientTypeModel,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        priority: notification.priority || "medium",
+        clickAction: notification.actionUrl,
+        data: {
+          notificationId: notification._id.toString(),
+          ...notification.metadata,
+        },
+      });
+    } catch (error) {
+      console.error("Push notification failed in NotificationService:", error);
+      // Update notification with error
+      await Notification.findByIdAndUpdate(notification._id, {
+        pushError: error.message,
+        sentViaPush: false,
+      });
+    }
+  }
+
+  /**
    * Create multiple notifications
    * @param {Array} notificationsArray - Array of notification data
    * @param {Object} io - Socket.io instance (optional)
+   * @param {Boolean} shouldSendPush - Whether to send push notifications (default: true)
    * @returns {Promise<Array>} Created notifications
    */
-  async createBulkNotifications(notificationsArray, io = null) {
+  async createBulkNotifications(
+    notificationsArray,
+    io = null,
+    shouldSendPush = true,
+  ) {
     try {
       const recipientTypeModelMap = {
-        user: 'User',
-        vendor: 'Vendor',
-        admin: 'Admin',
-        delivery_partner: 'DeliveryPartner',
+        user: "User",
+        vendor: "Vendor",
+        admin: "Admin",
+        delivery_partner: "DeliveryPartner",
       };
 
-      const notifications = notificationsArray.map((notif) => ({
+      const notificationsToSave = notificationsArray.map((notif) => ({
         ...notif,
         recipientTypeModel: recipientTypeModelMap[notif.recipientType],
       }));
 
-      const savedNotifications = await Notification.insertMany(notifications);
+      const savedNotifications =
+        await Notification.insertMany(notificationsToSave);
 
       // Emit socket events for each notification
       if (io) {
         savedNotifications.forEach((notification) => {
           const roomName = `notifications_${notification.recipientId}_${notification.recipientType}`;
-          io.to(roomName).emit('new_notification', notification);
+          io.to(roomName).emit("new_notification", notification);
         });
+      }
+
+      // Send push notifications if requested
+      if (shouldSendPush) {
+        // Send in parallel but don't await the whole thing to avoid blocking
+        Promise.all(
+          savedNotifications.map((n) => this.sendPushForNotification(n)),
+        ).catch((err) =>
+          console.error("Error in bulk push notification sending:", err),
+        );
       }
 
       return savedNotifications;
@@ -88,8 +143,8 @@ class NotificationService {
         isRead,
         type,
         search,
-        sortBy = 'createdAt',
-        sortOrder = 'desc',
+        sortBy = "createdAt",
+        sortOrder = "desc",
       } = filters;
 
       const query = {
@@ -98,26 +153,26 @@ class NotificationService {
       };
 
       if (isRead !== undefined) {
-        query.isRead = isRead === 'true' || isRead === true;
+        query.isRead = isRead === "true" || isRead === true;
       }
 
-      if (type && type !== 'all') {
+      if (type && type !== "all") {
         query.type = type;
       }
 
       if (search) {
         query.$or = [
-          { title: { $regex: search, $options: 'i' } },
-          { message: { $regex: search, $options: 'i' } },
+          { title: { $regex: search, $options: "i" } },
+          { message: { $regex: search, $options: "i" } },
         ];
       }
 
       const skip = (parseInt(page) - 1) * parseInt(limit);
-      const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
+      const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
       const [notifications, total] = await Promise.all([
         Notification.find(query)
-          .populate('orderId', 'orderCode status')
+          .populate("orderId", "orderCode status")
           .sort(sort)
           .skip(skip)
           .limit(parseInt(limit))
@@ -179,17 +234,20 @@ class NotificationService {
           isRead: true,
           readAt: new Date(),
         },
-        { new: true }
+        { new: true },
       );
 
       if (!notification) {
-        throw new Error('Notification not found or access denied');
+        throw new Error("Notification not found or access denied");
       }
 
       // Emit socket event
       if (io) {
         const roomName = `notifications_${recipientId}_${recipientType}`;
-        io.to(roomName).emit('notification_read', { notificationId, isRead: true });
+        io.to(roomName).emit("notification_read", {
+          notificationId,
+          isRead: true,
+        });
       }
 
       return notification;
@@ -216,18 +274,22 @@ class NotificationService {
         {
           isRead: true,
           readAt: new Date(),
-        }
+        },
       );
 
       // Emit socket event
       if (io) {
         const roomName = `notifications_${recipientId}_${recipientType}`;
-        io.to(roomName).emit('all_notifications_read', { count: result.modifiedCount });
+        io.to(roomName).emit("all_notifications_read", {
+          count: result.modifiedCount,
+        });
       }
 
       return result;
     } catch (error) {
-      throw new Error(`Failed to mark all notifications as read: ${error.message}`);
+      throw new Error(
+        `Failed to mark all notifications as read: ${error.message}`,
+      );
     }
   }
 
@@ -239,7 +301,12 @@ class NotificationService {
    * @param {Object} io - Socket.io instance (optional)
    * @returns {Promise<Object>} Deleted notification
    */
-  async deleteNotification(notificationId, recipientId, recipientType, io = null) {
+  async deleteNotification(
+    notificationId,
+    recipientId,
+    recipientType,
+    io = null,
+  ) {
     try {
       const notification = await Notification.findOneAndDelete({
         _id: notificationId,
@@ -248,13 +315,13 @@ class NotificationService {
       });
 
       if (!notification) {
-        throw new Error('Notification not found or access denied');
+        throw new Error("Notification not found or access denied");
       }
 
       // Emit socket event
       if (io) {
         const roomName = `notifications_${recipientId}_${recipientType}`;
-        io.to(roomName).emit('notification_deleted', { notificationId });
+        io.to(roomName).emit("notification_deleted", { notificationId });
       }
 
       return notification;
@@ -281,7 +348,9 @@ class NotificationService {
       // Emit socket event
       if (io) {
         const roomName = `notifications_${recipientId}_${recipientType}`;
-        io.to(roomName).emit('read_notifications_deleted', { count: result.deletedCount });
+        io.to(roomName).emit("read_notifications_deleted", {
+          count: result.deletedCount,
+        });
       }
 
       return result;
@@ -298,77 +367,108 @@ class NotificationService {
    * @param {Object} io - Socket.io instance (optional)
    * @returns {Promise<Object>} Result with count of notifications sent
    */
-  async sendBulkNotification(notificationData, target, recipientIds = [], io = null) {
+  async sendBulkNotification(
+    notificationData,
+    target,
+    recipientIds = [],
+    io = null,
+  ) {
     try {
-      const User = (await import('../models/User.model.js')).default;
-      const Vendor = (await import('../models/Vendor.model.js')).default;
-      const Admin = (await import('../models/Admin.model.js')).default;
-      const DeliveryPartner = (await import('../models/DeliveryPartner.model.js')).default;
+      const User = (await import("../models/User.model.js")).default;
+      const Vendor = (await import("../models/Vendor.model.js")).default;
+      const Admin = (await import("../models/Admin.model.js")).default;
+      const DeliveryPartner = (
+        await import("../models/DeliveryPartner.model.js")
+      ).default;
 
       let recipients = [];
 
-      if (target === 'specific' && recipientIds.length > 0) {
+      if (target === "specific" && recipientIds.length > 0) {
         // Send to specific recipients
         // Determine recipient type from first ID (or pass as parameter)
         // For now, we'll try to find in all collections
-        const users = await User.find({ _id: { $in: recipientIds }, isActive: true }).select('_id').lean();
-        const vendors = await Vendor.find({ _id: { $in: recipientIds }, isActive: true }).select('_id').lean();
-        const admins = await Admin.find({ _id: { $in: recipientIds }, isActive: true }).select('_id').lean();
+        const users = await User.find({
+          _id: { $in: recipientIds },
+          isActive: true,
+        })
+          .select("_id")
+          .lean();
+        const vendors = await Vendor.find({
+          _id: { $in: recipientIds },
+          isActive: true,
+        })
+          .select("_id")
+          .lean();
+        const admins = await Admin.find({
+          _id: { $in: recipientIds },
+          isActive: true,
+        })
+          .select("_id")
+          .lean();
 
         recipients = [
-          ...users.map((u) => ({ id: u._id, type: 'user' })),
-          ...vendors.map((v) => ({ id: v._id, type: 'vendor' })),
-          ...admins.map((a) => ({ id: a._id, type: 'admin' })),
+          ...users.map((u) => ({ id: u._id, type: "user" })),
+          ...vendors.map((v) => ({ id: v._id, type: "vendor" })),
+          ...admins.map((a) => ({ id: a._id, type: "admin" })),
         ];
-      } else if (target === 'users' || target === 'all') {
+      } else if (target === "users" || target === "all") {
         // Send to all active users
-        const users = await User.find({ isActive: true }).select('_id').lean();
+        const users = await User.find({ isActive: true }).select("_id").lean();
         recipients = [
           ...recipients,
-          ...users.map((u) => ({ id: u._id, type: 'user' }))
+          ...users.map((u) => ({ id: u._id, type: "user" })),
         ];
       }
 
-      if (target === 'vendors' || target === 'all') {
+      if (target === "vendors" || target === "all") {
         // Send to all active vendors
-        const vendors = await Vendor.find({ isActive: true }).select('_id').lean();
+        const vendors = await Vendor.find({ isActive: true })
+          .select("_id")
+          .lean();
         recipients = [
           ...recipients,
-          ...vendors.map((v) => ({ id: v._id, type: 'vendor' })),
+          ...vendors.map((v) => ({ id: v._id, type: "vendor" })),
         ];
       }
 
-      if (target === 'delivery_partners' || target === 'all') {
+      if (target === "delivery_partners" || target === "all") {
         // Send to all active delivery partners
-        const partners = await DeliveryPartner.find({ isActive: true }).select('_id').lean();
+        const partners = await DeliveryPartner.find({ isActive: true })
+          .select("_id")
+          .lean();
         recipients = [
           ...recipients,
-          ...partners.map((p) => ({ id: p._id, type: 'delivery_partner' })),
+          ...partners.map((p) => ({ id: p._id, type: "delivery_partner" })),
         ];
       }
 
-      if (target === 'admins') {
+      if (target === "admins") {
         // Send to all active admins
-        const admins = await Admin.find({ isActive: true }).select('_id').lean();
-        recipients = admins.map((a) => ({ id: a._id, type: 'admin' }));
+        const admins = await Admin.find({ isActive: true })
+          .select("_id")
+          .lean();
+        recipients = admins.map((a) => ({ id: a._id, type: "admin" }));
       }
 
       if (recipients.length === 0) {
-        throw new Error('No recipients found for the specified target');
+        throw new Error("No recipients found for the specified target");
       }
 
       // Create notifications for all recipients
       const notifications = recipients.map((recipient) => ({
         recipientId: recipient.id,
         recipientType: recipient.type,
-        type: notificationData.type || 'system',
+        type: notificationData.type || "system",
         title: notificationData.title,
         message: notificationData.message,
         actionUrl: notificationData.actionUrl,
         metadata: notificationData.metadata || {},
       }));
 
-      const savedNotifications = await this.createBulkNotifications(notifications, io);
+      const savedNotifications = await this.createBulkNotifications(
+        notifications,
+        io,
+      );
 
       return {
         success: true,
@@ -382,4 +482,3 @@ class NotificationService {
 }
 
 export default new NotificationService();
-

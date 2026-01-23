@@ -1,64 +1,63 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userDeviceSchema = new mongoose.Schema(
-    {
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true,
-            index: true,
-        },
-        userModel: {
-            type: String,
-            enum: ['User', 'Vendor', 'Admin'],
-            default: 'User',
-        },
-        fcmToken: {
-            type: String,
-            required: true,
-            unique: true,
-        },
-        deviceInfo: {
-            deviceId: String,
-            deviceType: {
-                type: String,
-                enum: ['web', 'android', 'ios'],
-                default: 'web',
-            },
-            browser: String,
-            os: String,
-            userAgent: String,
-        },
-        isActive: {
-            type: Boolean,
-            default: true,
-        },
-        lastUsed: {
-            type: Date,
-            default: Date.now,
-        },
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: "userModel",
+      index: true,
     },
-    {
-        timestamps: true,
-    }
+    userModel: {
+      type: String,
+      enum: ["User", "Vendor", "Admin"],
+      default: "User",
+    },
+    fcmToken: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    deviceInfo: {
+      deviceId: String,
+      deviceType: {
+        type: String,
+        enum: ["web", "android", "ios"],
+        default: "web",
+      },
+      browser: String,
+      os: String,
+      userAgent: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    lastUsed: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: true,
+  },
 );
 
 // Indexes
 userDeviceSchema.index({ userId: 1, isActive: 1 });
-userDeviceSchema.index({ fcmToken: 1 });
 
 // Update last used timestamp
 userDeviceSchema.methods.updateLastUsed = function () {
-    this.lastUsed = new Date();
-    return this.save();
+  this.lastUsed = new Date();
+  return this.save();
 };
 
 // Deactivate token
 userDeviceSchema.methods.deactivate = function () {
-    this.isActive = false;
-    return this.save();
+  this.isActive = false;
+  return this.save();
 };
 
-const UserDevice = mongoose.model('UserDevice', userDeviceSchema);
+const UserDevice = mongoose.model("UserDevice", userDeviceSchema);
 
 export default UserDevice;

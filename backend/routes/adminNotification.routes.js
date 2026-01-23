@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   getNotifications,
   getUnreadCount,
@@ -8,40 +8,49 @@ import {
   deleteAllRead,
   sendCustomNotification,
   getBroadcastHistory,
-} from '../controllers/admin-controllers/notification.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { authorize } from '../middleware/role.middleware.js';
-import { asyncHandler } from '../middleware/errorHandler.middleware.js';
+} from "../controllers/admin-controllers/notification.controller.js";
+import {
+  registerFCMToken,
+  unregisterFCMToken,
+  sendTestNotification,
+} from "../controllers/user-controllers/notification.controller.js";
+import { authenticate } from "../middleware/auth.middleware.js";
+import { authorize } from "../middleware/role.middleware.js";
+import { asyncHandler } from "../middleware/errorHandler.middleware.js";
 
 const router = express.Router();
 
 // All routes require authentication and admin role
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(authorize("admin"));
 
 // Get notifications
-router.get('/', asyncHandler(getNotifications));
+router.get("/", asyncHandler(getNotifications));
 
 // Get unread count
-router.get('/unread-count', asyncHandler(getUnreadCount));
+router.get("/unread-count", asyncHandler(getUnreadCount));
 
 // Mark notification as read
-router.put('/:id/read', asyncHandler(markAsRead));
+router.put("/:id/read", asyncHandler(markAsRead));
 
 // Mark all notifications as read
-router.put('/read-all', asyncHandler(markAllAsRead));
+router.put("/read-all", asyncHandler(markAllAsRead));
 
 // Delete notification
-router.delete('/:id', asyncHandler(deleteNotification));
+router.delete("/:id", asyncHandler(deleteNotification));
 
 // Delete all read notifications
-router.delete('/read-all', asyncHandler(deleteAllRead));
+router.delete("/read-all", asyncHandler(deleteAllRead));
 
 // Send custom notification
-router.post('/send', asyncHandler(sendCustomNotification));
+router.post("/send", asyncHandler(sendCustomNotification));
 
 // Get broadcast history
-router.get('/broadcasts', asyncHandler(getBroadcastHistory));
+router.get("/broadcasts", asyncHandler(getBroadcastHistory));
+
+// FCM Token registration
+router.post("/register-token", asyncHandler(registerFCMToken));
+router.post("/unregister-token", asyncHandler(unregisterFCMToken));
+router.post("/test", asyncHandler(sendTestNotification));
 
 export default router;
-

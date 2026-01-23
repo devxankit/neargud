@@ -1,8 +1,8 @@
-import { verifyToken } from '../utils/jwt.util.js';
-import User from '../models/User.model.js';
-import Vendor from '../models/Vendor.model.js';
-import Admin from '../models/Admin.model.js';
-import DeliveryPartner from '../models/DeliveryPartner.model.js';
+import { verifyToken } from "../utils/jwt.util.js";
+import User from "../models/User.model.js";
+import Vendor from "../models/Vendor.model.js";
+import Admin from "../models/Admin.model.js";
+import DeliveryPartner from "../models/DeliveryPartner.model.js";
 
 /**
  * Optional authentication middleware - verifies JWT token if present but doesn't fail if expired
@@ -13,7 +13,7 @@ export const optionalAuthenticate = async (req, res, next) => {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       // No token provided, continue without authentication
       req.user = null;
       return next();
@@ -27,17 +27,17 @@ export const optionalAuthenticate = async (req, res, next) => {
       req.user = decoded;
 
       // Optionally fetch user document if token is valid
-      if (decoded.role === 'user' && decoded.userId) {
+      if (decoded.role === "user" && decoded.userId) {
         const user = await User.findById(decoded.userId);
         if (user && user.isActive) {
           req.userDoc = user;
         }
-      } else if (decoded.role === 'vendor' && decoded.vendorId) {
+      } else if (decoded.role === "vendor" && decoded.vendorId) {
         const vendor = await Vendor.findById(decoded.vendorId);
         if (vendor && vendor.isActive) {
           req.userDoc = vendor;
         }
-      } else if (decoded.role === 'admin' && decoded.adminId) {
+      } else if (decoded.role === "admin" && decoded.adminId) {
         const admin = await Admin.findById(decoded.adminId);
         if (admin && admin.isActive) {
           req.userDoc = admin;
@@ -59,93 +59,73 @@ export const optionalAuthenticate = async (req, res, next) => {
  */
 export const authenticate = async (req, res, next) => {
   try {
-    // Get token from Authorization header
     const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required. Please provide a valid token.',
-      });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      req.user = null;
+      return next();
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
-    let decoded;
-    try {
-      decoded = verifyToken(token);
-    } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: error.message || 'Invalid or expired token',
-      });
+    const token = authHeader.split(" ")[1];
+    if (!token || token === "null" || token === "undefined") {
+      req.user = null;
+      return next();
     }
 
-    // Attach user info to request based on role
-    req.user = decoded;
-
-    // Optionally, fetch and attach full user document
-    // This can be useful if you need access to the full user object
     try {
-      if (decoded.role === 'user' && decoded.userId) {
-        const user = await User.findById(decoded.userId);
-        if (!user || !user.isActive) {
-          return res.status(401).json({
-            success: false,
-            message: 'User account not found or inactive',
-          });
-        }
-        req.userDoc = user;
-      } else if (decoded.role === 'vendor' && decoded.vendorId) {
-        const vendor = await Vendor.findById(decoded.vendorId);
-        if (!vendor || !vendor.isActive) {
-          return res.status(401).json({
-            success: false,
-            message: 'Vendor account not found or inactive',
-          });
-        }
-        req.userDoc = vendor;
-      } else if (decoded.role === 'admin' && decoded.adminId) {
-        const admin = await Admin.findById(decoded.adminId);
-        if (!admin || !admin.isActive) {
-          return res.status(401).json({
-            success: false,
-            message: 'Admin account not found or inactive',
-          });
-        }
-        req.userDoc = admin;
-      } else if (decoded.role === 'delivery_partner' && decoded.deliveryPartnerId) {
-        const deliveryPartner = await DeliveryPartner.findById(decoded.deliveryPartnerId);
-        if (!deliveryPartner || !deliveryPartner.isActive) {
-          return res.status(401).json({
-            success: false,
-            message: 'Delivery Partner account not found or inactive',
-          });
-        }
-        req.userDoc = deliveryPartner;
+      const decoded = verifyToken(token);
+      let user = null;
+
+      // Try to find user in different models based on role or just by ID
+      if (decoded.role === "admin") {
+        user = await Admin.findById(decoded.id || decoded.adminId).select(
+          "-password",
+        );
+      } else if (decoded.role === "vendor") {
+        user = await Vendor.findById(decoded.id || decoded.vendorId).select(
+          "-password",
+        );
+      } else if (decoded.role === "delivery_partner") {
+        user = await DeliveryPartner.findById(
+          decoded.id || decoded.deliveryPartnerId,
+        ).select("-password");
+      } else {
+        user = await User.findById(decoded.id || decoded.userId).select(
+          "-password",
+        );
       }
-    } catch (dbError) {
-      console.error('Error fetching user document in auth middleware:', {
-        message: dbError.message,
-        role: decoded.role,
-        userId: decoded.userId || decoded.vendorId || decoded.adminId,
-      });
-      // Continue without userDoc - some endpoints might not need it
-    }
 
-    next();
+      if (!user || user.isActive === false) {
+        req.user = null;
+        return next();
+      }
+
+      req.user = { ...decoded, ...user.toObject() };
+      next();
+    } catch (error) {
+      // If token is invalid, treat as guest instead of throwing error
+      req.user = null;
+      next();
+    }
   } catch (error) {
-    console.error('Error in authenticate middleware:', {
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
     next(error);
   }
 };
-
 
 // Aliases for compatibility
 export const protect = authenticate;
 export const protectVendor = authenticate;
 export const protectAdmin = authenticate;
+
+/**
+ * Middleware to require authentication - fails if user is not logged in
+ * Use this for purchase-related and profile routes
+ */
+export const requireAuth = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required. Please login to continue.",
+    });
+  }
+  next();
+};

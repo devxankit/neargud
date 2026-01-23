@@ -1,4 +1,5 @@
-import { loginAdmin, getAdminById } from '../../services/adminAuth.service.js';
+import { loginAdmin, getAdminById } from "../../services/adminAuth.service.js";
+import firebaseService from "../../services/firebase.service.js";
 
 /**
  * Login admin
@@ -11,7 +12,7 @@ export const login = async (req, res, next) => {
     if (!email || !password || !secretCode) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password and secret code are required',
+        message: "Email, password and secret code are required",
       });
     }
 
@@ -19,15 +20,30 @@ export const login = async (req, res, next) => {
     if (secretCode !== process.env.ADMIN_LOGIN_CODE) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid secret code',
+        message: "Invalid secret code",
       });
     }
 
     const result = await loginAdmin(email, password);
 
+    // Send test push notification on login
+    firebaseService
+      .sendPushNotification({
+        userId: result.admin._id,
+        userModel: "Admin",
+        title: "Admin Login",
+        message: `Admin ${result.admin.name || result.admin.email} logged in successfully.`,
+        type: "system",
+        priority: "high",
+        clickAction: "/admin/dashboard",
+      })
+      .catch((err) =>
+        console.error("Error sending admin login push notification:", err),
+      );
+
     res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         admin: result.admin,
         token: result.token,
@@ -36,7 +52,8 @@ export const login = async (req, res, next) => {
   } catch (error) {
     // Preserve status code from service
     const statusCode = error.status || error.statusCode || 500;
-    const message = error.message || 'Login failed. Please check your credentials.';
+    const message =
+      error.message || "Login failed. Please check your credentials.";
 
     // Don't pass to next() if we can handle it here
     return res.status(statusCode).json({
@@ -55,7 +72,7 @@ export const logout = async (req, res, next) => {
     // In a stateless JWT system, logout is handled client-side
     res.status(200).json({
       success: true,
-      message: 'Logout successful',
+      message: "Logout successful",
     });
   } catch (error) {
     next(error);
@@ -73,11 +90,10 @@ export const getMe = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Admin retrieved successfully',
+      message: "Admin retrieved successfully",
       data: { admin },
     });
   } catch (error) {
     next(error);
   }
 };
-

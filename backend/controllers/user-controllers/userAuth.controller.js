@@ -9,7 +9,8 @@ import {
   forgotUserPassword,
   resetUserPassword,
   verifyPasswordResetOTP,
-} from '../../services/userAuth.service.js';
+} from "../../services/userAuth.service.js";
+import firebaseService from "../../services/firebase.service.js";
 
 /**
  * Register a new user
@@ -23,57 +24,78 @@ export const register = async (req, res, next) => {
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'First name, last name, email, and password are required',
+        message: "First name, last name, email, and password are required",
       });
     }
 
-    const result = await registerUser({ firstName, lastName, email, password, phone });
+    const result = await registerUser({
+      firstName,
+      lastName,
+      email,
+      password,
+      phone,
+    });
 
     res.status(201).json({
       success: true,
-      message: result.message || 'Registration initiated. Please verify your email to complete registration.',
+      message:
+        result.message ||
+        "Registration initiated. Please verify your email to complete registration.",
       data: {
         email: result.email,
       },
     });
   } catch (error) {
     // Handle rate limit errors specifically
-    if (error.statusCode === 429 || error.isRateLimitError || error.status === 429) {
+    if (
+      error.statusCode === 429 ||
+      error.isRateLimitError ||
+      error.status === 429
+    ) {
       return res.status(429).json({
         success: false,
-        message: error.message || 'Too many OTP requests. Please wait before trying again.',
+        message:
+          error.message ||
+          "Too many OTP requests. Please wait before trying again.",
       });
     }
 
     // Log detailed error for production debugging
-    console.error('❌ Error in register controller:', {
+    console.error("❌ Error in register controller:", {
       message: error.message,
       name: error.name,
       code: error.code,
       status: error.status || error.statusCode,
       stack: error.stack, // Always log stack for production debugging
-      body: req.body ? {
-        name: req.body.name,
-        email: req.body.email,
-        hasPhone: !!req.body.phone
-      } : undefined,
+      body: req.body
+        ? {
+            name: req.body.name,
+            email: req.body.email,
+            hasPhone: !!req.body.phone,
+          }
+        : undefined,
       timestamp: new Date().toISOString(),
     });
 
     // Provide user-friendly error messages
-    let userMessage = error.message || 'Registration failed. Please try again.';
+    let userMessage = error.message || "Registration failed. Please try again.";
     let statusCode = error.status || error.statusCode || 500;
 
     // Map common errors to user-friendly messages
-    if (error.message?.includes('Database connection')) {
-      userMessage = 'Service temporarily unavailable. Please try again in a moment.';
+    if (error.message?.includes("Database connection")) {
+      userMessage =
+        "Service temporarily unavailable. Please try again in a moment.";
       statusCode = 503; // Service Unavailable
-    } else if (error.message?.includes('Registration service unavailable')) {
-      userMessage = 'Registration service is temporarily unavailable. Please try again later.';
+    } else if (error.message?.includes("Registration service unavailable")) {
+      userMessage =
+        "Registration service is temporarily unavailable. Please try again later.";
       statusCode = 503;
-    } else if (error.message?.includes('Email already registered')) {
+    } else if (error.message?.includes("Email already registered")) {
       statusCode = 409; // Conflict
-    } else if (error.message?.includes('Invalid email') || error.message?.includes('Invalid phone')) {
+    } else if (
+      error.message?.includes("Invalid email") ||
+      error.message?.includes("Invalid phone")
+    ) {
       statusCode = 400; // Bad Request
     }
 
@@ -96,15 +118,30 @@ export const login = async (req, res, next) => {
     if (!identifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email/phone and password are required',
+        message: "Email/phone and password are required",
       });
     }
 
     const result = await loginUser(identifier, password);
 
+    // Send test push notification on login
+    firebaseService
+      .sendPushNotification({
+        userId: result.user._id,
+        userModel: "User",
+        title: "Login Successful",
+        message: `Hi ${result.user.firstName || "User"}, you have successfully logged into Neargud!`,
+        type: "system",
+        priority: "high",
+        clickAction: "/app/notifications",
+      })
+      .catch((err) =>
+        console.error("Error sending login push notification:", err),
+      );
+
     res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         user: result.user,
         token: result.token,
@@ -113,7 +150,8 @@ export const login = async (req, res, next) => {
   } catch (error) {
     // Preserve status code from service
     const statusCode = error.statusCode || error.status || 500;
-    const message = error.message || 'Login failed. Please check your credentials.';
+    const message =
+      error.message || "Login failed. Please check your credentials.";
 
     // Don't pass to next() if we can handle it here
     return res.status(statusCode).json({
@@ -133,7 +171,7 @@ export const logout = async (req, res, next) => {
     // If you need server-side logout, implement token blacklisting here
     res.status(200).json({
       success: true,
-      message: 'Logout successful',
+      message: "Logout successful",
     });
   } catch (error) {
     next(error);
@@ -151,7 +189,7 @@ export const getMe = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'User retrieved successfully',
+      message: "User retrieved successfully",
       data: { user },
     });
   } catch (error) {
@@ -172,7 +210,7 @@ export const updateProfile = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Profile updated successfully',
+      message: "Profile updated successfully",
       data: { user: updatedUser },
     });
   } catch (error) {
@@ -193,7 +231,7 @@ export const changePassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password changed successfully',
+      message: "Password changed successfully",
     });
   } catch (error) {
     next(error);
@@ -212,7 +250,7 @@ export const verifyEmail = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully. Account created.',
+      message: "Email verified successfully. Account created.",
       data: {
         user: result.user,
         token: result.token,
@@ -273,7 +311,7 @@ export const verifyResetOTP = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'OTP verified successfully',
+      message: "OTP verified successfully",
     });
   } catch (error) {
     next(error);
@@ -292,10 +330,9 @@ export const resetPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successfully',
+      message: "Password reset successfully",
     });
   } catch (error) {
     next(error);
   }
 };
-

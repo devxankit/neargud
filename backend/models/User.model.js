@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema(
         },
         message: 'Please enter a valid phone number',
       },
-    }, 
+    },
     password: {
       type: String,
       required: [true, 'Password is required'],
@@ -68,6 +68,14 @@ const userSchema = new mongoose.Schema(
     avatar: {
       type: String,
       default: null,
+    },
+    fcmTokens: {
+      type: [String],
+      default: []
+    },
+    fcmTokenMobile: {
+      type: [String],
+      default: []
     },
   },
   {
