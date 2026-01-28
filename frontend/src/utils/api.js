@@ -64,9 +64,10 @@ api.interceptors.response.use(
 
     // Show error toast
     // Don't show toast for 401s on non-protected pages or public routes
-    const isPublicRoute = 
-      config.url?.includes('/public/') || 
-      config.url?.includes('/admin/content') || 
+    const config = error.config || {};
+    const isPublicRoute =
+      config.url?.includes('/public/') ||
+      config.url?.includes('/admin/content') ||
       config.url?.includes('/admin/policies');
 
     if (error.response?.status !== 401 || !isPublicRoute) {
@@ -77,7 +78,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const path = window.location.pathname;
       const isAppPath = path.startsWith('/app') || path === '/';
-      
+
       if (path.startsWith('/admin')) {
         localStorage.removeItem('admin-token');
       } else if (path.startsWith('/vendor')) {
