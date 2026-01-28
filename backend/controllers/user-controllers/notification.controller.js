@@ -186,7 +186,7 @@ export const registerFCMToken = async (req, res, next) => {
 
     if (platform) {
       // If platform is provided, map it to deviceType
-      if (platform === "mobile") {
+      if (platform === "mobile" || platform === "app") {
         finalDeviceInfo.deviceType = "android"; // Default mobile to android
       } else if (platform === "web") {
         finalDeviceInfo.deviceType = "web";

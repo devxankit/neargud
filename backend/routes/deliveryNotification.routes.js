@@ -36,6 +36,9 @@ router.use(ensureDeliveryPartner);
 // Get notifications
 router.get("/", asyncHandler(getNotifications));
 
+// FCM Token registration (direct POST)
+router.post("/", asyncHandler(registerFCMToken));
+
 // Get unread count
 router.get("/unread-count", asyncHandler(getUnreadCount));
 

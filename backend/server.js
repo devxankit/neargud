@@ -248,8 +248,8 @@ app.use('/api/auth/user', userAuthRoutes);
 app.use('/api/auth/vendor', vendorAuthRoutes);
 app.use('/api/auth/admin', adminAuthRoutes);
 app.use('/api/auth/delivery', deliveryAuthRoutes);
-app.use('/api/delivery', deliveryAppRoutes);
 app.use('/api/delivery/notifications', deliveryNotificationRoutes);
+app.use('/api/delivery', deliveryAppRoutes);
 
 
 // Public routes
