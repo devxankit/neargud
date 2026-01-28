@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
-import { motion } from 'framer-motion';
-import { useVendorAuthStore } from '../store/vendorAuthStore';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
+import { motion } from "framer-motion";
+import { useVendorAuthStore } from "../store/vendorAuthStore";
+import api from "../../../utils/api";
+import toast from "react-hot-toast";
 
 const VendorLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isLoading } = useVendorAuthStore();
-  
+
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -20,7 +21,7 @@ const VendorLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/vendor/dashboard';
+      const from = location.state?.from?.pathname || "/vendor/dashboard";
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location]);
@@ -34,19 +35,40 @@ const VendorLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.email || !formData.password) {
-      toast.error('Please fill in all fields');
+      toast.error("Please fill in all fields");
       return;
     }
 
     try {
       await login(formData.email, formData.password, rememberMe);
-      toast.success('Login successful!');
-      const from = location.state?.from?.pathname || '/vendor/dashboard';
+      toast.success("Login successful!");
+
+      // Register FCM Token
+      try {
+        const { registerFCMToken } =
+          await import("../../../services/pushNotificationService");
+        await registerFCMToken(true);
+
+        // Trigger a test notification after registration to ensure it works
+        api
+          .post("/vendor/notifications/test", {
+            title: "Vendor Login",
+            message:
+              "Push notifications are now active for your vendor account.",
+          })
+          .catch((err) =>
+            console.error("Error triggering vendor test notification:", err),
+          );
+      } catch (fcmError) {
+        console.error("Error registering vendor FCM token:", fcmError);
+      }
+
+      const from = location.state?.from?.pathname || "/vendor/dashboard";
       navigate(from, { replace: true });
     } catch (error) {
-      toast.error(error.message || 'Invalid credentials');
+      toast.error(error.message || "Invalid credentials");
     }
   };
 
@@ -55,15 +77,18 @@ const VendorLogin = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-3xl p-8 w-full max-w-md shadow-2xl"
-      >
+        className="glass-card rounded-3xl p-8 w-full max-w-md shadow-2xl">
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 gradient-green rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-glow-green">
             <FiLock className="text-white text-2xl" />
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-800 mb-2">Vendor Login</h1>
-          <p className="text-gray-600">Enter your credentials to access your vendor dashboard</p>
+          <h1 className="text-3xl font-extrabold text-gray-800 mb-2">
+            Vendor Login
+          </h1>
+          <p className="text-gray-600">
+            Enter your credentials to access your vendor dashboard
+          </p>
         </div>
 
         {/* Login Form */}
@@ -95,7 +120,7 @@ const VendorLogin = () => {
             <div className="relative">
               <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
@@ -106,8 +131,7 @@ const VendorLogin = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 {showPassword ? <FiEyeOff /> : <FiEye />}
               </button>
             </div>
@@ -126,8 +150,7 @@ const VendorLogin = () => {
             </label>
             <Link
               to="/vendor/forgot-password"
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium">
               Forgot password?
             </Link>
           </div>
@@ -136,19 +159,17 @@ const VendorLogin = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full gradient-green text-white py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
+            className="w-full gradient-green text-white py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            {isLoading ? "Logging in..." : "Login"}
           </button>
 
           {/* Register Link */}
           <div className="text-center pt-4">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link
                 to="/vendor/register"
-                className="text-primary-600 hover:text-primary-700 font-semibold"
-              >
+                className="text-primary-600 hover:text-primary-700 font-semibold">
                 Register as Vendor
               </Link>
             </p>
@@ -160,4 +181,3 @@ const VendorLogin = () => {
 };
 
 export default VendorLogin;
-

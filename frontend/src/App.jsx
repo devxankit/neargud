@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "/src/context/ThemeContext";
 import "./utils/animations"; // Initialize GSAP settings early
@@ -209,29 +214,192 @@ import VendorEditReel from "./modules/vendor/pages/reels/EditReel";
 import VendorSocial from "./modules/vendor/pages/Social";
 
 // Inner component that has access to useLocation
+import {
+  initializePushNotifications,
+  setupForegroundNotificationHandler,
+} from "./services/pushNotificationService";
+import { useNotificationListeners } from "./hooks/useNotificationListeners";
+import { useEffect } from "react";
+
 const AppRoutes = () => {
+  // Use notification listeners for real-time socket updates
+  useNotificationListeners();
+
+  useEffect(() => {
+    // Initialize push notifications
+    initializePushNotifications();
+
+    // Setup foreground handler
+    setupForegroundNotificationHandler((payload) => {
+      // You can use toast here if available globally, or just rely on the system notification
+      console.log("Received foreground notification:", payload);
+    });
+  }, []);
+
   return (
     <Routes>
-      <Route path="/" element={<RouteWrapper><MobileHome /></RouteWrapper>} />
-      <Route path="/product/:id" element={<RouteWrapper><MobileProductDetail /></RouteWrapper>} />
-      <Route path="/category/:id" element={<RouteWrapper><MobileCategory /></RouteWrapper>} />
-      <Route path="/vendor/:id" element={<RouteWrapper><VendorStore /></RouteWrapper>} />
-      <Route path="/chat" element={<RouteWrapper><Chat /></RouteWrapper>} />
-      <Route path="/checkout" element={<RouteWrapper><MobileCheckout /></RouteWrapper>} />
-      <Route path="/search" element={<RouteWrapper><MobileSearch /></RouteWrapper>} />
-      <Route path="/login" element={<RouteWrapper><MobileLogin /></RouteWrapper>} />
-      <Route path="/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
-      <Route path="/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />
-      <Route path="/forgot-password" element={<RouteWrapper><ForgotPassword /></RouteWrapper>} />
-      <Route path="/wishlist" element={<RouteWrapper><MobileWishlist /></RouteWrapper>} />
-      <Route path="/offers" element={<RouteWrapper><MobileOffers /></RouteWrapper>} />
-      <Route path="/daily-deals" element={<RouteWrapper><MobileDailyDeals /></RouteWrapper>} />
-      <Route path="/flash-sale" element={<RouteWrapper><MobileFlashSale /></RouteWrapper>} />
-      <Route path="/sale/:slug" element={<RouteWrapper><CampaignPage /></RouteWrapper>} />
-      <Route path="/campaign/:id" element={<RouteWrapper><CampaignPage /></RouteWrapper>} />
-      <Route path="/order-confirmation/:orderId" element={<RouteWrapper><MobileOrderConfirmation /></RouteWrapper>} />
-      <Route path="/orders/:orderId" element={<RouteWrapper><MobileOrderDetail /></RouteWrapper>} />
-      <Route path="/track-order/:orderId" element={<RouteWrapper><MobileTrackOrder /></RouteWrapper>} />
+      <Route
+        path="/"
+        element={
+          <RouteWrapper>
+            <MobileHome />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/product/:id"
+        element={
+          <RouteWrapper>
+            <MobileProductDetail />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/category/:id"
+        element={
+          <RouteWrapper>
+            <MobileCategory />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/vendor/:id"
+        element={
+          <RouteWrapper>
+            <VendorStore />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <RouteWrapper>
+            <Chat />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/checkout"
+        element={
+          <RouteWrapper>
+            <ProtectedRoute>
+              <MobileCheckout />
+            </ProtectedRoute>
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/search"
+        element={
+          <RouteWrapper>
+            <MobileSearch />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <RouteWrapper>
+            <MobileLogin />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <RouteWrapper>
+            <MobileRegister />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/verification"
+        element={
+          <RouteWrapper>
+            <MobileVerification />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <RouteWrapper>
+            <ForgotPassword />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/wishlist"
+        element={
+          <RouteWrapper>
+            <MobileWishlist />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/offers"
+        element={
+          <RouteWrapper>
+            <MobileOffers />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/daily-deals"
+        element={
+          <RouteWrapper>
+            <MobileDailyDeals />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/flash-sale"
+        element={
+          <RouteWrapper>
+            <MobileFlashSale />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/sale/:slug"
+        element={
+          <RouteWrapper>
+            <CampaignPage />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/campaign/:id"
+        element={
+          <RouteWrapper>
+            <CampaignPage />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/order-confirmation/:orderId"
+        element={
+          <RouteWrapper>
+            <MobileOrderConfirmation />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/orders/:orderId"
+        element={
+          <RouteWrapper>
+            <MobileOrderDetail />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/track-order/:orderId"
+        element={
+          <RouteWrapper>
+            <MobileTrackOrder />
+          </RouteWrapper>
+        }
+      />
       <Route
         path="/profile"
         element={
@@ -290,8 +458,7 @@ const AppRoutes = () => {
           <AdminProtectedRoute>
             <AdminLayout />
           </AdminProtectedRoute>
-        }
-      >
+        }>
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="products" element={<Products />} />
@@ -304,7 +471,10 @@ const AppRoutes = () => {
         <Route path="products/product-faqs" element={<ProductFAQs />} />
         <Route path="more" element={<More />} />
         <Route path="categories" element={<Categories />} />
-        <Route path="categories/manage-categories" element={<ManageCategories />} />
+        <Route
+          path="categories/manage-categories"
+          element={<ManageCategories />}
+        />
         <Route path="categories/category-order" element={<CategoryOrder />} />
         <Route path="brands" element={<Brands />} />
         <Route path="brands/manage-brands" element={<ManageBrands />} />
@@ -313,7 +483,10 @@ const AppRoutes = () => {
         <Route path="orders/:id/invoice" element={<Invoice />} />
         <Route path="orders/all-orders" element={<AllOrders />} />
         <Route path="orders/order-tracking" element={<OrderTracking />} />
-        <Route path="orders/order-notifications" element={<OrderNotifications />} />
+        <Route
+          path="orders/order-notifications"
+          element={<OrderNotifications />}
+        />
         <Route path="return-requests" element={<ReturnRequests />} />
         <Route path="return-requests/:id" element={<ReturnRequestDetail />} />
         <Route path="customers" element={<Customers />} />
@@ -324,7 +497,10 @@ const AppRoutes = () => {
         <Route path="attributes" element={<AttributeSets />} />
         <Route path="attributes/attribute-sets" element={<AttributeSets />} />
         <Route path="attributes/attributes" element={<Attributes />} />
-        <Route path="attributes/attribute-values" element={<AttributeValues />} />
+        <Route
+          path="attributes/attribute-values"
+          element={<AttributeValues />}
+        />
         <Route path="stock" element={<Inventory />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="delivery" element={<DeliveryBoys />} />
@@ -332,13 +508,22 @@ const AppRoutes = () => {
         <Route path="delivery/cash-collection" element={<CashCollection />} />
         <Route path="vendors" element={<Vendors />} />
         <Route path="vendors/manage-vendors" element={<ManageVendors />} />
-        <Route path="vendors/pending-approvals" element={<PendingApprovals />} />
+        <Route
+          path="vendors/pending-approvals"
+          element={<PendingApprovals />}
+        />
         <Route path="vendors/commission-rates" element={<CommissionRates />} />
-        <Route path="vendors/vendor-analytics" element={<AdminVendorAnalytics />} />
+        <Route
+          path="vendors/vendor-analytics"
+          element={<AdminVendorAnalytics />}
+        />
         <Route path="vendors/:id" element={<VendorDetail />} />
 
         {/* Location Routes */}
-        <Route path="locations" element={<Navigate to="/admin/locations/cities" replace />} />
+        <Route
+          path="locations"
+          element={<Navigate to="/admin/locations/cities" replace />}
+        />
         <Route path="locations/cities" element={<Cities />} />
         <Route path="locations/zipcodes" element={<Zipcodes />} />
         <Route path="offers" element={<HomeSliders />} />
@@ -346,9 +531,18 @@ const AppRoutes = () => {
         <Route path="offers/festival-offers" element={<FestivalOffers />} />
         <Route path="promocodes" element={<PromoCodes />} />
         <Route path="notifications" element={<PushNotifications />} />
-        <Route path="notifications/push-notifications" element={<PushNotifications />} />
-        <Route path="notifications/custom-messages" element={<CustomMessages />} />
-        <Route path="notifications/send-custom" element={<SendCustomNotification />} />
+        <Route
+          path="notifications/push-notifications"
+          element={<PushNotifications />}
+        />
+        <Route
+          path="notifications/custom-messages"
+          element={<CustomMessages />}
+        />
+        <Route
+          path="notifications/send-custom"
+          element={<SendCustomNotification />}
+        />
         <Route path="support" element={<Tickets />} />
         <Route path="support/live-chat" element={<LiveChat />} />
         <Route path="support/ticket-types" element={<TicketTypes />} />
@@ -360,12 +554,21 @@ const AppRoutes = () => {
         <Route path="finance/revenue-overview" element={<RevenueOverview />} />
         <Route path="finance/profit-loss" element={<ProfitLoss />} />
         <Route path="finance/order-trends" element={<OrderTrends />} />
-        <Route path="finance/payment-breakdown" element={<PaymentBreakdown />} />
+        <Route
+          path="finance/payment-breakdown"
+          element={<PaymentBreakdown />}
+        />
         <Route path="finance/tax-reports" element={<TaxReports />} />
         <Route path="finance/refund-reports" element={<RefundReports />} />
-        <Route path="finance/vendor-withdrawals" element={<VendorWithdrawals />} />
+        <Route
+          path="finance/vendor-withdrawals"
+          element={<VendorWithdrawals />}
+        />
         <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<Navigate to="/admin/settings/store" replace />} />
+        <Route
+          path="settings"
+          element={<Navigate to="/admin/settings/store" replace />}
+        />
         <Route path="settings/store" element={<Settings />} />
         <Route path="settings/contact" element={<Settings />} />
         <Route path="settings/delivery" element={<Settings />} />
@@ -390,15 +593,17 @@ const AppRoutes = () => {
       <Route path="/delivery/login" element={<DeliveryLogin />} />
       {/* <Route path="/delivery/register" element={<DeliveryRegister />} /> */}
       <Route path="/delivery/verify" element={<DeliveryVerification />} />
-      <Route path="/delivery/forgot-password" element={<DeliveryForgotPassword />} />
+      <Route
+        path="/delivery/forgot-password"
+        element={<DeliveryForgotPassword />}
+      />
       <Route
         path="/delivery"
         element={
           <DeliveryProtectedRoute>
             <DeliveryLayout />
           </DeliveryProtectedRoute>
-        }
-      >
+        }>
         <Route index element={<Navigate to="/delivery/dashboard" replace />} />
         <Route path="dashboard" element={<DeliveryDashboard />} />
         <Route path="orders" element={<DeliveryOrders />} />
@@ -409,24 +614,32 @@ const AppRoutes = () => {
       <Route path="/vendor/login" element={<VendorLogin />} />
       <Route path="/vendor/register" element={<VendorRegister />} />
       <Route path="/vendor/verification" element={<VendorVerification />} />
-      <Route path="/vendor/forgot-password" element={<VendorForgotPassword />} />
+      <Route
+        path="/vendor/forgot-password"
+        element={<VendorForgotPassword />}
+      />
       <Route
         path="/vendor"
         element={
           <VendorProtectedRoute>
             <VendorLayout />
           </VendorProtectedRoute>
-        }
-      >
+        }>
         <Route index element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="dashboard" element={<VendorDashboard />} />
         <Route path="products" element={<VendorProducts />} />
-        <Route path="products/manage-products" element={<VendorManageProducts />} />
+        <Route
+          path="products/manage-products"
+          element={<VendorManageProducts />}
+        />
         <Route path="products/add-product" element={<VendorAddProduct />} />
         <Route path="products/bulk-upload" element={<VendorBulkUpload />} />
         <Route path="products/product-faqs" element={<VendorProductFAQs />} />
         <Route path="products/tax-pricing" element={<VendorTaxPricing />} />
-        <Route path="products/product-attributes" element={<VendorProductAttributes />} />
+        <Route
+          path="products/product-attributes"
+          element={<VendorProductAttributes />}
+        />
         <Route path="products/:id" element={<VendorProductForm />} />
         <Route path="orders" element={<VendorOrders />} />
         <Route path="orders/all-orders" element={<VendorAllOrders />} />
@@ -435,15 +648,24 @@ const AppRoutes = () => {
         <Route path="analytics" element={<VendorAnalytics />} />
         <Route path="earnings" element={<VendorEarnings />} />
         <Route path="earnings/overview" element={<VendorEarnings />} />
-        <Route path="earnings/commission-history" element={<VendorEarnings />} />
-        <Route path="earnings/settlement-history" element={<VendorEarnings />} />
+        <Route
+          path="earnings/commission-history"
+          element={<VendorEarnings />}
+        />
+        <Route
+          path="earnings/settlement-history"
+          element={<VendorEarnings />}
+        />
         <Route path="earnings/withdrawals" element={<VendorEarnings />} />
         <Route path="stock-management" element={<VendorStockManagement />} />
         <Route path="wallet-history" element={<VendorWalletHistory />} />
         <Route path="pickup-locations" element={<VendorPickupLocations />} />
         <Route path="chat" element={<VendorChat />} />
         <Route path="return-requests" element={<VendorReturnRequests />} />
-        <Route path="return-requests/:id" element={<VendorReturnRequestDetail />} />
+        <Route
+          path="return-requests/:id"
+          element={<VendorReturnRequestDetail />}
+        />
         <Route path="product-reviews" element={<VendorProductReviews />} />
         <Route path="promocode" element={<VendorPromotions />} />
         <Route path="reels" element={<VendorReels />} />
@@ -451,13 +673,19 @@ const AppRoutes = () => {
         <Route path="reels/add-reel" element={<VendorAddReel />} />
         <Route path="reels/edit-reel/:id" element={<VendorEditReel />} />
         <Route path="notifications" element={<VendorNotifications />} />
-        <Route path="shipping-management" element={<VendorShippingManagement />} />
+        <Route
+          path="shipping-management"
+          element={<VendorShippingManagement />}
+        />
         <Route path="customers" element={<VendorCustomers />} />
         <Route path="customers/:id" element={<VendorCustomerDetail />} />
         <Route path="support-tickets" element={<VendorSupportTickets />} />
         <Route path="support-tickets/:id" element={<VendorSupportTickets />} />
         <Route path="inventory-reports" element={<VendorInventoryReports />} />
-        <Route path="performance-metrics" element={<VendorPerformanceMetrics />} />
+        <Route
+          path="performance-metrics"
+          element={<VendorPerformanceMetrics />}
+        />
         <Route path="documents" element={<VendorDocuments />} />
         <Route path="settings" element={<VendorSettings />} />
         <Route path="settings/store-identity" element={<VendorSettings />} />
@@ -473,27 +701,176 @@ const AppRoutes = () => {
         <Route path="social" element={<VendorSocial />} />
       </Route>
       {/* Mobile App Routes */}
-      <Route path="/app" element={<RouteWrapper><MobileHome /></RouteWrapper>} />
-      <Route path="/app/product/:id" element={<RouteWrapper><MobileProductDetail /></RouteWrapper>} />
-      <Route path="/app/category/:id" element={<RouteWrapper><MobileCategory /></RouteWrapper>} />
-      <Route path="/app/chat" element={<RouteWrapper><Chat /></RouteWrapper>} />
-      <Route path="/app/categories" element={<RouteWrapper><MobileCategories /></RouteWrapper>} />
-      <Route path="/app/vendor/:id" element={<RouteWrapper><VendorStore /></RouteWrapper>} />
-      <Route path="/app/checkout" element={<RouteWrapper><MobileCheckout /></RouteWrapper>} />
-      <Route path="/app/search" element={<RouteWrapper><MobileSearch /></RouteWrapper>} />
-      <Route path="/app/reels" element={<RouteWrapper><MobileReels /></RouteWrapper>} />
-      <Route path="/app/login" element={<RouteWrapper><MobileLogin /></RouteWrapper>} />
-      <Route path="/app/register" element={<RouteWrapper><MobileRegister /></RouteWrapper>} />
-      <Route path="/app/verification" element={<RouteWrapper><MobileVerification /></RouteWrapper>} />
-      <Route path="/app/forgot-password" element={<RouteWrapper><ForgotPassword /></RouteWrapper>} />
-      <Route path="/app/wishlist" element={<RouteWrapper><MobileWishlist /></RouteWrapper>} />
-      <Route path="/app/favorites" element={<RouteWrapper><MobileFavorites /></RouteWrapper>} />
-      <Route path="/app/offers" element={<RouteWrapper><MobileOffers /></RouteWrapper>} />
-      <Route path="/app/daily-deals" element={<RouteWrapper><MobileDailyDeals /></RouteWrapper>} />
-      <Route path="/app/flash-sale" element={<RouteWrapper><MobileFlashSale /></RouteWrapper>} />
-      <Route path="/app/order-confirmation/:orderId" element={<RouteWrapper><MobileOrderConfirmation /></RouteWrapper>} />
-      <Route path="/app/orders/:orderId" element={<RouteWrapper><MobileOrderDetail /></RouteWrapper>} />
-      <Route path="/app/track-order/:orderId" element={<RouteWrapper><MobileTrackOrder /></RouteWrapper>} />
+      <Route
+        path="/app"
+        element={
+          <RouteWrapper>
+            <MobileHome />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/product/:id"
+        element={
+          <RouteWrapper>
+            <MobileProductDetail />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/category/:id"
+        element={
+          <RouteWrapper>
+            <MobileCategory />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/chat"
+        element={
+          <RouteWrapper>
+            <Chat />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/categories"
+        element={
+          <RouteWrapper>
+            <MobileCategories />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/vendor/:id"
+        element={
+          <RouteWrapper>
+            <VendorStore />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/checkout"
+        element={
+          <RouteWrapper>
+            <ProtectedRoute>
+              <MobileCheckout />
+            </ProtectedRoute>
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/search"
+        element={
+          <RouteWrapper>
+            <MobileSearch />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/reels"
+        element={
+          <RouteWrapper>
+            <MobileReels />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/login"
+        element={
+          <RouteWrapper>
+            <MobileLogin />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/register"
+        element={
+          <RouteWrapper>
+            <MobileRegister />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/verification"
+        element={
+          <RouteWrapper>
+            <MobileVerification />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/forgot-password"
+        element={
+          <RouteWrapper>
+            <ForgotPassword />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/wishlist"
+        element={
+          <RouteWrapper>
+            <MobileWishlist />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/favorites"
+        element={
+          <RouteWrapper>
+            <MobileFavorites />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/offers"
+        element={
+          <RouteWrapper>
+            <MobileOffers />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/daily-deals"
+        element={
+          <RouteWrapper>
+            <MobileDailyDeals />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/flash-sale"
+        element={
+          <RouteWrapper>
+            <MobileFlashSale />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/order-confirmation/:orderId"
+        element={
+          <RouteWrapper>
+            <MobileOrderConfirmation />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/orders/:orderId"
+        element={
+          <RouteWrapper>
+            <MobileOrderDetail />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/track-order/:orderId"
+        element={
+          <RouteWrapper>
+            <MobileTrackOrder />
+          </RouteWrapper>
+        }
+      />
       <Route
         path="/app/profile"
         element={
@@ -524,9 +901,30 @@ const AppRoutes = () => {
           </RouteWrapper>
         }
       />
-      <Route path="/app/cards" element={<RouteWrapper><MobileSavedCards /></RouteWrapper>} />
-      <Route path="/app/help" element={<RouteWrapper><Chat /></RouteWrapper>} />
-      <Route path="/app/policies" element={<RouteWrapper><MobilePolicies /></RouteWrapper>} />
+      <Route
+        path="/app/cards"
+        element={
+          <RouteWrapper>
+            <MobileSavedCards />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/help"
+        element={
+          <RouteWrapper>
+            <Chat />
+          </RouteWrapper>
+        }
+      />
+      <Route
+        path="/app/policies"
+        element={
+          <RouteWrapper>
+            <MobilePolicies />
+          </RouteWrapper>
+        }
+      />
       <Route
         path="/app/notifications"
         element={
@@ -547,21 +945,32 @@ import { useDeliveryAuthStore } from "./store/deliveryAuthStore";
 import { useAuthStore } from "./store/authStore";
 import { useLocationStore } from "./store/locationStore";
 import { useAddressStore } from "./store/addressStore";
-import { useEffect } from "react";
-import { requestNotificationPermission, onMessageListener } from "./utils/notification";
+import {
+  requestNotificationPermission,
+  onMessageListener,
+} from "./utils/notification";
 
 function App() {
   const { initialize: initializeAdminAuth } = useAdminAuthStore();
   const { initialize: initializeVendorAuth } = useVendorAuthStore();
   const { initialize: initializeDeliveryAuth } = useDeliveryAuthStore();
-  const { initialize: initializeLocation, currentCity, selectCity } = useLocationStore();
+  const {
+    initialize: initializeLocation,
+    currentCity,
+    selectCity,
+  } = useLocationStore();
 
   useEffect(() => {
     initializeAdminAuth();
     initializeVendorAuth();
     initializeDeliveryAuth();
     initializeLocation();
-  }, [initializeAdminAuth, initializeVendorAuth, initializeDeliveryAuth, initializeLocation]);
+  }, [
+    initializeAdminAuth,
+    initializeVendorAuth,
+    initializeDeliveryAuth,
+    initializeLocation,
+  ]);
 
   // Default-select user's city from their default address if no city is selected
 
@@ -570,12 +979,20 @@ function App() {
 
   useEffect(() => {
     // Avoid calling notification registration on login/auth pages
-    const isAuthPage = ['/login', '/vendor/login', '/admin/login', '/delivery/login', '/register', '/vendor/register', '/verification'].some(
-      path => window.location.pathname.includes(path)
-    );
+    const isAuthPage = [
+      "/login",
+      "/vendor/login",
+      "/admin/login",
+      "/delivery/login",
+      "/register",
+      "/vendor/register",
+      "/verification",
+    ].some((path) => window.location.pathname.includes(path));
 
     if (isAuthenticated && !isAuthPage) {
-      requestNotificationPermission().catch(err => console.error("Notification permission error", err));
+      requestNotificationPermission().catch((err) =>
+        console.error("Notification permission error", err),
+      );
       onMessageListener();
     }
   }, [isAuthenticated]);
@@ -587,8 +1004,7 @@ function App() {
           future={{
             v7_startTransition: true,
             v7_relativeSplatPath: true,
-          }}
-        >
+          }}>
           <ScrollToTop />
           <BrandManager />
           <AppRoutes />

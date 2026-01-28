@@ -102,6 +102,14 @@ const deliveryPartnerSchema = new mongoose.Schema(
             idProof: String,
             drivingLicense: String,
             vehicleRC: String
+        },
+        fcmTokens: {
+            type: [String],
+            default: []
+        },
+        fcmTokenMobile: {
+            type: [String],
+            default: []
         }
     },
     {

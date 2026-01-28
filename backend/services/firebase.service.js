@@ -336,6 +336,8 @@ class FirebaseService {
         Model = (await import("../models/Admin.model.js")).default;
       } else if (userModel === "Vendor") {
         Model = (await import("../models/Vendor.model.js")).default;
+      } else if (userModel === "DeliveryPartner") {
+        Model = (await import("../models/DeliveryPartner.model.js")).default;
       } else {
         Model = (await import("../models/User.model.js")).default;
       }

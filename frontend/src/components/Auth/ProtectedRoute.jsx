@@ -25,6 +25,14 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (!isAuthenticated) {
+    // Guest access allowed for some routes, but we are in ProtectedRoute component
+    // which means this specific route IS protected.
+    // However, if we want to allow guest access generally but protect specific actions,
+    // we should NOT wrap the whole app or public routes in ProtectedRoute.
+    // The user request is "allow guest users to access the app".
+    // So we need to ensure that ProtectedRoute is ONLY used for routes that absolutely require login
+    // like Profile, Orders, Checkout, etc.
+    
     // If accessing /app/* route on desktop view, redirect to desktop login
     const isAppRoute = location.pathname.startsWith('/app');
     

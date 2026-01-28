@@ -1,27 +1,74 @@
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+importScripts(
+  "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js",
+);
+importScripts(
+  "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js",
+);
 
 // Initialize the Firebase app in the service worker by passing in the messagingSenderId.
 firebase.initializeApp({
-    apiKey: "AIzaSyBdQWzQhL3fJhQqUXc9Ut8ldS40kiw7vig",
-    authDomain: "neargud-820b7.firebaseapp.com",
-    projectId: "neargud-820b7",
-    storageBucket: "neargud-820b7.firebasestorage.app",
-    messagingSenderId: "825375443746",
-    appId: "1:825375443746:web:2867009c9cd7c2e60af37b"
+  apiKey: "AIzaSyBdQWzQhL3fJhQqUXc9Ut8ldS40kiw7vig",
+  authDomain: "neargud-820b7.firebaseapp.com",
+  projectId: "neargud-820b7",
+  storageBucket: "neargud-820b7.firebasestorage.app",
+  messagingSenderId: "825375443746",
+  appId: "1:825375443746:web:2867009c9cd7c2e60af37b",
 });
 
 // Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    // Customize notification here
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/logo192.png'
-    };
+  console.log(
+    "[firebase-messaging-sw.js] Received background message ",
+    payload,
+  );
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+  // Extract notification details
+  const notificationTitle = payload.notification.title || "New Notification";
+  const notificationOptions = {
+    body: payload.notification.body || "",
+    icon: payload.data?.icon || "/logo192.png",
+    badge: "/badge.png",
+    data: {
+      url: payload.data?.clickAction || "/",
+    },
+    tag: payload.data?.type || "general",
+    renotify: true,
+  };
+
+  return self.registration.showNotification(
+    notificationTitle,
+    notificationOptions,
+  );
+});
+
+// Handle notification click
+self.addEventListener("notificationclick", function (event) {
+  console.log("[firebase-messaging-sw.js] Notification click Received.");
+
+  event.notification.close();
+
+  const urlToOpen = event.notification.data.url;
+
+  event.waitUntil(
+    clients
+      .matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      .then(function (windowClients) {
+        // Check if there is already a window open with this URL
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          if (client.url === urlToOpen && "focus" in client) {
+            return client.focus();
+          }
+        }
+        // If no window is open, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      }),
+  );
 });

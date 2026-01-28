@@ -179,6 +179,7 @@ export const registerFCMToken = async (req, res, next) => {
     let userModel = "User";
     if (userRole === "admin") userModel = "Admin";
     else if (userRole === "vendor") userModel = "Vendor";
+    else if (userRole === "delivery_partner") userModel = "DeliveryPartner";
 
     // Handle platform parameter (simpler API)
     let finalDeviceInfo = deviceInfo || {};
@@ -257,6 +258,7 @@ export const sendTestNotification = async (req, res, next) => {
     let userModel = "User";
     if (userRole === "admin") userModel = "Admin";
     else if (userRole === "vendor") userModel = "Vendor";
+    else if (userRole === "delivery_partner") userModel = "DeliveryPartner";
 
     const result = await firebaseService.sendPushNotification({
       userId,

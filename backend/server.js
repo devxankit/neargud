@@ -79,6 +79,7 @@ import userNotificationRoutes from './routes/userNotification.routes.js';
 import vendorNotificationRoutes from './routes/vendorNotification.routes.js';
 import adminNotificationRoutes from './routes/adminNotification.routes.js';
 import notificationRoutes from './routes/notification.routes.js'; // New Firebase notification routes
+import deliveryNotificationRoutes from './routes/deliveryNotification.routes.js';
 import vendorWalletRoutes from './routes/vendorWallet.routes.js';
 import adminVendorWalletRoutes from './routes/adminVendorWallet.routes.js';
 import returnRequestRoutes from './routes/returnRequest.routes.js';
@@ -248,6 +249,8 @@ app.use('/api/auth/vendor', vendorAuthRoutes);
 app.use('/api/auth/admin', adminAuthRoutes);
 app.use('/api/auth/delivery', deliveryAuthRoutes);
 app.use('/api/delivery', deliveryAppRoutes);
+app.use('/api/delivery/notifications', deliveryNotificationRoutes);
+
 
 // Public routes
 app.use('/api/public/categories', publicCategoryRoutes);

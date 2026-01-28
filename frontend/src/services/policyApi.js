@@ -23,11 +23,11 @@ export const fetchPolicyByKey = async (key) => {
     }
 };
 
-// Get policy by key (admin)
+// Get policy by key (public)
 export const fetchPolicy = async (key) => {
     try {
         const response = await api.get(`${ADMIN_BASE_URL}/${key}`);
-        return response.data;
+        return response; // api instance already returns response.data
     } catch (error) {
         throw error.response?.data || error.message;
     }

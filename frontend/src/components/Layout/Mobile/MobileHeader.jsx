@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import {
-  FiShoppingBag,
-  FiUser,
-  FiHeart,
-  FiSearch,
-} from "react-icons/fi";
+import { FiShoppingBag, FiUser, FiHeart, FiSearch } from "react-icons/fi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCartStore, useUIStore } from "../../../store/useStore";
 import { useAuthStore } from "../../../store/authStore";
@@ -14,6 +9,8 @@ import { appLogo } from "../../../data/logos";
 import { useSettingsStore } from "../../../store/settingsStore";
 import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import Lottie from "lottie-react";
+import shoppingCartAnimation from "../../../../data/animations/shopping cart.json";
 import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
 import LocationSelector from "../../LocationSelector";
@@ -49,7 +46,9 @@ const MobileHeader = () => {
   }, []);
 
   const getCurrentCategoryId = () => {
-    const match = location.pathname.match(/\/(?:app\/)?category\/([a-zA-Z0-9]+)/);
+    const match = location.pathname.match(
+      /\/(?:app\/)?category\/([a-zA-Z0-9]+)/,
+    );
     return match ? match[1] : null;
   };
 
@@ -85,11 +84,11 @@ const MobileHeader = () => {
     if (currentCategoryId) {
       const categoryThemeTab = getCategoryThemeTab(currentCategoryId);
       const categoryTheme = getTheme(categoryThemeTab);
-      return `linear-gradient(to bottom, ${categoryTheme.primary[3]} 0%, ${categoryTheme.primary[2]} 50%, ${categoryTheme.primary[1]} 100%)`;
+      return `linear-gradient(to bottom, ${categoryTheme.primary[0]} 0%, ${categoryTheme.primary[1]} 100%)`;
     }
 
     if (currentPage === "home") {
-      return `linear-gradient(to bottom, ${theme.primary[3]} 0%, ${theme.primary[2]} 50%, ${theme.primary[1]} 100%)`;
+      return `linear-gradient(to bottom, ${theme.primary[0]} 0%, ${theme.primary[1]} 100%)`;
     }
 
     const pageGradients = {
@@ -173,8 +172,7 @@ const MobileHeader = () => {
           opacity: [0, 1, 0],
         }}
         transition={{ duration: 2.5, ease: "easeInOut" }}
-        onAnimationComplete={() => setShowCartAnimation(false)}
-      >
+        onAnimationComplete={() => setShowCartAnimation(false)}>
         <div className="w-12 h-12">
           <DotLottieReact
             src="https://lottie.host/083a2680-e854-4006-a50b-674276be82cd/oQMRcuZUkS.lottie"
@@ -196,14 +194,29 @@ const MobileHeader = () => {
       }}
       initial={{ y: -120, opacity: 0 }}
       animate={{ y: isTopRowVisible ? 0 : -84, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 28 }}
-    >
+      transition={{ type: "spring", stiffness: 300, damping: 28 }}>
       <div className="px-4 pt-4 pb-3 flex flex-col gap-5 max-w-[640px] mx-auto">
         {/* Top Row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center justify-between w-full">
             <Link to="/app" className="flex items-center">
-              <div ref={logoRef}>
+              <div ref={logoRef} className="relative">
+                {/* Animation behind logo */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none"
+                  style={{ transform: "scale(3)" }}>
+                  <Lottie
+                    animationData={shoppingCartAnimation}
+                    loop={true}
+                    autoplay={true}
+                    renderer="canvas"
+                    rendererSettings={{
+                      preserveAspectRatio: "xMidYMid slice",
+                      clearCanvas: true,
+                    }}
+                    style={{ width: "30px", height: "30px", opacity: 0.6 }}
+                  />
+                </div>
                 <img
                   src={appLogo.src}
                   alt={appLogo.alt}
@@ -211,9 +224,8 @@ const MobileHeader = () => {
                   style={{
                     transform: "scale(2.6)",
                     transformOrigin: "left center",
-                    filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.35))"
+                    filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.35))",
                   }}
-
                 />
               </div>
             </Link>
@@ -223,12 +235,10 @@ const MobileHeader = () => {
             <LocationSelector className="scale-95" />
           </div> */}
           <div className="flex items-center gap-2">
-
             <button
               ref={cartRef}
               onClick={toggleCart}
-              className="p-3 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative"
-            >
+              className="p-3 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
               <FiShoppingBag className="text-xl text-gray-800" />
               {itemCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow">
@@ -257,7 +267,9 @@ const MobileHeader = () => {
   return (
     <>
       {headerContent}
-      {typeof document !== "undefined" && showCartAnimation && positionsReady &&
+      {typeof document !== "undefined" &&
+        showCartAnimation &&
+        positionsReady &&
         createPortal(animationContent, document.body)}
     </>
   );

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useMemo } from "react";
 import { FiHeart, FiShoppingBag, FiStar } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 import { useCartStore, useUIStore } from "../store/useStore";
 import { useWishlistStore } from "../store/wishlistStore";
 import { formatPrice } from "../utils/helpers";
@@ -28,7 +29,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
 
   const triggerCartAnimation = useUIStore(
-    (state) => state.triggerCartAnimation
+    (state) => state.triggerCartAnimation,
   );
 
   const wishlistAddItem = useWishlistStore((state) => state.addItem);
@@ -36,12 +37,15 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
 
   // Directly subscribe to state changes to trigger re-render
   const isFavorite = useWishlistStore((state) =>
-    state.items.some((item) => (item._id || item.id) === productId)
+    state.items.some((item) => (item._id || item.id) === productId),
   );
   const [isAdding, setIsAdding] = useState(false);
 
   // Find current cart item
-  const cartItem = useMemo(() => cartItems.find((item) => item.id === productId), [cartItems, productId]);
+  const cartItem = useMemo(
+    () => cartItems.find((item) => item.id === productId),
+    [cartItems, productId],
+  );
   const inCartQty = cartItem?.quantity || 0;
 
   const [showLongPressMenu, setShowLongPressMenu] = useState(false);
@@ -55,7 +59,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
 
   // Memoize vendor to support both populated object and static lookup
   const vendor = useMemo(() => {
-    if (product.vendorId && typeof product.vendorId === 'object') {
+    if (product.vendorId && typeof product.vendorId === "object") {
       return product.vendorId;
     }
     return product.vendorId ? getVendorById(product.vendorId) : null;
@@ -141,8 +145,18 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
 
   const toggleWishlist = useWishlistStore((state) => state.toggleWishlist);
 
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+
   const handleFavorite = async (e) => {
     e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add to wishlist");
+      navigate(isMobileApp ? "/app/login" : "/login", {
+        state: { from: location },
+      });
+      return;
+    }
     try {
       await toggleWishlist(product);
       if (!isFavorite) {
@@ -167,10 +181,11 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               onClick={handleFavorite}
               className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
-                className={`text-xs transition-all duration-300 ${isFavorite
-                  ? "text-primary-700 fill-primary-700 scale-110"
-                  : "text-gray-400 group-hover:text-primary-500"
-                  }`}
+                className={`text-xs transition-all duration-300 ${
+                  isFavorite
+                    ? "text-primary-700 fill-primary-700 scale-110"
+                    : "text-gray-400 group-hover:text-primary-500"
+                }`}
               />
             </button>
           </div>
@@ -232,7 +247,12 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
             )}
             {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-[9px] font-bold text-green-600">
-                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                {Math.round(
+                  ((product.originalPrice - product.price) /
+                    product.originalPrice) *
+                    100,
+                )}
+                % OFF
               </span>
             )}
           </div>

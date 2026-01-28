@@ -15,17 +15,18 @@ import { useAuthStore } from "../../store/authStore";
 import { useWishlistStore } from "../../store/wishlistStore";
 import SearchBar from "../SearchBar";
 import { appLogo } from "../../data/logos";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import Lottie from "lottie-react";
+import shoppingCartAnimation from "../../../data/animations/shopping cart.json";
 import { motion } from "framer-motion";
 
 // Category gradient mapping - Very subtle pastel colors
 const categoryGradients = {
-  1: 'from-pink-50 via-rose-50 to-pink-100', // Clothing - Pinkish
-  2: 'from-amber-50 via-amber-100 to-yellow-50', // Footwear - Brownish
-  3: 'from-orange-50 via-orange-100 to-orange-50', // Bags - Orangeish
-  4: 'from-green-50 via-emerald-50 to-teal-50', // Jewelry - Greenish
-  5: 'from-purple-50 via-purple-100 to-indigo-50', // Accessories - Purple
-  6: 'from-blue-50 via-cyan-50 to-teal-50', // Athletic
+  1: "from-pink-50 via-rose-50 to-pink-100", // Clothing - Pinkish
+  2: "from-amber-50 via-amber-100 to-yellow-50", // Footwear - Brownish
+  3: "from-orange-50 via-orange-100 to-orange-50", // Bags - Orangeish
+  4: "from-green-50 via-emerald-50 to-teal-50", // Jewelry - Greenish
+  5: "from-purple-50 via-purple-100 to-indigo-50", // Accessories - Purple
+  6: "from-blue-50 via-cyan-50 to-teal-50", // Athletic
 };
 
 const Header = () => {
@@ -47,18 +48,18 @@ const Header = () => {
 
   // Hide header on checkout and auth related routes
   const shouldHideHeader =
-    location.pathname.startsWith('/checkout') ||
-    location.pathname.startsWith('/app/checkout') ||
-    location.pathname.startsWith('/login') ||
-    location.pathname.startsWith('/app/login') ||
-    location.pathname.startsWith('/register') ||
-    location.pathname.startsWith('/app/register') ||
-    location.pathname.startsWith('/verification') ||
-    location.pathname.startsWith('/app/verification') ||
-    location.pathname.startsWith('/order-confirmation') ||
-    location.pathname.startsWith('/app/order-confirmation') ||
-    location.pathname.startsWith('/track-order') ||
-    location.pathname.startsWith('/app/track-order');
+    location.pathname.startsWith("/checkout") ||
+    location.pathname.startsWith("/app/checkout") ||
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/app/login") ||
+    location.pathname.startsWith("/register") ||
+    location.pathname.startsWith("/app/register") ||
+    location.pathname.startsWith("/verification") ||
+    location.pathname.startsWith("/app/verification") ||
+    location.pathname.startsWith("/order-confirmation") ||
+    location.pathname.startsWith("/app/order-confirmation") ||
+    location.pathname.startsWith("/track-order") ||
+    location.pathname.startsWith("/app/track-order");
 
   if (shouldHideHeader) {
     return null;
@@ -81,12 +82,30 @@ const Header = () => {
   const getHeaderBackgroundStyle = () => {
     if (currentCategoryId) {
       const gradientMap = {
-        1: { background: 'linear-gradient(to bottom, rgb(252, 231, 243) 0%, rgb(255, 240, 245) 50%, rgb(255, 255, 255) 100%)' }, // Pink - moderate
-        2: { background: 'linear-gradient(to bottom, rgb(254, 243, 199) 0%, rgb(255, 248, 220) 50%, rgb(255, 255, 255) 100%)' }, // Brown/Amber - moderate
-        3: { background: 'linear-gradient(to bottom, rgb(255, 237, 213) 0%, rgb(255, 245, 230) 50%, rgb(255, 255, 255) 100%)' }, // Orange - moderate
-        4: { background: 'linear-gradient(to bottom, rgb(209, 250, 229) 0%, rgb(236, 253, 245) 50%, rgb(255, 255, 255) 100%)' }, // Green - moderate
-        5: { background: 'linear-gradient(to bottom, rgb(243, 232, 255) 0%, rgb(250, 245, 255) 50%, rgb(255, 255, 255) 100%)' }, // Purple - moderate
-        6: { background: 'linear-gradient(to bottom, rgb(219, 234, 254) 0%, rgb(239, 246, 255) 50%, rgb(255, 255, 255) 100%)' }, // Blue - moderate
+        1: {
+          background:
+            "linear-gradient(to bottom, rgb(252, 231, 243) 0%, rgb(255, 240, 245) 50%, rgb(255, 255, 255) 100%)",
+        }, // Pink - moderate
+        2: {
+          background:
+            "linear-gradient(to bottom, rgb(254, 243, 199) 0%, rgb(255, 248, 220) 50%, rgb(255, 255, 255) 100%)",
+        }, // Brown/Amber - moderate
+        3: {
+          background:
+            "linear-gradient(to bottom, rgb(255, 237, 213) 0%, rgb(255, 245, 230) 50%, rgb(255, 255, 255) 100%)",
+        }, // Orange - moderate
+        4: {
+          background:
+            "linear-gradient(to bottom, rgb(209, 250, 229) 0%, rgb(236, 253, 245) 50%, rgb(255, 255, 255) 100%)",
+        }, // Green - moderate
+        5: {
+          background:
+            "linear-gradient(to bottom, rgb(243, 232, 255) 0%, rgb(250, 245, 255) 50%, rgb(255, 255, 255) 100%)",
+        }, // Purple - moderate
+        6: {
+          background:
+            "linear-gradient(to bottom, rgb(219, 234, 254) 0%, rgb(239, 246, 255) 50%, rgb(255, 255, 255) 100%)",
+        }, // Blue - moderate
       };
       return gradientMap[currentCategoryId] || {};
     }
@@ -96,7 +115,8 @@ const Header = () => {
   const headerBackgroundStyle = getHeaderBackgroundStyle();
   // Set default background when no category is active
   if (!currentCategoryId && !headerBackgroundStyle.background) {
-    headerBackgroundStyle.background = 'linear-gradient(to bottom, #D1E1FD 0%, #F5F8FF 50%, #FFFFFF 100%)';
+    headerBackgroundStyle.background =
+      "linear-gradient(to bottom, #D1E1FD 0%, #F5F8FF 50%, #FFFFFF 100%)";
   }
 
   // Close menus when clicking outside
@@ -114,9 +134,15 @@ const Header = () => {
   // Calculate animation positions after component mounts
   useEffect(() => {
     const calculatePositions = () => {
+      console.log("Header Animation Debug: Calculating Positions...");
+      console.log("Header Animation Debug: Logo Ref:", logoRef.current);
+      console.log("Header Animation Debug: Cart Ref:", cartRef.current);
+
       if (logoRef.current && cartRef.current) {
         const logoRect = logoRef.current.getBoundingClientRect();
         const cartRect = cartRef.current.getBoundingClientRect();
+
+        console.log("Header Animation Debug: Rects:", { logoRect, cartRect });
 
         const positions = {
           startX: logoRect.left + logoRect.width / 2,
@@ -125,21 +151,42 @@ const Header = () => {
           endY: cartRect.top + cartRect.height / 2,
         };
 
+        console.log("Header Animation Debug: Calculated Positions:", positions);
+        console.log("Header Animation Debug: Has Played:", hasPlayed);
+
         // Only set positions if they're valid and animation hasn't played yet
-        if (positions.startX > 0 && positions.endX > 0 && positions.startY > 0 && positions.endY > 0 && !hasPlayed) {
+        if (
+          positions.startX > 0 &&
+          positions.endX > 0 &&
+          positions.startY > 0 &&
+          positions.endY > 0 &&
+          !hasPlayed
+        ) {
+          console.log("Header Animation Debug: Triggering Animation!");
           setAnimationPositions(positions);
           setPositionsReady(true);
           // Start animation once positions are ready
           setShowCartAnimation(true);
           setHasPlayed(true);
         }
+      } else {
+        console.log("Header Animation Debug: Refs missing");
       }
     };
 
     // Calculate positions after a short delay to ensure elements are rendered
-    const timer1 = setTimeout(calculatePositions, 100);
-    const timer2 = setTimeout(calculatePositions, 500);
-    const timer3 = setTimeout(calculatePositions, 1000);
+    const timer1 = setTimeout(() => {
+      console.log("Header Animation Debug: Timer 1");
+      calculatePositions();
+    }, 100);
+    const timer2 = setTimeout(() => {
+      console.log("Header Animation Debug: Timer 2");
+      calculatePositions();
+    }, 500);
+    const timer3 = setTimeout(() => {
+      console.log("Header Animation Debug: Timer 3");
+      calculatePositions();
+    }, 1000);
 
     // Recalculate on resize
     window.addEventListener("resize", calculatePositions);
@@ -151,6 +198,12 @@ const Header = () => {
       window.removeEventListener("resize", calculatePositions);
     };
   }, []);
+
+  useEffect(() => {
+    console.log("Header Animation Debug: Positions Ready:", positionsReady);
+    console.log("Header Animation Debug: Show Animation:", showCartAnimation);
+    console.log("Header Animation Debug: Positions:", animationPositions);
+  }, [positionsReady, showCartAnimation, animationPositions]);
 
   // Hide animation after it completes
   useEffect(() => {
@@ -169,46 +222,57 @@ const Header = () => {
   };
 
   // Animation content
-  const shouldShowAnimation = showCartAnimation && positionsReady && animationPositions.startX > 0 && animationPositions.endX > 0;
+  const shouldShowAnimation =
+    showCartAnimation &&
+    positionsReady &&
+    animationPositions.startX > 0 &&
+    animationPositions.endX > 0;
 
   const animationContent = shouldShowAnimation ? (
     <motion.div
-      className="fixed pointer-events-none"
+      className="absolute pointer-events-none"
       style={{
+        zIndex: 0, // Behind logo (which is likely z-10)
         left: 0,
         top: 0,
-        zIndex: 10001,
-        willChange: 'transform, opacity',
-        transform: 'translateZ(0)',
-      }}
-      initial={{
-        x: animationPositions.startX - 40,
-        y: animationPositions.startY - 40,
-        scale: 1,
-        opacity: 1,
-      }}
-      animate={{
-        x: animationPositions.endX - 40,
-        y: animationPositions.endY - 40,
-        scale: [1, 1.2, 0.8],
-        opacity: [1, 1, 0],
-      }}
-      transition={{
-        duration: 2,
-        ease: [0.25, 0.46, 0.45, 0.94],
-        times: [0, 0.7, 1],
-      }}
-      onAnimationComplete={() => {
-        setShowCartAnimation(false);
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
       }}>
-      <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center relative">
-        <DotLottieReact
-          src="https://lottie.host/083a2680-e854-4006-a50b-674276be82cd/oQMRcuZUkS.lottie"
-          autoplay
+      <motion.div
+        style={{
+          position: "absolute",
+          width: "80px", // Fixed size for the moving container
+          height: "80px",
+          willChange: "transform, opacity",
+        }}
+        initial={{
+          x: animationPositions.startX - 40, // Center based on width/2
+          y: animationPositions.startY - 40,
+          scale: 0.5,
+          opacity: 0,
+        }}
+        animate={{
+          x: animationPositions.endX - 40,
+          y: animationPositions.endY - 40,
+          scale: [0.5, 1.2, 0.8],
+          opacity: [0, 1, 1, 0],
+        }}
+        transition={{
+          duration: 2,
+          ease: "easeInOut",
+          times: [0, 0.2, 0.8, 1],
+        }}
+        onAnimationComplete={() => {
+          setShowCartAnimation(false);
+        }}>
+        <Lottie
+          animationData={shoppingCartAnimation}
           loop={false}
-          style={{ width: '100%', height: '100%' }}
+          autoplay={true}
+          style={{ width: "100%", height: "100%" }}
         />
-      </div>
+      </motion.div>
     </motion.div>
   ) : null;
 
@@ -217,17 +281,35 @@ const Header = () => {
       className="sticky top-0 z-50 shadow-lg overflow-visible transition-all duration-500"
       style={headerBackgroundStyle}>
       {/* Cart Animation - Rendered via Portal */}
-      {typeof document !== 'undefined' && createPortal(animationContent, document.body)}
+      {/* Cart Animation - Rendered directly in Header for z-index control */}
+      {animationContent}
 
       {/* Top Bar */}
-      <div className={`border-b ${currentCategoryId ? 'border-white/30' : 'border-white/20'} overflow-visible`}>
+      <div
+        className={`border-b ${currentCategoryId ? "border-white/30" : "border-white/20"} overflow-visible`}>
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3 md:py-4 overflow-visible">
           <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 overflow-visible">
             {/* Logo */}
             <Link
               to="/"
               className="flex items-center flex-shrink-0 group cursor-pointer min-w-0 overflow-visible relative z-10">
-              <div ref={logoRef} className="overflow-visible">
+              <div ref={logoRef} className="overflow-visible relative">
+                {/* Animation behind logo */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none"
+                  style={{ transform: "scale(5)" }}>
+                  <Lottie
+                    animationData={shoppingCartAnimation}
+                    loop={true}
+                    autoplay={true}
+                    renderer="canvas"
+                    rendererSettings={{
+                      preserveAspectRatio: "xMidYMid slice",
+                      clearCanvas: true,
+                    }}
+                    style={{ width: "40px", height: "40px", opacity: 0.7 }}
+                  />
+                </div>
                 <img
                   src={appLogo.src}
                   alt={appLogo.alt}
@@ -257,7 +339,7 @@ const Header = () => {
                 {wishlistCount > 0 && (
                   <span
                     className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-white text-[10px] sm:text-xs font-bold"
-                    style={{ backgroundColor: '#ffc101' }}>
+                    style={{ backgroundColor: "#ffc101" }}>
                     {wishlistCount > 9 ? "9+" : wishlistCount}
                   </span>
                 )}
@@ -359,7 +441,8 @@ const Header = () => {
       </div>
 
       {/* Mobile Search Bar */}
-      <div className={`md:hidden border-b ${currentCategoryId ? 'border-white/30' : 'border-white/20'} px-2 sm:px-4 py-3 ${currentCategoryId ? 'bg-white/20' : 'bg-white/30'}`}>
+      <div
+        className={`md:hidden border-b ${currentCategoryId ? "border-white/30" : "border-white/20"} px-2 sm:px-4 py-3 ${currentCategoryId ? "bg-white/20" : "bg-white/30"}`}>
         <SearchBar />
       </div>
     </header>

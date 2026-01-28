@@ -63,11 +63,21 @@ api.interceptors.response.use(
       'Something went wrong';
 
     // Show error toast
-    toast.error(message);
+    // Don't show toast for 401s on non-protected pages or public routes
+    const isPublicRoute = 
+      config.url?.includes('/public/') || 
+      config.url?.includes('/admin/content') || 
+      config.url?.includes('/admin/policies');
+
+    if (error.response?.status !== 401 || !isPublicRoute) {
+      toast.error(message);
+    }
 
     // Handle 401 (Unauthorized) - redirect to login
     if (error.response?.status === 401) {
       const path = window.location.pathname;
+      const isAppPath = path.startsWith('/app') || path === '/';
+      
       if (path.startsWith('/admin')) {
         localStorage.removeItem('admin-token');
       } else if (path.startsWith('/vendor')) {
@@ -76,6 +86,11 @@ api.interceptors.response.use(
         localStorage.removeItem('delivery-token');
       } else {
         localStorage.removeItem('token');
+      }
+
+      // Only redirect if NOT a public route or if specifically required
+      if (!isPublicRoute && !isAppPath) {
+        // ... potentially redirect ...
       }
     }
 

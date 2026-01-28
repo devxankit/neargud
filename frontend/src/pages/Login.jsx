@@ -1,12 +1,13 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from 'react-icons/fi';
-import { motion } from 'framer-motion';
-import { useAuthStore } from '../store/authStore';
-import { isValidEmail, isValidPhone } from '../utils/helpers';
-import toast from 'react-hot-toast';
-import PageTransition from '../components/PageTransition';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from "react-icons/fi";
+import { motion } from "framer-motion";
+import { useAuthStore } from "../store/authStore";
+import api from "../utils/api";
+import { isValidEmail, isValidPhone } from "../utils/helpers";
+import toast from "react-hot-toast";
+import PageTransition from "../components/PageTransition";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const Login = () => {
   const { login, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [loginMethod, setLoginMethod] = useState('phone'); // 'phone' or 'email'
+  const [loginMethod, setLoginMethod] = useState("phone"); // 'phone' or 'email'
 
   const {
     register,
@@ -22,24 +23,47 @@ const Login = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      countryCode: '+91'
-    }
+      countryCode: "+91",
+    },
   });
 
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || "/";
 
   const onSubmit = async (data) => {
     try {
       // If using phone, combine country code with phone number
-      const identifier = loginMethod === 'phone' 
-        ? (data.countryCode ? `${data.countryCode}${data.phone}` : data.phone)
-        : data.email;
-      
+      const identifier =
+        loginMethod === "phone"
+          ? data.countryCode
+            ? `${data.countryCode}${data.phone}`
+            : data.phone
+          : data.email;
+
       await login(identifier, data.password, rememberMe);
-      toast.success('Login successful!');
+      toast.success("Login successful!");
+
+      // Register FCM Token
+      try {
+        const { registerFCMToken } =
+          await import("../services/pushNotificationService");
+        await registerFCMToken(true);
+
+        // Trigger a test notification after registration to ensure it works
+        api
+          .post("/user/notifications/test", {
+            title: "Welcome Back!",
+            message: "Push notifications are now active on this device.",
+          })
+          .catch((err) =>
+            console.error("Error triggering test notification:", err),
+          );
+      } catch (fcmError) {
+        console.error("Error registering FCM token:", fcmError);
+      }
+
       navigate(from, { replace: true });
     } catch (error) {
-      toast.error(error.message || 'Login failed. Please try again.');
+      toast.error(error.message || "Login failed. Please try again.");
     }
   };
 
@@ -53,12 +77,15 @@ const Login = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm"
-              >
+                className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm">
                 {/* Header */}
                 <div className="text-center mb-8">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-                  <p className="text-sm sm:text-base text-gray-600">Login to access your account</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                    Welcome Back
+                  </h1>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Login to access your account
+                  </p>
                 </div>
 
                 {/* Login Method Toggle */}
@@ -66,24 +93,22 @@ const Login = () => {
                   <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       type="button"
-                      onClick={() => setLoginMethod('phone')}
+                      onClick={() => setLoginMethod("phone")}
                       className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                        loginMethod === 'phone'
-                          ? 'bg-primary-500 text-white shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
+                        loginMethod === "phone"
+                          ? "bg-primary-500 text-white shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}>
                       Phone Number
                     </button>
                     <button
                       type="button"
-                      onClick={() => setLoginMethod('email')}
+                      onClick={() => setLoginMethod("email")}
                       className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                        loginMethod === 'email'
-                          ? 'bg-primary-500 text-white shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
+                        loginMethod === "email"
+                          ? "bg-primary-500 text-white shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}>
                       Email
                     </button>
                   </div>
@@ -92,16 +117,17 @@ const Login = () => {
                 {/* Login Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                   {/* Phone or Email Input */}
-                  {loginMethod === 'phone' ? (
+                  {loginMethod === "phone" ? (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Phone Number
                       </label>
                       <div className="flex gap-2">
                         <select
-                          {...register('countryCode', { required: loginMethod === 'phone' })}
-                          className="w-24 px-3 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none text-sm"
-                        >
+                          {...register("countryCode", {
+                            required: loginMethod === "phone",
+                          })}
+                          className="w-24 px-3 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none text-sm">
                           <option value="+880">+880</option>
                           <option value="+1">+1</option>
                           <option value="+91">+91</option>
@@ -112,22 +138,29 @@ const Login = () => {
                           <input
                             type="tel"
                             maxLength={10}
-                            {...register('phone', {
-                              required: loginMethod === 'phone' ? 'Phone number is required' : false,
+                            {...register("phone", {
+                              required:
+                                loginMethod === "phone"
+                                  ? "Phone number is required"
+                                  : false,
                               validate: (value) =>
-                                !value || isValidPhone(value) || 'Please enter a valid phone number',
+                                !value ||
+                                isValidPhone(value) ||
+                                "Please enter a valid phone number",
                             })}
                             className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
                               errors.phone
-                                ? 'border-red-300 focus:border-red-500'
-                                : 'border-gray-200 focus:border-primary-500'
+                                ? "border-red-300 focus:border-red-500"
+                                : "border-gray-200 focus:border-primary-500"
                             } focus:outline-none transition-colors`}
                             placeholder="1775472701"
                           />
                         </div>
                       </div>
                       {errors.phone && (
-                        <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.phone.message}
+                        </p>
                       )}
                     </div>
                   ) : (
@@ -139,21 +172,28 @@ const Login = () => {
                         <FiMail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
                           type="email"
-                          {...register('email', {
-                            required: loginMethod === 'email' ? 'Email is required' : false,
+                          {...register("email", {
+                            required:
+                              loginMethod === "email"
+                                ? "Email is required"
+                                : false,
                             validate: (value) =>
-                              !value || isValidEmail(value) || 'Please enter a valid email',
+                              !value ||
+                              isValidEmail(value) ||
+                              "Please enter a valid email",
                           })}
                           className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
                             errors.email
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-primary-500'
+                              ? "border-red-300 focus:border-red-500"
+                              : "border-gray-200 focus:border-primary-500"
                           } focus:outline-none transition-colors`}
                           placeholder="your.email@example.com"
                         />
                       </div>
                       {errors.email && (
-                        <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.email.message}
+                        </p>
                       )}
                     </div>
                   )}
@@ -166,31 +206,36 @@ const Login = () => {
                     <div className="relative">
                       <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
-                        type={showPassword ? 'text' : 'password'}
-                        {...register('password', {
-                          required: 'Password is required',
+                        type={showPassword ? "text" : "password"}
+                        {...register("password", {
+                          required: "Password is required",
                           minLength: {
                             value: 6,
-                            message: 'Password must be at least 6 characters',
+                            message: "Password must be at least 6 characters",
                           },
                         })}
                         className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${
                           errors.password
-                            ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-primary-500'
+                            ? "border-red-300 focus:border-red-500"
+                            : "border-gray-200 focus:border-primary-500"
                         } focus:outline-none transition-colors`}
                         placeholder="Enter your password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        {showPassword ? (
+                          <FiEyeOff size={20} />
+                        ) : (
+                          <FiEye size={20} />
+                        )}
                       </button>
                     </div>
                     {errors.password && (
-                      <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.password.message}
+                      </p>
                     )}
                   </div>
 
@@ -203,12 +248,13 @@ const Login = () => {
                         onChange={(e) => setRememberMe(e.target.checked)}
                         className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Remember me</span>
+                      <span className="ml-2 text-sm text-gray-700">
+                        Remember me
+                      </span>
                     </label>
                     <Link
                       to="/forgot-password"
-                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                    >
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                       Forget password?
                     </Link>
                   </div>
@@ -217,22 +263,22 @@ const Login = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-primary-500 hover:bg-primary-600 text-white py-3.5 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? 'Logging in...' : 'Log In'}
+                    className="w-full bg-primary-500 hover:bg-primary-600 text-white py-3.5 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isLoading ? "Logging in..." : "Log In"}
                   </button>
                 </form>
 
                 {/* Social Login Section */}
                 <div className="mt-6">
                   <div className="text-center mb-4">
-                    <span className="text-sm text-gray-500">Or Sign In With</span>
+                    <span className="text-sm text-gray-500">
+                      Or Sign In With
+                    </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 font-medium transition-all duration-300 hover:shadow-md"
-                    >
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 font-medium transition-all duration-300 hover:shadow-md">
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
                         <path
                           fill="currentColor"
@@ -255,9 +301,11 @@ const Login = () => {
                     </button>
                     <button
                       type="button"
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 font-medium transition-all duration-300 hover:shadow-md"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 font-medium transition-all duration-300 hover:shadow-md">
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 24 24">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
                       <span className="text-sm font-medium">Facebook</span>
@@ -268,11 +316,10 @@ const Login = () => {
                 {/* Sign Up Link */}
                 <div className="mt-6 text-center">
                   <p className="text-sm sm:text-base text-gray-600">
-                    Don't have an account?{' '}
+                    Don't have an account?{" "}
                     <Link
                       to="/register"
-                      className="text-primary-600 hover:text-primary-700 font-semibold"
-                    >
+                      className="text-primary-600 hover:text-primary-700 font-semibold">
                       Sign Up
                     </Link>
                   </p>
