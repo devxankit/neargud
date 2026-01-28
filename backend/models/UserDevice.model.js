@@ -10,7 +10,7 @@ const userDeviceSchema = new mongoose.Schema(
     },
     userModel: {
       type: String,
-      enum: ["User", "Vendor", "Admin"],
+      enum: ["User", "Vendor", "Admin", "DeliveryPartner"],
       default: "User",
     },
     fcmToken: {
