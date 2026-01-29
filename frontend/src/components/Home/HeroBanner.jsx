@@ -1,213 +1,122 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import LazyImage from "../LazyImage";
 
 const HeroBanner = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const containerRef = useRef(null);
+  const sliderRef = useRef(null);
 
   const slides = [
-    {
-      image: "/images/hero/slide1.png",
-    },
-    {
-      image: "/images/hero/slide2.png",
-    },
-    {
-      image: "/images/hero/slide3.png",
-    },
-    {
-      image: "/images/hero/slide4.png",
-    },
+    { image: "/images/hero/slide1.png" },
+    { image: "/images/hero/slide2.png" },
+    { image: "/images/hero/slide3.png" },
+    { image: "/images/hero/slide4.png" },
   ];
 
   // Auto-slide functionality
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000); // Change slide every 5 seconds
-
+    }, 5000);
     return () => clearInterval(interval);
   }, [slides.length]);
 
   return (
     <>
-      {/* Desktop Layout - White card wrapper with proper aspect ratio */}
-      <div className="hidden md:block bg-white rounded-lg mb-4 p-4">
-        <div
-          ref={containerRef}
-          className="relative w-full overflow-hidden rounded-lg"
-          data-carousel
-          style={{
-            position: "relative",
-            width: "100%",
-            aspectRatio: "211/35",
-            overflow: "hidden",
-          }}>
-          {/* Slider Container - All slides in a row */}
-          <motion.div
-            className="flex h-full"
+      {/* Desktop Layout - Ultra-compact version without white wrapper */}
+      <div className="hidden md:block mb-0">
+        <div className="relative w-full h-[140px] overflow-hidden rounded-xl hero-container">
+          {/* Slider Container with CSS transitions */}
+          <div
+            ref={sliderRef}
+            className="flex h-full hero-slider"
             style={{
               width: `${slides.length * 100}%`,
-              height: "100%",
+              transform: `translateX(-${currentSlide * (100 / slides.length)}%)`,
+              transition: "transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
             }}
-            animate={{
-              x: `-${currentSlide * (100 / slides.length)}%`,
-            }}
-            transition={{
-              duration: 0.8,
-              ease: [0.25, 0.46, 0.45, 0.94], // Smooth easing
-              type: "tween",
-            }}>
+          >
             {slides.map((slide, index) => (
               <div
                 key={index}
                 className="flex-shrink-0"
-                style={{
-                  width: `${100 / slides.length}%`,
-                  height: "100%",
-                }}>
-                {index === 0 ? (
-                  <img
-                    src={slide.image}
-                    alt={`Slide ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                    }}
-                    loading="eager"
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${slide.image}`);
-                      e.target.src = `https://via.placeholder.com/1200x650?text=Slide+${index + 1
-                        }`;
-                    }}
-                  />
-                ) : (
-                  <LazyImage
-                    src={slide.image}
-                    alt={`Slide ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                    }}
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${slide.image}`);
-                      e.target.src = `https://via.placeholder.com/1200x650?text=Slide+${index + 1
-                        }`;
-                    }}
-                  />
-                )}
+                style={{ width: `${100 / slides.length}%` }}
+              >
+                <img
+                  src={slide.image}
+                  alt={`Slide ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  onError={(e) => {
+                    console.error(`Failed to load image: ${slide.image}`);
+                    e.target.src = `https://via.placeholder.com/1200x180?text=Slide+${index + 1}`;
+                  }}
+                />
               </div>
             ))}
-          </motion.div>
+          </div>
+
+          {/* Gradient overlay for smooth transition */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-black/10 pointer-events-none" />
 
           {/* Carousel Indicators */}
-          <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
-                    ? "bg-white w-8 shadow-lg"
-                    : "bg-white/50 w-2 hover:bg-white/70"
+                className={`h-1.5 rounded-full transition-all duration-300 ${index === currentSlide
+                  ? "bg-white w-8 shadow-md"
+                  : "bg-white/50 w-1.5 hover:bg-white/70"
                   }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Mobile Layout - Unchanged */}
-      <div className="md:hidden container mx-auto px-2 sm:px-4 overflow-x-hidden w-full">
-        <div
-          ref={containerRef}
-          className="relative w-full max-w-[1366px] mx-auto h-[200px] sm:h-[300px] md:h-[400px] lg:h-[500px] xl:h-[550px] overflow-hidden rounded-2xl sm:rounded-3xl mb-4 sm:my-6 lg:my-2 shadow-2xl"
-          data-carousel
-          style={{
-            position: "relative",
-            width: "100%",
-            maxWidth: "1366px",
-            overflow: "hidden",
-          }}>
-          {/* Slider Container - All slides in a row */}
-          <motion.div
+      {/* Mobile Layout - Ultra-compact */}
+      <div className="md:hidden overflow-x-hidden w-full">
+        <div className="relative w-full h-[150px] overflow-hidden rounded-2xl mx-2 mb-4 shadow-lg">
+          {/* Slider Container with CSS transitions */}
+          <div
             className="flex h-full"
             style={{
               width: `${slides.length * 100}%`,
-              height: "100%",
+              transform: `translateX(-${currentSlide * (100 / slides.length)}%)`,
+              transition: "transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
             }}
-            animate={{
-              x: `-${currentSlide * (100 / slides.length)}%`,
-            }}
-            transition={{
-              duration: 0.8,
-              ease: [0.25, 0.46, 0.45, 0.94], // Smooth easing
-              type: "tween",
-            }}>
+          >
             {slides.map((slide, index) => (
               <div
                 key={index}
                 className="flex-shrink-0"
-                style={{
-                  width: `${100 / slides.length}%`,
-                  height: "100%",
-                }}>
-                {index === 0 ? (
-                  <img
-                    src={slide.image}
-                    alt={`Slide ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                    }}
-                    loading="eager"
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${slide.image}`);
-                      e.target.src = `https://via.placeholder.com/1200x650?text=Slide+${index + 1
-                        }`;
-                    }}
-                  />
-                ) : (
-                  <LazyImage
-                    src={slide.image}
-                    alt={`Slide ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                    }}
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${slide.image}`);
-                      e.target.src = `https://via.placeholder.com/1200x650?text=Slide+${index + 1
-                        }`;
-                    }}
-                  />
-                )}
+                style={{ width: `${100 / slides.length}%` }}
+              >
+                <img
+                  src={slide.image}
+                  alt={`Slide ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  onError={(e) => {
+                    console.error(`Failed to load image: ${slide.image}`);
+                    e.target.src = `https://via.placeholder.com/800x240?text=Slide+${index + 1}`;
+                  }}
+                />
               </div>
             ))}
-          </motion.div>
+          </div>
 
           {/* Carousel Indicators */}
-          <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
-                    ? "bg-white w-8 shadow-lg"
-                    : "bg-white/50 w-2 hover:bg-white/70"
+                  ? "bg-white w-8 shadow-lg"
+                  : "bg-white/50 w-2 hover:bg-white/70"
                   }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>

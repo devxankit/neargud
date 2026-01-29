@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { FiShoppingBag, FiUser, FiHeart, FiSearch } from "react-icons/fi";
+import { FiShoppingBag, FiUser, FiHeart, FiSearch, FiMapPin } from "react-icons/fi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCartStore, useUIStore } from "../../../store/useStore";
 import { useAuthStore } from "../../../store/authStore";
@@ -13,12 +13,15 @@ import Lottie from "lottie-react";
 import shoppingCartAnimation from "../../../../data/animations/shopping cart.json";
 import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
-import LocationSelector from "../../LocationSelector";
+import LocationSelectionModal from "../../LocationSelectionModal";
+import { useLocationStore } from "../../../store/locationStore";
 import { useTheme } from "/src/context/ThemeContext";
 import { getTheme } from "../../../utils/themes";
+import { useCategoryStore } from "../../../store/categoryStore";
 
 const MobileHeader = () => {
   const [showCartAnimation, setShowCartAnimation] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [positionsReady, setPositionsReady] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [animationPositions, setAnimationPositions] = useState({
@@ -41,8 +44,12 @@ const MobileHeader = () => {
   const wishlistCount = useWishlistStore((state) => state.getItemCount());
   const { theme } = useTheme();
 
+  // Location Store
+  const { currentCity, initialize: initializeLocation } = useLocationStore();
+
   useEffect(() => {
     initializeSettings();
+    initializeLocation();
   }, []);
 
   const getCurrentCategoryId = () => {
@@ -68,21 +75,42 @@ const MobileHeader = () => {
 
   const currentPage = getCurrentPage();
 
-  const getCategoryThemeTab = (catId) => {
+  const categories = useCategoryStore((state) => state.categories);
+
+  const categoryThemeTab = useMemo(() => {
+    if (!currentCategoryId) return "all";
+
     const themeMap = {
-      1: "fashion",
-      2: "footwear",
-      3: "leather",
-      4: "jewelry",
-      5: "winter",
-      6: "sports",
+      '1': 'fashion',
+      '2': 'footwear',
+      '3': 'leather',
+      '4': 'jewelry',
+      '5': 'winter',
+      '6': 'sports',
     };
-    return themeMap[catId] || "all";
-  };
+
+    if (themeMap[currentCategoryId]) return themeMap[currentCategoryId];
+
+    // Fallback to name-based mapping from store
+    const category = categories.find(c => c.id === currentCategoryId || c._id === currentCategoryId);
+    if (!category || !category.name) return "all";
+
+    const name = category.name.toLowerCase();
+    if (name.includes("cloth") || name.includes("fashion")) return "fashion";
+    if (name.includes("shoe") || name.includes("footwear")) return "footwear";
+    if (name.includes("bag") || name.includes("leather")) return "leather";
+    if (name.includes("jewel")) return "jewelry";
+    if (name.includes("winter")) return "winter";
+    if (name.includes("sport")) return "sports";
+    if (name.includes("beauty")) return "beauty";
+    if (name.includes("electron")) return "electronics";
+    if (name.includes("grocer")) return "grocery";
+
+    return "all";
+  }, [currentCategoryId, categories]);
 
   const headerBackground = useMemo(() => {
     if (currentCategoryId) {
-      const categoryThemeTab = getCategoryThemeTab(currentCategoryId);
       const categoryTheme = getTheme(categoryThemeTab);
       return `linear-gradient(to bottom, ${categoryTheme.primary[0]} 0%, ${categoryTheme.primary[1]} 100%)`;
     }
@@ -101,7 +129,7 @@ const MobileHeader = () => {
     };
 
     return pageGradients[currentPage] || pageGradients.default;
-  }, [currentCategoryId, currentPage, theme]);
+  }, [currentCategoryId, currentPage, theme, categoryThemeTab]);
 
   // Hide header on scroll
   useEffect(() => {
@@ -182,83 +210,123 @@ const MobileHeader = () => {
       </motion.div>
     ) : null;
 
+  // Reset header visibility when category changes
+  useEffect(() => {
+    setIsTopRowVisible(true);
+  }, [currentCategoryId]);
+
   const headerContent = (
     <motion.header
       key="mobile-header"
-      className="fixed top-0 left-0 right-0 z-[9999] border-b border-white/30"
+      className={`fixed top-0 left-0 right-0 z-[9999] ${currentPage === "home" ? "border-none" : "border-b border-white/30"
+        }`}
       style={{
         background: headerBackground,
         backdropFilter: "blur(28px)",
         WebkitBackdropFilter: "blur(28px)",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+        boxShadow: currentPage === "home" ? "none" : "0 10px 30px rgba(0,0,0,0.08)",
+        overflow: "visible",
       }}
       initial={{ y: -120, opacity: 0 }}
-      animate={{ y: isTopRowVisible ? 0 : -84, opacity: 1 }}
+      animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-      <div className="px-4 pt-4 pb-3 flex flex-col gap-5 max-w-[640px] mx-auto">
-        {/* Top Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center justify-between w-full">
-            <Link to="/app" className="flex items-center">
-              <div ref={logoRef} className="relative">
-                {/* Animation behind logo */}
-                <div
-                  className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none"
-                  style={{ transform: "scale(3)" }}>
-                  <Lottie
-                    animationData={shoppingCartAnimation}
-                    loop={true}
-                    autoplay={true}
-                    renderer="canvas"
-                    rendererSettings={{
-                      preserveAspectRatio: "xMidYMid slice",
-                      clearCanvas: true,
+      <div className="px-3 pb-1 flex flex-col max-w-[640px] mx-auto">
+        {/* Top Row - Hides on scroll */}
+        <motion.div
+          animate={{
+            height: isTopRowVisible ? "auto" : 0,
+            opacity: isTopRowVisible ? 1 : 0,
+            marginBottom: isTopRowVisible ? 8 : 0,
+            paddingTop: isTopRowVisible ? 12 : 0,
+          }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+          style={{ willChange: 'height, opacity' }}
+          className="overflow-hidden"
+        >
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center justify-between w-full">
+              <Link to="/app" className="flex items-center">
+                <div ref={logoRef} className="relative">
+                  {/* Animation behind logo */}
+                  <div
+                    className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none"
+                    style={{ transform: "scale(3)" }}>
+                    <Lottie
+                      animationData={shoppingCartAnimation}
+                      loop={true}
+                      autoplay={true}
+                      renderer="canvas"
+                      rendererSettings={{
+                        preserveAspectRatio: "xMidYMid slice",
+                        clearCanvas: true,
+                      }}
+                      style={{ width: "30px", height: "30px", opacity: 0.6 }}
+                    />
+                  </div>
+                  <img
+                    src={appLogo.src}
+                    alt={appLogo.alt}
+                    className="h-10 w-auto object-contain"
+                    style={{
+                      transform: "scale(2.4)",
+                      transformOrigin: "left center",
+                      filter: "drop-shadow(0 6px 15px rgba(0,0,0,0.3))",
                     }}
-                    style={{ width: "30px", height: "30px", opacity: 0.6 }}
                   />
                 </div>
-                <img
-                  src={appLogo.src}
-                  alt={appLogo.alt}
-                  className="h-14 w-auto object-contain"
-                  style={{
-                    transform: "scale(2.6)",
-                    transformOrigin: "left center",
-                    filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.35))",
-                  }}
-                />
-              </div>
-            </Link>
-          </div>
+              </Link>
+            </div>
 
-          {/* <div className="absolute left-1/2 -translate-x-1/2">
-            <LocationSelector className="scale-95" />
-          </div> */}
-          <div className="flex items-center gap-2">
-            <button
-              ref={cartRef}
-              onClick={toggleCart}
-              className="p-3 rounded-2xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
-              <FiShoppingBag className="text-xl text-gray-800" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow">
-                  {itemCount > 9 ? "9+" : itemCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+            <div className="flex items-center gap-2">
+              {/* Location Selector Button */}
+              <button
+                onClick={() => setShowLocationModal(true)}
+                className={`p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative flex items-center justify-center gap-1.5 ${currentCity ? 'pl-2 pr-3' : ''}`}
+                aria-label="Select Location"
+              >
+                <FiMapPin className="text-gray-800 text-lg" />
+                {currentCity && (
+                  <span className="text-[11px] font-black text-gray-800 tracking-wide max-w-[80px] truncate leading-none pt-0.5">
+                    {currentCity.name}
+                  </span>
+                )}
+              </button>
 
-        {/* Search Bar */}
-        <div className="w-full relative z-10">
+              <button
+                ref={cartRef}
+                onClick={toggleCart}
+                className="p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
+                <FiShoppingBag className="text-lg text-gray-800" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white shadow">
+                    {itemCount > 9 ? "9+" : itemCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Search Bar - ALWAYS STICKY */}
+        <motion.div
+          animate={{
+            paddingTop: isTopRowVisible ? 0 : 8,
+            paddingBottom: isTopRowVisible ? 4 : 8
+          }}
+          className="w-full relative z-10"
+          style={{ overflow: 'visible' }}
+        >
           <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60">
             <SearchBar />
           </div>
-        </div>
+        </motion.div>
 
-        {/* Categories */}
-        <div className="w-full mt-2">
-          <MobileCategoryIcons isTopRowVisible={isTopRowVisible} />
+        {/* Categories - Always visible, but icons fold via internal logic */}
+        <div className="w-full mt-1 pb-1">
+          <MobileCategoryIcons
+            isTopRowVisible={isTopRowVisible}
+            colorScheme={location.pathname === '/app' ? 'white' : 'black'}
+          />
         </div>
       </div>
     </motion.header>
@@ -271,6 +339,12 @@ const MobileHeader = () => {
         showCartAnimation &&
         positionsReady &&
         createPortal(animationContent, document.body)}
+
+      {/* Location Modal */}
+      <LocationSelectionModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+      />
     </>
   );
 };

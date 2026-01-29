@@ -509,7 +509,7 @@ const MobileReels = () => {
             </div>
 
             {/* Right Actions Bar */}
-            <div className={`absolute right-3 bottom-24 flex flex-col items-center gap-5 z-[60] transition-opacity duration-300 ${showComments ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`absolute right-3 bottom-36 flex flex-col items-center gap-5 z-[60] transition-opacity duration-300 ${showComments ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <button
                 onClick={(e) => { e.stopPropagation(); toggleLike(reel); }}
                 className="flex flex-col items-center gap-1.5 transition-all active:scale-90"
@@ -549,7 +549,7 @@ const MobileReels = () => {
             </div>
 
             {/* Overlay Info */}
-            <div className={`absolute bottom-0 left-0 right-0 p-5 pb-10 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20 transition-opacity duration-300 ${showComments ? 'opacity-0' : 'opacity-100'}`}>
+            <div className={`absolute bottom-0 left-0 right-0 p-5 pb-24 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20 transition-opacity duration-300 ${showComments ? 'opacity-0' : 'opacity-100'}`}>
               <div className="flex items-end justify-between pointer-events-auto">
                 <div className="flex-1 mr-12 group">
                   {/* User/Vendor Info */}

@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiHeart } from 'react-icons/fi';
 import { useTheme } from "/src/context/ThemeContext";
@@ -22,6 +21,7 @@ import NewArrivalsSection from '../modules/App/components/NewArrivalsSection';
 import DailyDealsSection from '../modules/App/components/DailyDealsSection';
 import ProductCard from '../components/ProductCard';
 import LazyImage from '../components/LazyImage';
+import TransitionGradient from '../components/TransitionGradient';
 import { getMostPopular, getTrending, getFlashSale, getRecommendedProducts } from '../data/products';
 import { FiThumbsUp, FiArrowRight } from 'react-icons/fi';
 import PageTransition from '../components/PageTransition';
@@ -31,31 +31,12 @@ import LowestPricesEver from '../components/LowestPricesEver';
 
 const Home = () => {
   const { responsivePadding, isDesktop } = useResponsiveHeaderPadding();
-  const { theme, activeTab, setActiveTab, tabs } = useTheme();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [autoSlidePaused, setAutoSlidePaused] = useState(false);
-
-  const slides = [
-    { image: "/images/hero/slide1.png" },
-    { image: "/images/hero/slide2.png" },
-    { image: "/images/hero/slide3.png" },
-    { image: "/images/hero/slide4.png" },
-  ];
+  const { theme, activeTab } = useTheme();
 
   const mostPopular = getMostPopular();
   const trending = getTrending();
   const flashSale = getFlashSale();
   const recommended = getRecommendedProducts(12);
-
-  // Auto-slide functionality
-  useEffect(() => {
-    if (autoSlidePaused) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [slides.length, autoSlidePaused]);
 
   // Ensure body scroll is restored when component mounts
   useEffect(() => {
@@ -73,56 +54,14 @@ const Home = () => {
         <main className="w-full overflow-x-hidden" style={{ paddingTop: isDesktop ? `${responsivePadding}px` : '0px' }}>
           {/* Desktop Layout - Redesigned with multi-column layout */}
           <div className="hidden md:block">
-            <div className="mx-auto desktop-container" style={{ maxWidth: '996px', padding: '0 12px' }}>
-              {/* Hero Banner Carousel */}
-              <div className="py-4">
-                <div
-                  className="relative w-full h-64 rounded-2xl overflow-hidden shadow-xl cursor-pointer"
-                  onMouseEnter={() => setAutoSlidePaused(true)}
-                  onMouseLeave={() => setAutoSlidePaused(false)}
-                >
-                  <AnimatePresence mode="wait">
-                    {slides.map((slide, index) => {
-                      if (index !== currentSlide) return null;
-                      return (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, scale: 1.05 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.6 }}
-                          className="absolute inset-0"
-                        >
-                          <LazyImage
-                            src={slide.image}
-                            alt={`Slide ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = `https://via.placeholder.com/1200x400?text=Slide+${index + 1}`;
-                            }}
-                          />
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                    {slides.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setCurrentSlide(index);
-                          setAutoSlidePaused(true);
-                          setTimeout(() => setAutoSlidePaused(false), 2000);
-                        }}
-                        className={`h-2 rounded-full transition-all ${index === currentSlide
-                          ? "bg-white w-8"
-                          : "bg-white/50 w-2"
-                          }`}
-                      />
-                    ))}
-                  </div>
-                </div>
+            <div className="mx-auto desktop-container" style={{ maxWidth: '996px', padding: '0 8px' }}>
+              {/* Hero Banner - Now using optimized HeroBanner component */}
+              <div className="pt-3 pb-2">
+                <HeroBanner />
               </div>
+
+              {/* Transition Gradient */}
+              <TransitionGradient />
 
               {/* Brand Logos Scroll */}
               <div className="py-3">
@@ -224,16 +163,11 @@ const Home = () => {
                     See All
                   </Link>
                 </div>
-                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                  {mostPopular.slice(0, 12).map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
+                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 smooth-reveal">
+                  {mostPopular.slice(0, 12).map((product) => (
+                    <div key={product.id} className="animate-fade-in">
                       <ProductCard product={product} />
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -280,15 +214,10 @@ const Home = () => {
                     </Link>
                   </div>
                   <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                    {flashSale.slice(0, 12).map((product, index) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                      >
+                    {flashSale.slice(0, 12).map((product) => (
+                      <div key={product.id} className="animate-fade-in">
                         <ProductCard product={product} />
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -306,15 +235,10 @@ const Home = () => {
                   </Link>
                 </div>
                 <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                  {trending.slice(0, 12).map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
+                  {trending.slice(0, 12).map((product) => (
+                    <div key={product.id} className="animate-fade-in">
                       <ProductCard product={product} />
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -343,15 +267,10 @@ const Home = () => {
                     </Link>
                   </div>
                   <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                    {recommended.slice(0, 12).map((product, index) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                      >
+                    {recommended.slice(0, 12).map((product) => (
+                      <div key={product.id} className="animate-fade-in">
                         <ProductCard product={product} />
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -369,62 +288,45 @@ const Home = () => {
                   </Link>
                 </div>
                 <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                  {mostPopular.slice(12, 18).map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
+                  {mostPopular.slice(12, 18).map((product) => (
+                    <div key={product.id} className="animate-fade-in">
                       <ProductCard product={product} />
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>
 
               {/* Tagline Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="py-8 text-left"
-              >
-                <motion.h2
-                  className="text-5xl lg:text-6xl font-black text-gray-400 leading-tight flex items-center justify-start gap-3 flex-wrap"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                >
+              <div className="py-8 text-left smooth-reveal">
+                <h2 className="text-5xl lg:text-6xl font-black text-gray-400 leading-tight flex items-center justify-start gap-3 flex-wrap">
                   <span>Bringing Shopping to Your Fingertips.</span>
-                  <motion.span
-                    animate={{
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      repeatDelay: 2,
-                    }}
-                    className="text-red-500 inline-block"
-                  >
+                  <span className="text-red-500 inline-block heart-pulse">
                     <FiHeart className="text-6xl lg:text-7xl fill-red-500" />
-                  </motion.span>
-                </motion.h2>
-              </motion.div>
+                  </span>
+                </h2>
+              </div>
             </div>
           </div>
 
-          {/* Mobile Layout - Unchanged */}
+          {/* Mobile Layout - Restructured for seamless integration */}
           <div className="md:hidden">
-            {/* Top Section (Purple bg from parent) */}
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <PromoStrip activeTab={activeTab} />
+            {/* Continuous purple background container */}
+            <div className="relative" style={{
+              background: 'linear-gradient(180deg, #6d28d9 0%, #7c3aed 100%)',
+              marginTop: '-1px' // Eliminate any tiny gaps
+            }}>
+              <div className="px-4">
+                <PromoStrip activeTab={activeTab} />
+              </div>
+
+              {/* Subtle gradient transition at the bottom of the purple section */}
+              <div className="h-8 w-full" style={{
+                background: 'linear-gradient(180deg, rgba(124, 58, 237, 1) 0%, rgba(248, 250, 252, 1) 100%)'
+              }} />
             </div>
 
-            {/* Bottom Content Sheet (Light bg) */}
-            <div className="bg-[#F8FAFC] rounded-t-[2rem] pt-6 pb-24 mt-0 min-h-screen -mx-0 relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+            {/* Bottom Content Sheet (Light bg) - Integrated seamlessly */}
+            <div className="bg-[#F8FAFC] pt-2 pb-24 mt-0 min-h-screen relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
               <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <LowestPricesEver activeTab={activeTab} />
                 <BrandLogosScroll />

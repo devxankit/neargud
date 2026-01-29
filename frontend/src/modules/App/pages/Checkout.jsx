@@ -12,6 +12,7 @@ import { formatPrice } from '../../../utils/helpers';
 import toast from 'react-hot-toast';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import MobileCheckoutSteps from '../components/MobileCheckoutSteps';
+import PageTransition from '../../../components/PageTransition';
 
 
 const MobileCheckout = () => {
@@ -183,7 +184,7 @@ const MobileCheckout = () => {
 
   if (items.length === 0) {
     return (
-      <MobileLayout showBottomNav={false} showCartBar={false}>
+      <PageTransition>
         <div className="flex items-center justify-center min-h-[60vh] px-4">
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
@@ -195,7 +196,7 @@ const MobileCheckout = () => {
             </button>
           </div>
         </div>
-      </MobileLayout>
+      </PageTransition>
     );
   }
 
@@ -388,7 +389,7 @@ const MobileCheckout = () => {
   };
 
   return (
-    <MobileLayout showBottomNav={false} showCartBar={false}>
+    <PageTransition>
       <div className="w-full">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
@@ -937,7 +938,7 @@ const MobileCheckout = () => {
           />
         )}
       </AnimatePresence>
-    </MobileLayout>
+    </PageTransition>
   );
 };
 

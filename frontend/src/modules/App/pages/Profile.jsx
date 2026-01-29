@@ -23,6 +23,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
+import PageTransition from '../../../components/PageTransition';
 import { useAuthStore } from '../../../store/authStore';
 import { useNotificationStore } from '../../../store/notificationStore';
 import { useWalletStore } from '../../../store/walletStore';
@@ -126,59 +127,59 @@ const MobileProfile = () => {
     }
   };
 
-const menuItems = [
-  {
-    icon: FiPackage,
-    label: 'My Orders',
-    path: '/app/orders',
-    color: 'text-blue-500',
-    bg: 'bg-blue-50'
-  },
-  {
-    icon: FiDollarSign,
-    label: 'My Wallet',
-    path: '/app/wallet',
-    color: 'text-green-500',
-    bg: 'bg-green-50',
-    // subtitle: wallet ? `₹${wallet.balance?.toFixed(2) || '0.00'}` : null
-  },
-  {
-    icon: FiHeart,
-    label: 'Wishlist',
-    path: '/app/wishlist',
-    color: 'text-pink-500',
-    bg: 'bg-pink-50'
-  },
-  // {
-  //   icon: FiHeart,
-  //   label: 'My Favorites',
-  //   path: '/app/favorites',
-  //   color: 'text-pink-500',
-  //   bg: 'bg-pink-50'
-  // },
-  {
-    icon: FiBell,
-    label: 'Notifications',
-    path: '/app/notifications',
-    color: 'text-purple-500',
-    bg: 'bg-purple-50',
-    badge: unreadCount > 0 ? unreadCount : null
-  },
-  {
-    icon: FiMapPin,
-    label: 'My Addresses',
-    path: '/app/addresses',
-    color: 'text-orange-500',
-    bg: 'bg-orange-50'
-  },
-  // {
-  //   icon: FiCreditCard,
-  //   label: 'Saved Cards',
-  //   path: '/app/cards',
-  //   color: 'text-indigo-500',
-  //   bg: 'bg-indigo-50'
-  // },
-];
+  const menuItems = [
+    {
+      icon: FiPackage,
+      label: 'My Orders',
+      path: '/app/orders',
+      color: 'text-blue-500',
+      bg: 'bg-blue-50'
+    },
+    {
+      icon: FiDollarSign,
+      label: 'My Wallet',
+      path: '/app/wallet',
+      color: 'text-green-500',
+      bg: 'bg-green-50',
+      // subtitle: wallet ? `₹${wallet.balance?.toFixed(2) || '0.00'}` : null
+    },
+    {
+      icon: FiHeart,
+      label: 'Wishlist',
+      path: '/app/wishlist',
+      color: 'text-pink-500',
+      bg: 'bg-pink-50'
+    },
+    // {
+    //   icon: FiHeart,
+    //   label: 'My Favorites',
+    //   path: '/app/favorites',
+    //   color: 'text-pink-500',
+    //   bg: 'bg-pink-50'
+    // },
+    {
+      icon: FiBell,
+      label: 'Notifications',
+      path: '/app/notifications',
+      color: 'text-purple-500',
+      bg: 'bg-purple-50',
+      badge: unreadCount > 0 ? unreadCount : null
+    },
+    {
+      icon: FiMapPin,
+      label: 'My Addresses',
+      path: '/app/addresses',
+      color: 'text-orange-500',
+      bg: 'bg-orange-50'
+    },
+    // {
+    //   icon: FiCreditCard,
+    //   label: 'Saved Cards',
+    //   path: '/app/cards',
+    //   color: 'text-indigo-500',
+    //   bg: 'bg-indigo-50'
+    // },
+  ];
 
 
   const settingItems = [
@@ -188,7 +189,7 @@ const menuItems = [
   ];
 
   return (
-    <MobileLayout showBottomNav={true} showCartBar={true}>
+    <PageTransition>
       <div className="w-full pb-24 min-h-screen bg-gray-50">
         {/* Header / Navigation */}
         <div className="px-4 py-4 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between">
@@ -287,7 +288,7 @@ const menuItems = [
               </div>
 
               {/* Test Notification Button */}
-             
+
 
               {/* Logout Button */}
               <button
@@ -481,7 +482,7 @@ const menuItems = [
           )}
         </AnimatePresence>
       </div>
-    </MobileLayout>
+    </PageTransition>
   );
 };
 

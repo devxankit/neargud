@@ -227,7 +227,9 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
   if (discountedProducts.length === 0 && !loading) return null;
 
   return (
-    <div className="relative w-full overflow-x-hidden pt-3 pb-4" style={{ background: `linear-gradient(to bottom, ${theme.primary[3]}, ${theme.secondary[2]})`, zIndex: 1 }}>
+    <div className="relative w-full overflow-x-hidden pt-6 pb-6 mt-2" style={{
+      background: `linear-gradient(to bottom, transparent 0%, ${theme.primary[3]} 15%, ${theme.secondary[2]} 100%)`,
+    }}>
       <div className="px-4 relative z-20 mt-4 mb-3">
         <div className="flex items-center gap-2">
           <div className="flex-1 h-px bg-neutral-300"></div>

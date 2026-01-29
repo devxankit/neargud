@@ -4,7 +4,7 @@ import { FiTag } from 'react-icons/fi';
 import LazyImage from '../../../components/LazyImage';
 
 
-const NewArrivalsSection = ({ products = [], loading = false }) => {
+const NewArrivalsSection = ({ products = [], loading = false, theme = null }) => {
   const location = useLocation();
   const isMobileApp = location.pathname.startsWith('/app');
   const newArrivals = products.slice(0, 6);
@@ -19,7 +19,11 @@ const NewArrivalsSection = ({ products = [], loading = false }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       whileHover={{ scale: 1.01 }}
-      className="relative mx-4 my-4 rounded-2xl overflow-hidden shadow-xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500"
+      className={`relative mx-4 my-4 rounded-2xl overflow-hidden shadow-xl border-2 transition-all duration-500 ${!theme ? "border-cyan-200 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500" : ""}`}
+      style={theme ? {
+        background: `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[1]} 50%, ${theme.primary[2]} 100%)`,
+        borderColor: theme.accentColor + '40'
+      } : {}}
     >
       {/* Animated Gradient Overlay */}
       <motion.div
@@ -72,12 +76,12 @@ const NewArrivalsSection = ({ products = [], loading = false }) => {
       </div>
 
       {/* Content */}
-      <div className="relative px-4 py-5">
+      <div className="relative px-4 py-3">
         {/* Header with Badge */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <motion.div
-              className="bg-white/20 backdrop-blur-sm rounded-full p-2"
+              className="bg-black/10 backdrop-blur-sm rounded-full p-2"
               animate={{
                 scale: [1, 1.1, 1],
                 rotate: [0, 5, -5, 0],
@@ -99,7 +103,7 @@ const NewArrivalsSection = ({ products = [], loading = false }) => {
                   ease: 'easeInOut',
                 }}
               >
-                <FiTag className="text-white text-lg" />
+                <FiTag className="text-black text-lg" />
               </motion.div>
             </motion.div>
             <motion.div
@@ -108,23 +112,12 @@ const NewArrivalsSection = ({ products = [], loading = false }) => {
               transition={{ delay: 0.2 }}
             >
               <motion.h2
-                className="text-xl font-extrabold text-white drop-shadow-lg"
-                animate={{
-                  textShadow: [
-                    '0 2px 4px rgba(0,0,0,0.2)',
-                    '0 4px 8px rgba(255,255,255,0.3)',
-                    '0 2px 4px rgba(0,0,0,0.2)',
-                  ],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
+                className="text-xl font-black text-black tracking-tight"
+                style={{ textShadow: '0 1px 1px rgba(255,255,255,0.4)' }}
               >
                 New Arrivals
               </motion.h2>
-              <p className="text-xs text-white/90 font-medium">Fresh products just added</p>
+              <p className="text-[10px] text-black/70 font-black uppercase tracking-wider mt-0.5">Fresh products just added</p>
             </motion.div>
           </div>
           <motion.div
@@ -133,7 +126,7 @@ const NewArrivalsSection = ({ products = [], loading = false }) => {
           >
             <Link
               to="/app/search"
-              className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-3 py-1.5 rounded-lg hover:bg-white/30 transition-all block"
+              className="bg-white/30 backdrop-blur-md text-black text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-full border border-white/20 hover:bg-white/50 transition-all block"
             >
               See All
             </Link>

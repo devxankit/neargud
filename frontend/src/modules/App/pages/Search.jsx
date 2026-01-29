@@ -9,6 +9,7 @@ import SearchSuggestions from '../components/SearchSuggestions';
 import { fetchPublicProducts, fetchPublicVendors, fetchPublicCategories } from '../../../services/publicApi';
 import useInfiniteScroll from '../../../hooks/useInfiniteScroll';
 import toast from 'react-hot-toast';
+import PageTransition from '../../../components/PageTransition';
 
 const MobileSearch = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -221,7 +222,7 @@ const MobileSearch = () => {
   };
 
   return (
-    <MobileLayout showBottomNav={true} showCartBar={true}>
+    <PageTransition>
       <div className="w-full pb-24">
         {/* Search Header */}
         <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-30">
@@ -569,7 +570,7 @@ const MobileSearch = () => {
           )}
         </div>
       </div>
-    </MobileLayout>
+    </PageTransition>
   );
 };
 

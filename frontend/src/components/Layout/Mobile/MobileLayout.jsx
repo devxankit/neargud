@@ -1,13 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import MobileHeader from './MobileHeader';
 import MobileBottomNav from './MobileBottomNav';
 import MobileCartBar from './MobileCartBar';
 import useMobileHeaderHeight from '../../../hooks/useMobileHeaderHeight';
 
-const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, showHeader }) => {
+const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, showHeader, style = {} }) => {
   const location = useLocation();
-  const headerHeight = useMobileHeaderHeight();
+
+  // Use a stable header height for padding to avoid "pulling" during scroll folding
+  const rawHeaderHeight = useMobileHeaderHeight();
+  const [stableHeaderHeight, setStableHeaderHeight] = useState(rawHeaderHeight);
+
+  // Sync stable height only when it increases (transitioning between pages)
+  // or when at the top of the page. This prevents "pulling" while scrolling down.
+  useEffect(() => {
+    const isAtTop = window.scrollY < 20;
+    if (rawHeaderHeight > stableHeaderHeight || isAtTop) {
+      setStableHeaderHeight(rawHeaderHeight);
+    }
+  }, [rawHeaderHeight, stableHeaderHeight]); // Added stableHeaderHeight to dependencies
+
+  // Force reset on route change
+  useEffect(() => {
+    setStableHeaderHeight(rawHeaderHeight);
+  }, [location.pathname, rawHeaderHeight]); // Added rawHeaderHeight to dependencies
+
   const excludeHeaderRoutes = [
     '/app/categories',
     '/app/search',
@@ -63,11 +81,14 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
               showCartBar ? 'pb-24' : ''
           }`}
         style={{
-          paddingTop: shouldShowHeader ? `${headerHeight}px` : '0px',
+          paddingTop: shouldShowHeader ? `${stableHeaderHeight}px` : '10px',
           overflowY: isFullScreenPage ? 'hidden' : 'auto',
           WebkitOverflowScrolling: 'touch',
           height: isFullScreenPage ? '100vh' : 'auto',
           backgroundColor: location.pathname === '/app/reels' ? 'black' : 'transparent', // Black background for reels
+          transition: 'background 0.3s ease-in-out',
+          willChange: 'background',
+          ...style, // Merge custom styles
         }}
       >
         {children}

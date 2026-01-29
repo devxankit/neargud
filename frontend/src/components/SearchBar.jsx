@@ -201,7 +201,7 @@ const SearchBar = () => {
   // Render
   // ============================
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-2xl lg:max-w-3xl mx-auto group">
+    <div ref={wrapperRef} className={`relative w-full max-w-2xl lg:max-w-3xl mx-auto group transition-all duration-300 ${isFocused ? "z-[1001]" : "z-10"}`}>
       {/* Animated Glow Backdrop */}
       <AnimatePresence>
         {isFocused && (
@@ -209,7 +209,7 @@ const SearchBar = () => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="absolute -inset-1.5 bg-gradient-to-r from-purple-500/20 via-pink-500/10 to-blue-500/20 rounded-[22px] blur-xl z-0"
+            className="absolute -inset-1.5 bg-gradient-to-r from-purple-500/20 via-pink-500/10 to-blue-500/20 rounded-[22px] blur-xl z-[100]"
           />
         )}
       </AnimatePresence>
@@ -300,7 +300,7 @@ const SearchBar = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute z-[100] mt-3 w-full bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden py-3"
+            className="absolute z-[1001] mt-3 w-full bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100 py-3"
           >
             {/* Results for query */}
             {query.trim() && suggestions.length > 0 ? (

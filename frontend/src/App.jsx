@@ -4,214 +4,230 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "/src/context/ThemeContext";
 import "./utils/animations"; // Initialize GSAP settings early
+import RouteLoadingFallback from "./components/RouteLoadingFallback";
+
+// Critical routes - load immediately
 import Home from "./pages/Home";
-import ProductDetail from "./pages/ProductDetail";
-import Checkout from "./pages/Checkout";
-import Search from "./pages/Search";
-import VendorStore from "./pages/VendorStore";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Verification from "./pages/Verification";
-import Profile from "./pages/Profile";
-import Orders from "./pages/Orders";
-import Addresses from "./pages/Addresses";
-import Wishlist from "./pages/Wishlist";
-import ForgotPassword from "./pages/ForgotPassword";
-import Offers from "./pages/Offers";
-import DailyDeals from "./pages/DailyDeals";
-import FlashSale from "./pages/FlashSale";
-import CampaignPage from "./pages/CampaignPage";
-import Category from "./pages/Category";
-import Chat from "./pages/Chat";
+
+// Lazy load all other routes
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const Search = lazy(() => import("./pages/Search"));
+const VendorStore = lazy(() => import("./pages/VendorStore"));
+const Register = lazy(() => import("./pages/Register"));
+const Verification = lazy(() => import("./pages/Verification"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Addresses = lazy(() => import("./pages/Addresses"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const Offers = lazy(() => import("./pages/Offers"));
+const DailyDeals = lazy(() => import("./pages/DailyDeals"));
+const FlashSale = lazy(() => import("./pages/FlashSale"));
+const CampaignPage = lazy(() => import("./pages/CampaignPage"));
+const Category = lazy(() => import("./pages/Category"));
+const Chat = lazy(() => import("./pages/Chat"));
+
+// Core components - these need to be loaded
 import CartDrawer from "./components/Cart/CartDrawer";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
-import AdminLogin from "./pages/admin/Login";
+
+// Admin routes - lazy load the entire admin module
+const AdminLogin = lazy(() => import("./pages/admin/Login"));
 import AdminProtectedRoute from "./components/Admin/AdminProtectedRoute";
-import AdminLayout from "./components/Admin/Layout/AdminLayout";
-import Dashboard from "./pages/admin/Dashboard";
-import Products from "./pages/admin/Products";
-import ProductForm from "./pages/admin/ProductForm";
-import AdminOrders from "./pages/admin/Orders";
-import OrderDetail from "./pages/admin/OrderDetail";
-import ReturnRequests from "./pages/admin/ReturnRequests";
-import ReturnRequestDetail from "./pages/admin/ReturnRequestDetail";
-import Categories from "./pages/admin/Categories";
-import Brands from "./pages/admin/Brands";
-import Customers from "./pages/admin/Customers";
-import Inventory from "./pages/admin/Inventory";
-import Campaigns from "./pages/admin/Campaigns";
-import Banners from "./pages/admin/Banners";
-import Reviews from "./pages/admin/Reviews";
-import Analytics from "./pages/admin/Analytics";
-import Content from "./pages/admin/Content";
-import Settings from "./pages/admin/Settings";
-import More from "./pages/admin/More";
-import PromoCodes from "./pages/admin/PromoCodes";
+const AdminLayout = lazy(() => import("./components/Admin/Layout/AdminLayout"));
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const Products = lazy(() => import("./pages/admin/Products"));
+const ProductForm = lazy(() => import("./pages/admin/ProductForm"));
+const AdminOrders = lazy(() => import("./pages/admin/Orders"));
+const OrderDetail = lazy(() => import("./pages/admin/OrderDetail"));
+const ReturnRequests = lazy(() => import("./pages/admin/ReturnRequests"));
+const ReturnRequestDetail = lazy(() => import("./pages/admin/ReturnRequestDetail"));
+const Categories = lazy(() => import("./pages/admin/Categories"));
+const Brands = lazy(() => import("./pages/admin/Brands"));
+const Customers = lazy(() => import("./pages/admin/Customers"));
+const Inventory = lazy(() => import("./pages/admin/Inventory"));
+const Campaigns = lazy(() => import("./pages/admin/Campaigns"));
+const Banners = lazy(() => import("./pages/admin/Banners"));
+const Reviews = lazy(() => import("./pages/admin/Reviews"));
+const Analytics = lazy(() => import("./pages/admin/Analytics"));
+const Content = lazy(() => import("./pages/admin/Content"));
+const Settings = lazy(() => import("./pages/admin/Settings"));
+const More = lazy(() => import("./pages/admin/More"));
+const PromoCodes = lazy(() => import("./pages/admin/PromoCodes"));
 // Orders child pages
-import AllOrders from "./pages/admin/orders/AllOrders";
-import OrderTracking from "./pages/admin/orders/OrderTracking";
-import OrderNotifications from "./pages/admin/orders/OrderNotifications";
-import Invoice from "./pages/admin/orders/Invoice";
+const AllOrders = lazy(() => import("./pages/admin/orders/AllOrders"));
+const OrderTracking = lazy(() => import("./pages/admin/orders/OrderTracking"));
+const OrderNotifications = lazy(() => import("./pages/admin/orders/OrderNotifications"));
+const Invoice = lazy(() => import("./pages/admin/orders/Invoice"));
 // Products child pages
-import ManageProducts from "./pages/admin/products/ManageProducts";
-import AddProduct from "./pages/admin/products/AddProduct";
-import BulkUpload from "./pages/admin/products/BulkUpload";
-import TaxPricing from "./pages/admin/products/TaxPricing";
-import ProductRatings from "./pages/admin/products/ProductRatings";
-import ProductFAQs from "./pages/admin/products/ProductFAQs";
+const ManageProducts = lazy(() => import("./pages/admin/products/ManageProducts"));
+const AddProduct = lazy(() => import("./pages/admin/products/AddProduct"));
+const BulkUpload = lazy(() => import("./pages/admin/products/BulkUpload"));
+const TaxPricing = lazy(() => import("./pages/admin/products/TaxPricing"));
+const ProductRatings = lazy(() => import("./pages/admin/products/ProductRatings"));
+const ProductFAQs = lazy(() => import("./pages/admin/products/ProductFAQs"));
 // Attribute Management child pages
-import AttributeSets from "./pages/admin/attributes/AttributeSets";
-import Attributes from "./pages/admin/attributes/Attributes";
-import AttributeValues from "./pages/admin/attributes/AttributeValues";
+const AttributeSets = lazy(() => import("./pages/admin/attributes/AttributeSets"));
+const Attributes = lazy(() => import("./pages/admin/attributes/Attributes"));
+const AttributeValues = lazy(() => import("./pages/admin/attributes/AttributeValues"));
 // Categories child pages
-import ManageCategories from "./pages/admin/categories/ManageCategories";
-import CategoryOrder from "./pages/admin/categories/CategoryOrder";
+const ManageCategories = lazy(() => import("./pages/admin/categories/ManageCategories"));
+const CategoryOrder = lazy(() => import("./pages/admin/categories/CategoryOrder"));
 // Brands child pages
-import ManageBrands from "./pages/admin/brands/ManageBrands";
+const ManageBrands = lazy(() => import("./pages/admin/brands/ManageBrands"));
 // Customers child pages
-import ViewCustomers from "./pages/admin/customers/ViewCustomers";
-import CustomerAddresses from "./pages/admin/customers/Addresses";
-import Transactions from "./pages/admin/customers/Transactions";
-import CustomerDetailPage from "./pages/admin/customers/CustomerDetailPage";
+const ViewCustomers = lazy(() => import("./pages/admin/customers/ViewCustomers"));
+const CustomerAddresses = lazy(() => import("./pages/admin/customers/Addresses"));
+const Transactions = lazy(() => import("./pages/admin/customers/Transactions"));
+const CustomerDetailPage = lazy(() => import("./pages/admin/customers/CustomerDetailPage"));
 // Delivery Management child pages
-import DeliveryBoys from "./pages/admin/delivery/DeliveryBoys";
-import CashCollection from "./pages/admin/delivery/CashCollection";
+const DeliveryBoys = lazy(() => import("./pages/admin/delivery/DeliveryBoys"));
+const CashCollection = lazy(() => import("./pages/admin/delivery/CashCollection"));
 // Vendors child pages
-import Vendors from "./pages/admin/Vendors";
-import ManageVendors from "./pages/admin/vendors/ManageVendors";
-import PendingApprovals from "./pages/admin/vendors/PendingApprovals";
-import VendorDetail from "./pages/admin/vendors/VendorDetail";
-import CommissionRates from "./pages/admin/vendors/CommissionRates";
-import AdminVendorAnalytics from "./pages/admin/vendors/VendorAnalytics";
+const Vendors = lazy(() => import("./pages/admin/Vendors"));
+const ManageVendors = lazy(() => import("./pages/admin/vendors/ManageVendors"));
+const PendingApprovals = lazy(() => import("./pages/admin/vendors/PendingApprovals"));
+const VendorDetail = lazy(() => import("./pages/admin/vendors/VendorDetail"));
+const CommissionRates = lazy(() => import("./pages/admin/vendors/CommissionRates"));
+const AdminVendorAnalytics = lazy(() => import("./pages/admin/vendors/VendorAnalytics"));
 // Locations child pages
-import Cities from "./pages/admin/locations/Cities";
-import Zipcodes from "./pages/admin/locations/Zipcodes";
+const Cities = lazy(() => import("./pages/admin/locations/Cities"));
+const Zipcodes = lazy(() => import("./pages/admin/locations/Zipcodes"));
 // Offers & Sliders child pages
-import HomeSliders from "./pages/admin/offers/HomeSliders";
-import FestivalOffers from "./pages/admin/offers/FestivalOffers";
+const HomeSliders = lazy(() => import("./pages/admin/offers/HomeSliders"));
+const FestivalOffers = lazy(() => import("./pages/admin/offers/FestivalOffers"));
 // Notifications child pages
-import PushNotifications from "./pages/admin/notifications/PushNotifications";
-import CustomMessages from "./pages/admin/notifications/CustomMessages";
-import SendCustomNotification from "./pages/admin/notifications/SendCustomNotification";
+const PushNotifications = lazy(() => import("./pages/admin/notifications/PushNotifications"));
+const CustomMessages = lazy(() => import("./pages/admin/notifications/CustomMessages"));
+const SendCustomNotification = lazy(() => import("./pages/admin/notifications/SendCustomNotification"));
 // Support Desk child pages
-import LiveChat from "./pages/admin/support/LiveChat";
-import TicketTypes from "./pages/admin/support/TicketTypes";
-import Tickets from "./pages/admin/support/Tickets";
+const LiveChat = lazy(() => import("./pages/admin/support/LiveChat"));
+const TicketTypes = lazy(() => import("./pages/admin/support/TicketTypes"));
+const Tickets = lazy(() => import("./pages/admin/support/Tickets"));
 // Reports child pages
-import SalesReport from "./pages/admin/reports/SalesReport";
-import InventoryReport from "./pages/admin/reports/InventoryReport";
+const SalesReport = lazy(() => import("./pages/admin/reports/SalesReport"));
+const InventoryReport = lazy(() => import("./pages/admin/reports/InventoryReport"));
 // Analytics & Finance child pages
-import RevenueOverview from "./pages/admin/finance/RevenueOverview";
-import ProfitLoss from "./pages/admin/finance/ProfitLoss";
-import OrderTrends from "./pages/admin/finance/OrderTrends";
-import PaymentBreakdown from "./pages/admin/finance/PaymentBreakdown";
-import TaxReports from "./pages/admin/finance/TaxReports";
-import RefundReports from "./pages/admin/finance/RefundReports";
-import VendorWithdrawals from "./pages/admin/finance/VendorWithdrawals";
+const RevenueOverview = lazy(() => import("./pages/admin/finance/RevenueOverview"));
+const ProfitLoss = lazy(() => import("./pages/admin/finance/ProfitLoss"));
+const OrderTrends = lazy(() => import("./pages/admin/finance/OrderTrends"));
+const PaymentBreakdown = lazy(() => import("./pages/admin/finance/PaymentBreakdown"));
+const TaxReports = lazy(() => import("./pages/admin/finance/TaxReports"));
+const RefundReports = lazy(() => import("./pages/admin/finance/RefundReports"));
+const VendorWithdrawals = lazy(() => import("./pages/admin/finance/VendorWithdrawals"));
 // Consolidated Settings pages
-import PaymentShippingSettings from "./pages/admin/settings/PaymentShippingSettings";
-import OrdersCustomersSettings from "./pages/admin/settings/OrdersCustomersSettings";
-import ProductsInventorySettings from "./pages/admin/settings/ProductsInventorySettings";
-import ContentFeaturesSettings from "./pages/admin/settings/ContentFeaturesSettings";
-import NotificationsSEOSettings from "./pages/admin/settings/NotificationsSEOSettings";
+const PaymentShippingSettings = lazy(() => import("./pages/admin/settings/PaymentShippingSettings"));
+const OrdersCustomersSettings = lazy(() => import("./pages/admin/settings/OrdersCustomersSettings"));
+const ProductsInventorySettings = lazy(() => import("./pages/admin/settings/ProductsInventorySettings"));
+const ContentFeaturesSettings = lazy(() => import("./pages/admin/settings/ContentFeaturesSettings"));
+const NotificationsSEOSettings = lazy(() => import("./pages/admin/settings/NotificationsSEOSettings"));
 // Policies child pages
-import PrivacyPolicy from "./pages/admin/policies/PrivacyPolicy";
-import RefundPolicy from "./pages/admin/policies/RefundPolicy";
-import TermsConditions from "./pages/admin/policies/TermsConditions";
+const PrivacyPolicy = lazy(() => import("./pages/admin/policies/PrivacyPolicy"));
+const RefundPolicy = lazy(() => import("./pages/admin/policies/RefundPolicy"));
+const TermsConditions = lazy(() => import("./pages/admin/policies/TermsConditions"));
 // Firebase child pages
-import PushConfig from "./pages/admin/firebase/PushConfig";
-import Authentication from "./pages/admin/firebase/Authentication";
+const PushConfig = lazy(() => import("./pages/admin/firebase/PushConfig"));
+const Authentication = lazy(() => import("./pages/admin/firebase/Authentication"));
+
 import RouteWrapper from "./components/RouteWrapper";
 import ScrollToTop from "./components/ScrollToTop";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import OrderDetailPage from "./pages/OrderDetail";
-import TrackOrder from "./pages/TrackOrder";
-// Mobile App Routes
-import MobileHome from "./modules/App/pages/Home";
-import MobileProductDetail from "./modules/App/pages/ProductDetail";
-import MobileCategory from "./modules/App/pages/Category";
-import MobileCategories from "./modules/App/pages/categories";
-import MobileCheckout from "./modules/App/pages/Checkout";
-import MobileSearch from "./modules/App/pages/Search";
-import MobileLogin from "./modules/App/pages/Login";
-import MobileRegister from "./modules/App/pages/Register";
-import MobileVerification from "./modules/App/pages/Verification";
-import MobileProfile from "./modules/App/pages/Profile";
-import MobileOrders from "./modules/App/pages/Orders";
-import MobileOrderDetail from "./modules/App/pages/OrderDetail";
-import MobileAddresses from "./modules/App/pages/Addresses";
-import MobileWishlist from "./modules/App/pages/Wishlist";
-import MobileFavorites from "./modules/App/pages/Favorites";
-import MobileReels from "./modules/App/pages/Reels";
-import MobileOffers from "./modules/App/pages/Offers";
-import MobileDailyDeals from "./modules/App/pages/DailyDeals";
-import MobileFlashSale from "./modules/App/pages/FlashSale";
-import MobileTrackOrder from "./modules/App/pages/TrackOrder";
-import MobileOrderConfirmation from "./modules/App/pages/OrderConfirmation";
-import MobilePolicies from "./modules/App/pages/Policies";
-import MobileSavedCards from "./modules/App/pages/SavedCards";
-import Wallet from "./modules/App/pages/Wallet";
-import MobileNotifications from "./modules/App/pages/Notifications";
-import BrandManager from "./components/BrandManager";
-// Delivery Routes
-import DeliveryLogin from "./pages/delivery/Login";
-import DeliveryRegister from "./pages/delivery/Register";
-import DeliveryVerification from "./pages/delivery/Verification";
-import DeliveryForgotPassword from "./pages/delivery/ForgotPassword";
+const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
+const OrderDetailPage = lazy(() => import("./pages/OrderDetail"));
+const TrackOrder = lazy(() => import("./pages/TrackOrder"));
+// Mobile App Routes - lazy load to reduce initial bundle
+const MobileHome = lazy(() => import("./modules/App/pages/Home"));
+const MobileProductDetail = lazy(() => import("./modules/App/pages/ProductDetail"));
+const MobileCategory = lazy(() => import("./modules/App/pages/Category"));
+const MobileCategories = lazy(() => import("./modules/App/pages/categories"));
+const MobileCheckout = lazy(() => import("./modules/App/pages/Checkout"));
+const MobileSearch = lazy(() => import("./modules/App/pages/Search"));
+const MobileLogin = lazy(() => import("./modules/App/pages/Login"));
+const MobileRegister = lazy(() => import("./modules/App/pages/Register"));
+const MobileVerification = lazy(() => import("./modules/App/pages/Verification"));
+const MobileProfile = lazy(() => import("./modules/App/pages/Profile"));
+const MobileOrders = lazy(() => import("./modules/App/pages/Orders"));
+const MobileOrderDetail = lazy(() => import("./modules/App/pages/OrderDetail"));
+const MobileAddresses = lazy(() => import("./modules/App/pages/Addresses"));
+const MobileWishlist = lazy(() => import("./modules/App/pages/Wishlist"));
+const MobileFavorites = lazy(() => import("./modules/App/pages/Favorites"));
+const MobileReels = lazy(() => import("./modules/App/pages/Reels"));
+const MobileOffers = lazy(() => import("./modules/App/pages/Offers"));
+const MobileDailyDeals = lazy(() => import("./modules/App/pages/DailyDeals"));
+const MobileFlashSale = lazy(() => import("./modules/App/pages/FlashSale"));
+const MobileTrackOrder = lazy(() => import("./modules/App/pages/TrackOrder"));
+const MobileOrderConfirmation = lazy(() => import("./modules/App/pages/OrderConfirmation"));
+const MobilePolicies = lazy(() => import("./modules/App/pages/Policies"));
+const MobileSavedCards = lazy(() => import("./modules/App/pages/SavedCards"));
+const Wallet = lazy(() => import("./modules/App/pages/Wallet"));
+const MobileNotifications = lazy(() => import("./modules/App/pages/Notifications"));
+const BrandManager = lazy(() => import("./components/BrandManager"));
+import MobileAppLayout from "./components/Layout/Mobile/MobileAppLayout";
+// Delivery Routes - lazy load entire delivery module
+const DeliveryLogin = lazy(() => import("./pages/delivery/Login"));
+const DeliveryRegister = lazy(() => import("./pages/delivery/Register"));
+const DeliveryVerification = lazy(() => import("./pages/delivery/Verification"));
+const DeliveryForgotPassword = lazy(() => import("./pages/delivery/ForgotPassword"));
 import DeliveryProtectedRoute from "./components/Delivery/DeliveryProtectedRoute";
-import DeliveryLayout from "./components/Delivery/Layout/DeliveryLayout";
-import DeliveryDashboard from "./pages/delivery/Dashboard";
-import DeliveryOrders from "./pages/delivery/Orders";
-import DeliveryOrderDetail from "./pages/delivery/OrderDetail";
-import DeliveryProfile from "./pages/delivery/Profile";
-// Vendor Routes
-import VendorLogin from "./modules/vendor/pages/Login";
-import VendorRegister from "./modules/vendor/pages/Register";
-import VendorVerification from "./modules/vendor/pages/Verification";
-import VendorForgotPassword from "./modules/vendor/pages/ForgotPassword";
+const DeliveryLayout = lazy(() => import("./components/Delivery/Layout/DeliveryLayout"));
+const DeliveryDashboard = lazy(() => import("./pages/delivery/Dashboard"));
+const DeliveryOrders = lazy(() => import("./pages/delivery/Orders"));
+const DeliveryOrderDetail = lazy(() => import("./pages/delivery/OrderDetail"));
+const DeliveryProfile = lazy(() => import("./pages/delivery/Profile"));
+// Vendor Routes - lazy load entire vendor module
+const VendorLogin = lazy(() => import("./modules/vendor/pages/Login"));
+const VendorRegister = lazy(() => import("./modules/vendor/pages/Register"));
+const VendorVerification = lazy(() => import("./modules/vendor/pages/Verification"));
+const VendorForgotPassword = lazy(() => import("./modules/vendor/pages/ForgotPassword"));
 import VendorProtectedRoute from "./modules/vendor/components/VendorProtectedRoute";
-import VendorLayout from "./modules/vendor/components/Layout/VendorLayout";
-import VendorDashboard from "./modules/vendor/pages/Dashboard";
-import VendorProducts from "./modules/vendor/pages/Products";
-import VendorManageProducts from "./modules/vendor/pages/products/ManageProducts";
-import VendorAddProduct from "./modules/vendor/pages/products/AddProduct";
-import VendorBulkUpload from "./modules/vendor/pages/products/BulkUpload";
-import VendorProductForm from "./modules/vendor/pages/products/ProductForm";
-import VendorOrders from "./modules/vendor/pages/Orders";
-import VendorAllOrders from "./modules/vendor/pages/orders/AllOrders";
-import VendorOrderTracking from "./modules/vendor/pages/orders/OrderTracking";
-import VendorOrderDetail from "./modules/vendor/pages/orders/OrderDetail";
-import VendorAnalytics from "./modules/vendor/pages/Analytics";
-import VendorEarnings from "./modules/vendor/pages/Earnings";
-import VendorSettings from "./modules/vendor/pages/Settings";
-import VendorStockManagement from "./modules/vendor/pages/StockManagement";
-import VendorWalletHistory from "./modules/vendor/pages/WalletHistory";
-import VendorPickupLocations from "./modules/vendor/pages/PickupLocations";
-import VendorChat from "./modules/vendor/pages/Chat";
-import VendorReturnRequests from "./modules/vendor/pages/ReturnRequests";
-import VendorReturnRequestDetail from "./modules/vendor/pages/returns/ReturnRequestDetail";
-import VendorProductReviews from "./modules/vendor/pages/ProductReviews";
-import VendorPromotions from "./modules/vendor/pages/Promotions";
-import VendorNotifications from "./modules/vendor/pages/Notifications";
-import VendorProductFAQs from "./modules/vendor/pages/products/ProductFAQs";
-import VendorTaxPricing from "./modules/vendor/pages/TaxPricing";
-import VendorShippingManagement from "./modules/vendor/pages/ShippingManagement";
-import VendorCustomers from "./modules/vendor/pages/Customers";
-import VendorCustomerDetail from "./modules/vendor/pages/CustomerDetail";
-import VendorSupportTickets from "./modules/vendor/pages/SupportTickets";
-import VendorProductAttributes from "./modules/vendor/pages/ProductAttributes";
-import VendorInventoryReports from "./modules/vendor/pages/InventoryReports";
-import VendorPerformanceMetrics from "./modules/vendor/pages/PerformanceMetrics";
-import VendorDocuments from "./modules/vendor/pages/Documents";
-import VendorReels from "./modules/vendor/pages/Reels";
-import VendorAllReels from "./modules/vendor/pages/reels/AllReels";
-import VendorAddReel from "./modules/vendor/pages/reels/AddReel";
-import VendorEditReel from "./modules/vendor/pages/reels/EditReel";
-import VendorSocial from "./modules/vendor/pages/Social";
+const VendorLayout = lazy(() => import("./modules/vendor/components/Layout/VendorLayout"));
+const VendorDashboard = lazy(() => import("./modules/vendor/pages/Dashboard"));
+const VendorProducts = lazy(() => import("./modules/vendor/pages/Products"));
+const VendorManageProducts = lazy(() => import("./modules/vendor/pages/products/ManageProducts"));
+const VendorAddProduct = lazy(() => import("./modules/vendor/pages/products/AddProduct"));
+const VendorBulkUpload = lazy(() => import("./modules/vendor/pages/products/BulkUpload"));
+const VendorProductForm = lazy(() => import("./modules/vendor/pages/products/ProductForm"));
+const VendorOrders = lazy(() => import("./modules/vendor/pages/Orders"));
+const VendorAllOrders = lazy(() => import("./modules/vendor/pages/orders/AllOrders"));
+const VendorOrderTracking = lazy(() => import("./modules/vendor/pages/orders/OrderTracking"));
+const VendorOrderDetail = lazy(() => import("./modules/vendor/pages/orders/OrderDetail"));
+const VendorAnalytics = lazy(() => import("./modules/vendor/pages/Analytics"));
+const VendorEarnings = lazy(() => import("./modules/vendor/pages/Earnings"));
+const VendorSettings = lazy(() => import("./modules/vendor/pages/Settings"));
+
+
+
+
+const VendorStockManagement = lazy(() => import("./modules/vendor/pages/StockManagement"));
+const VendorWalletHistory = lazy(() => import("./modules/vendor/pages/WalletHistory"));
+const VendorPickupLocations = lazy(() => import("./modules/vendor/pages/PickupLocations"));
+const VendorChat = lazy(() => import("./modules/vendor/pages/Chat"));
+const VendorReturnRequests = lazy(() => import("./modules/vendor/pages/ReturnRequests"));
+const VendorReturnRequestDetail = lazy(() => import("./modules/vendor/pages/returns/ReturnRequestDetail"));
+const VendorProductReviews = lazy(() => import("./modules/vendor/pages/ProductReviews"));
+const VendorPromotions = lazy(() => import("./modules/vendor/pages/Promotions"));
+const VendorNotifications = lazy(() => import("./modules/vendor/pages/Notifications"));
+const VendorProductFAQs = lazy(() => import("./modules/vendor/pages/products/ProductFAQs"));
+const VendorTaxPricing = lazy(() => import("./modules/vendor/pages/TaxPricing"));
+const VendorShippingManagement = lazy(() => import("./modules/vendor/pages/ShippingManagement"));
+const VendorCustomers = lazy(() => import("./modules/vendor/pages/Customers"));
+const VendorCustomerDetail = lazy(() => import("./modules/vendor/pages/CustomerDetail"));
+const VendorSupportTickets = lazy(() => import("./modules/vendor/pages/SupportTickets"));
+const VendorProductAttributes = lazy(() => import("./modules/vendor/pages/ProductAttributes"));
+const VendorInventoryReports = lazy(() => import("./modules/vendor/pages/InventoryReports"));
+const VendorPerformanceMetrics = lazy(() => import("./modules/vendor/pages/PerformanceMetrics"));
+const VendorDocuments = lazy(() => import("./modules/vendor/pages/Documents"));
+const VendorReels = lazy(() => import("./modules/vendor/pages/Reels"));
+const VendorAllReels = lazy(() => import("./modules/vendor/pages/reels/AllReels"));
+const VendorAddReel = lazy(() => import("./modules/vendor/pages/reels/AddReel"));
+const VendorEditReel = lazy(() => import("./modules/vendor/pages/reels/EditReel"));
+const VendorSocial = lazy(() => import("./modules/vendor/pages/Social"));
 
 // Inner component that has access to useLocation
 import {
@@ -219,7 +235,6 @@ import {
   setupForegroundNotificationHandler,
 } from "./services/pushNotificationService";
 import { useNotificationListeners } from "./hooks/useNotificationListeners";
-import { useEffect } from "react";
 
 const AppRoutes = () => {
   // Use notification listeners for real-time socket updates
@@ -703,238 +718,79 @@ const AppRoutes = () => {
       {/* Mobile App Routes */}
       <Route
         path="/app"
-        element={
-          <RouteWrapper>
-            <MobileHome />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/product/:id"
-        element={
-          <RouteWrapper>
-            <MobileProductDetail />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/category/:id"
-        element={
-          <RouteWrapper>
-            <MobileCategory />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/chat"
-        element={
-          <RouteWrapper>
-            <Chat />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/categories"
-        element={
-          <RouteWrapper>
-            <MobileCategories />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/vendor/:id"
-        element={
-          <RouteWrapper>
-            <VendorStore />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/checkout"
-        element={
-          <RouteWrapper>
+        element={<MobileAppLayout />}>
+        <Route index element={<MobileHome />} />
+        <Route path="product/:id" element={<MobileProductDetail />} />
+        <Route path="category/:id" element={<MobileCategory />} />
+        <Route path="chat" element={<Chat />} />
+        <Route path="categories" element={<MobileCategories />} />
+        <Route path="vendor/:id" element={<VendorStore />} />
+        <Route
+          path="checkout"
+          element={
             <ProtectedRoute>
               <MobileCheckout />
             </ProtectedRoute>
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/search"
-        element={
-          <RouteWrapper>
-            <MobileSearch />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/reels"
-        element={
-          <RouteWrapper>
-            <MobileReels />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/login"
-        element={
-          <RouteWrapper>
-            <MobileLogin />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/register"
-        element={
-          <RouteWrapper>
-            <MobileRegister />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/verification"
-        element={
-          <RouteWrapper>
-            <MobileVerification />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/forgot-password"
-        element={
-          <RouteWrapper>
-            <ForgotPassword />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/wishlist"
-        element={
-          <RouteWrapper>
-            <MobileWishlist />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/favorites"
-        element={
-          <RouteWrapper>
-            <MobileFavorites />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/offers"
-        element={
-          <RouteWrapper>
-            <MobileOffers />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/daily-deals"
-        element={
-          <RouteWrapper>
-            <MobileDailyDeals />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/flash-sale"
-        element={
-          <RouteWrapper>
-            <MobileFlashSale />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/order-confirmation/:orderId"
-        element={
-          <RouteWrapper>
-            <MobileOrderConfirmation />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/orders/:orderId"
-        element={
-          <RouteWrapper>
-            <MobileOrderDetail />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/track-order/:orderId"
-        element={
-          <RouteWrapper>
-            <MobileTrackOrder />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/profile"
-        element={
-          <RouteWrapper>
+          }
+        />
+        <Route path="search" element={<MobileSearch />} />
+        <Route path="reels" element={<MobileReels />} />
+        <Route path="login" element={<MobileLogin />} />
+        <Route path="register" element={<MobileRegister />} />
+        <Route path="verification" element={<MobileVerification />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="wishlist" element={<MobileWishlist />} />
+        <Route path="favorites" element={<MobileFavorites />} />
+        <Route path="offers" element={<MobileOffers />} />
+        <Route path="daily-deals" element={<MobileDailyDeals />} />
+        <Route path="flash-sale" element={<MobileFlashSale />} />
+        <Route path="order-confirmation/:orderId" element={<MobileOrderConfirmation />} />
+        <Route path="orders/:orderId" element={<MobileOrderDetail />} />
+        <Route path="track-order/:orderId" element={<MobileTrackOrder />} />
+        <Route
+          path="profile"
+          element={
             <ProtectedRoute>
               <MobileProfile />
             </ProtectedRoute>
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/orders"
-        element={
-          <RouteWrapper>
+          }
+        />
+        <Route
+          path="orders"
+          element={
             <ProtectedRoute>
               <MobileOrders />
             </ProtectedRoute>
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/addresses"
-        element={
-          <RouteWrapper>
+          }
+        />
+        <Route
+          path="addresses"
+          element={
             <ProtectedRoute>
               <MobileAddresses />
             </ProtectedRoute>
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/cards"
-        element={
-          <RouteWrapper>
-            <MobileSavedCards />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/help"
-        element={
-          <RouteWrapper>
-            <Chat />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/policies"
-        element={
-          <RouteWrapper>
-            <MobilePolicies />
-          </RouteWrapper>
-        }
-      />
-      <Route
-        path="/app/notifications"
-        element={
-          <RouteWrapper>
+          }
+        />
+        <Route path="cards" element={<MobileSavedCards />} />
+        <Route path="help" element={<Chat />} />
+        <Route path="policies" element={<MobilePolicies />} />
+        <Route
+          path="notifications"
+          element={
             <ProtectedRoute>
               <MobileNotifications />
             </ProtectedRoute>
-          </RouteWrapper>
-        }
-      />
+          }
+        />
+        <Route
+          path="wallet"
+          element={
+            <ProtectedRoute>
+              <Wallet />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
     </Routes>
   );
 };
@@ -1007,7 +863,9 @@ function App() {
           }}>
           <ScrollToTop />
           <BrandManager />
-          <AppRoutes />
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <AppRoutes />
+          </Suspense>
           <CartDrawer />
           <Toaster
             position="top-right"

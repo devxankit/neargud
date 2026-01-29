@@ -169,11 +169,20 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
     }
   };
 
+  // Memoize discount calculation
+  const discount = useMemo(() => {
+    if (product.originalPrice && product.originalPrice > product.price) {
+      return Math.round(
+        ((product.originalPrice - product.price) / product.originalPrice) * 100
+      );
+    }
+    return 0;
+  }, [product.price, product.originalPrice]);
+
   return (
     <>
-      <motion.div
-        whileTap={{ scale: 0.98 }}
-        className="rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-white"
+      <div
+        className="product-card rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-md active:scale-98"
         {...longPressHandlers}>
         <div className="relative">
           <div className="absolute top-1.5 right-1.5 z-10">
@@ -181,11 +190,10 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               onClick={handleFavorite}
               className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
-                className={`text-xs transition-all duration-300 ${
-                  isFavorite
+                className={`text-xs transition-all duration-300 ${isFavorite
                     ? "text-primary-700 fill-primary-700 scale-110"
                     : "text-gray-400 group-hover:text-primary-500"
-                }`}
+                  }`}
               />
             </button>
           </div>
@@ -196,6 +204,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
                 src={product.image}
                 alt={product.name}
                 className="w-full h-full object-contain p-4 mix-blend-multiply"
+                loading="lazy"
               />
             </div>
           </Link>
@@ -245,19 +254,14 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
                 {formatPrice(product.originalPrice)}
               </span>
             )}
-            {product.originalPrice && product.originalPrice > product.price && (
+            {discount > 0 && (
               <span className="text-[9px] font-bold text-green-600">
-                {Math.round(
-                  ((product.originalPrice - product.price) /
-                    product.originalPrice) *
-                    100,
-                )}
-                % OFF
+                {discount}% OFF
               </span>
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <LongPressMenu
         isOpen={showLongPressMenu}

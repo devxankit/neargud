@@ -5,28 +5,38 @@ import { FiThumbsUp, FiArrowRight } from "react-icons/fi";
 import ProductCard from "../../../components/ProductCard";
 
 
-const RecommendedSection = ({ products = [], loading = false }) => {
+const RecommendedSection = ({ products = [], loading = false, theme = null }) => {
   if (!loading && products.length === 0) {
     return null;
   }
 
   return (
-    <div className="px-4 py-5 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/40 rounded-2xl mx-2">
+    <div
+      className={`px-4 py-5 rounded-2xl mx-2 transition-all duration-500 ${!theme ? "bg-gradient-to-br from-blue-50/50 via-white to-purple-50/40" : ""}`}
+      style={theme ? {
+        background: `linear-gradient(135deg, ${theme.primary[3]?.replace('rgb', 'rgba').replace(')', ', 0.3)') || 'rgba(255,255,255,0.5)'} 0%, rgba(255,255,255,0.8) 50%, ${theme.primary[2]?.replace('rgb', 'rgba').replace(')', ', 0.2)') || 'rgba(255,255,255,0.4)'} 100%)`,
+        border: `1px solid ${theme.primary[1]}20`
+      } : {}}
+    >
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl shadow-md">
+          <div
+            className={`p-2.5 rounded-xl shadow-lg border border-white/20 ${!theme ? "bg-gradient-to-br from-blue-500 to-purple-500" : ""}`}
+            style={theme ? { backgroundColor: theme.accentColor } : {}}
+          >
             <FiThumbsUp className="text-white text-lg" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800 leading-tight">
+            <h2 className="text-xl font-black text-black tracking-tight leading-tight" style={{ textShadow: '0 1px 1px rgba(255,255,255,0.4)' }}>
               Recommended for You
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">Curated just for you</p>
+            <p className="text-[10px] text-black/70 font-black uppercase tracking-widest mt-0.5">Curated just for you</p>
           </div>
         </div>
         <Link
           to="/app/search"
-          className="flex items-center gap-1 text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors active:scale-95">
+          className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 bg-white/40 backdrop-blur-md rounded-full shadow-sm hover:bg-white/60 transition-all active:scale-95"
+          style={{ color: '#000000' }}>
           <span>See All</span>
           <FiArrowRight className="text-sm" />
         </Link>

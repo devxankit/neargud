@@ -508,9 +508,9 @@ export default function PromoStrip({
       ref={containerRef}
       className="relative w-full overflow-x-hidden"
       style={{
-        background: `linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]}, ${theme.primary[3]}, ${theme.primary[3]})`,
-        paddingTop: '12px',
-        paddingBottom: '0px',
+        background: 'transparent',
+        paddingTop: '0px',
+        paddingBottom: '20px',
         marginTop: 0,
         ...leatherTexture,
         ...goldenTexture,
@@ -518,7 +518,7 @@ export default function PromoStrip({
       }}
     >
       {/* HOUSEFULL SALE Banner */}
-      <div className="px-4 mb-3 text-center relative" style={{ minHeight: '110px' }}>
+      <div className="px-4 mb-2 text-center relative" style={{ minHeight: '80px' }}>
         {/* Snowflakes Container */}
         <div
           ref={snowflakesRef}
@@ -657,12 +657,12 @@ export default function PromoStrip({
       <div className="px-4 mt-2 w-full overflow-x-hidden">
         <div className="flex gap-2 w-full">
           {/* Crazy Deals Section - Left */}
-          <div className="flex-shrink-0 w-[100px] promo-card">
+          <div className="flex-shrink-0 w-[95px] promo-card">
             <div
               className="h-full rounded-lg p-1 flex flex-col items-center justify-between relative overflow-hidden"
               style={{
                 background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
-                minHeight: '110px',
+                minHeight: '85px',
               }}
             >
               {/* CRAZY DEALS - Two lines, bigger */}
@@ -769,7 +769,7 @@ export default function PromoStrip({
                     to={linkTo}
                     className="group block rounded-lg transition-all duration-300 hover:shadow-xl active:scale-[0.98] h-full flex flex-col overflow-hidden relative"
                     style={{
-                      minHeight: '90px',
+                      minHeight: '75px',
                       background: isLeatherTheme
                         ? `linear-gradient(135deg, rgba(245, 222, 179, 0.9) 0%, rgba(222, 184, 135, 0.85) 50%, rgba(245, 222, 179, 0.9) 100%)`
                         : `linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.75) 50%, rgba(255, 255, 255, 0.85) 100%)`,

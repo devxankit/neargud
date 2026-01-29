@@ -3,6 +3,7 @@ import { FiHeart, FiArrowLeft, FiGrid, FiList, FiLoader } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import MobileLayout from "../../../components/Layout/Mobile/MobileLayout";
+import PageTransition from "../../../components/PageTransition";
 import SwipeableWishlistItem from "../components/SwipeableWishlistItem";
 import WishlistGridItem from "../components/WishlistGridItem";
 import { useWishlistStore } from "../../../store/wishlistStore";
@@ -53,7 +54,7 @@ const MobileWishlist = () => {
   };
 
   return (
-    <MobileLayout showBottomNav={true} showCartBar={true}>
+    <PageTransition>
       <div className="w-full pb-24">
         {/* Header */}
         <div className="px-4 py-4 bg-white border-b border-gray-200 sticky top-1 z-40 shadow-sm">
@@ -121,7 +122,7 @@ const MobileWishlist = () => {
           )}
         </div>
       </div>
-    </MobileLayout>
+    </PageTransition>
   );
 };
 

@@ -37,6 +37,13 @@ import PageTransition from "../../../components/PageTransition";
 import { useContentStore } from "../../../store/contentStore";
 import { getTheme } from "../../../utils/themes";
 
+// Skeletons
+import HeroCarouselSkeleton from "../../../components/Skeletons/HeroCarouselSkeleton";
+import CategoryBubblesSkeleton from "../../../components/Skeletons/CategoryBubblesSkeleton";
+import PromoStripSkeleton from "../../../components/Skeletons/PromoStripSkeleton";
+import VendorsSkeleton from "../../../components/Skeletons/VendorsSkeleton";
+import ProductGridSkeleton from "../../../components/Skeletons/ProductGridSkeleton";
+
 const MobileHome = () => {
   const { activeTab } = useTheme();
   const theme = getTheme(activeTab);
@@ -63,87 +70,118 @@ const MobileHome = () => {
   const [brands, setBrands] = useState([]);
   const [reels, setReels] = useState([]);
   const [categoryProducts, setCategoryProducts] = useState({});
-  const [loading, setLoading] = useState(true);
+  // Loading states for progressive rendering
+  const [loadingCritical, setLoadingCritical] = useState(true);
+  const [loadingSecondary, setLoadingSecondary] = useState(true);
+  const [loadingTertiary, setLoadingTertiary] = useState(true);
 
-  const fetchData = async () => {
+  // Critical Data: Banners & Categories (Needed for "Above the Fold" content)
+  const fetchCriticalData = async () => {
     try {
-      setLoading(true);
-      const [
-        bannersRes,
-        categoriesRes,
-        popularRes,
-        flashRes,
-        recommendedRes,
-        vendorsRes,
-        arrivalsRes,
-        dailyDealsRes,
-        trendingRes,
-        brandsRes,
-        reelsRes
-      ] = await Promise.all([
+      setLoadingCritical(true);
+      const [bannersRes, categoriesRes] = await Promise.all([
         fetchActiveBanners({ city: currentCity?.name || '' }),
-        fetchPublicCategories(),
-        fetchPublicProducts({ limit: 6, sort: '-popularity' }),
-        fetchPublicProducts({ limit: 4, flashSale: true }),
-        fetchRecommendedProducts(),
-        fetchPublicVendors(),
-        fetchPublicProducts({ limit: 6, sort: '-createdAt' }),
-        fetchPublicProducts({ limit: 8, isCrazyDeal: true }),
-        fetchPublicProducts({ limit: 6, isTrending: true }),
-        fetchPublicBrands(),
-        fetchPublicReels()
+        fetchPublicCategories()
       ]);
 
       if (bannersRes.success) setBanners(bannersRes.data.banners || []);
+
+      let validCategories = [];
       if (categoriesRes.success) {
-        setCategories((categoriesRes.data.categories || []).filter(cat => !cat.parentId));
+        validCategories = (categoriesRes.data.categories || []).filter(cat => !cat.parentId);
+        setCategories(validCategories);
       }
-      if (popularRes.success) setMostPopular(popularRes.data.products || []);
-      if (flashRes.success) setFlashSale(flashRes.data.products || []);
-      if (recommendedRes.success) setRecommended(recommendedRes.data.products || []);
-      if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
-      if (arrivalsRes.success) setNewArrivals(arrivalsRes.data.products || []);
-      if (dailyDealsRes.success) setDailyDeals(dailyDealsRes.data.products || []);
-      if (trendingRes.success) setTrending(trendingRes.data.products || []);
-      if (brandsRes.success) setBrands(brandsRes.data.brands || []);
-      if (reelsRes && (reelsRes.success || reelsRes.data)) setReels(reelsRes.data?.reels || reelsRes.success?.data?.reels || []);
 
-      // Fetch products for top 4 categories for PromoStrip
-      if (categoriesRes.success) {
-        const cats = (categoriesRes.data.categories || []).filter(cat => !cat.parentId).slice(0, 4);
-        const catProductsMap = {};
-
-        await Promise.all(cats.map(async (cat) => {
-          try {
-            const res = await fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 });
-            if (res.success) {
-              catProductsMap[cat._id || cat.id] = res.data.products;
-            }
-          } catch (e) {
-            console.error(`Error fetching products for category ${cat.name}:`, e);
-          }
-        }));
-
-        setCategoryProducts(catProductsMap);
+      // Pre-fetch category products for PromoStrip immediately after categories
+      if (validCategories.length > 0) {
+        fetchCategoryProducts(validCategories.slice(0, 4));
       }
+
+      setLoadingCritical(false);
+
+      // Trigger next phase
+      fetchSecondaryData();
     } catch (error) {
-      console.error("Error fetching home data:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching critical data:", error);
+      setLoadingCritical(false);
+      // Still try to fetch others
+      fetchSecondaryData();
     }
   };
 
-  // ... (Keep existing useEffect for mock data if needed, or remove) ...
-  useEffect(() => {
-    // ... mock data logic ...
-  }, [loading]);
+  const fetchCategoryProducts = async (cats) => {
+    const catProductsMap = {};
+    await Promise.all(cats.map(async (cat) => {
+      try {
+        const res = await fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 });
+        if (res.success) {
+          catProductsMap[cat._id || cat.id] = res.data.products;
+        }
+      } catch (e) {
+        console.error(`Error fetching products for category ${cat.name}:`, e);
+      }
+    }));
+    setCategoryProducts(prev => ({ ...prev, ...catProductsMap }));
+  };
+
+  // Secondary Data: Vendor Lists, Flash Sales, Most Popular (Visible on first scroll)
+  const fetchSecondaryData = async () => {
+    try {
+      setLoadingSecondary(true);
+      const [vendorsRes, flashRes, popularRes, brandsRes] = await Promise.all([
+        fetchPublicVendors(),
+        fetchPublicProducts({ limit: 4, flashSale: true }),
+        fetchPublicProducts({ limit: 6, sort: '-popularity' }),
+        fetchPublicBrands()
+      ]);
+
+      if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
+      if (flashRes.success) setFlashSale(flashRes.data.products || []);
+      if (popularRes.success) setMostPopular(popularRes.data.products || []);
+      if (brandsRes.success) setBrands(brandsRes.data.brands || []);
+
+      setLoadingSecondary(false);
+
+      // Trigger final phase
+      fetchTertiaryData();
+    } catch (error) {
+      console.error("Error fetching secondary data:", error);
+      setLoadingSecondary(false);
+      fetchTertiaryData();
+    }
+  };
+
+  // Tertiary Data: Recommendations, New Arrivals, Deals, Trending, Reels
+  const fetchTertiaryData = async () => {
+    try {
+      setLoadingTertiary(true);
+      const [recommendedRes, arrivalsRes, dailyDealsRes, trendingRes, reelsRes] = await Promise.all([
+        fetchRecommendedProducts(),
+        fetchPublicProducts({ limit: 6, sort: '-createdAt' }),
+        fetchPublicProducts({ limit: 8, isCrazyDeal: true }),
+        fetchPublicProducts({ limit: 6, isTrending: true }),
+        fetchPublicReels()
+      ]);
+
+      if (recommendedRes.success) setRecommended(recommendedRes.data.products || []);
+      if (arrivalsRes.success) setNewArrivals(arrivalsRes.data.products || []);
+      if (dailyDealsRes.success) setDailyDeals(dailyDealsRes.data.products || []);
+      if (trendingRes.success) setTrending(trendingRes.data.products || []);
+      if (reelsRes && (reelsRes.success || reelsRes.data)) setReels(reelsRes.data?.reels || reelsRes.success?.data?.reels || []);
+
+      setLoadingTertiary(false);
+    } catch (error) {
+      console.error("Error fetching tertiary data:", error);
+      setLoadingTertiary(false);
+    }
+  };
 
   useEffect(() => {
-    fetchData();
+    fetchCriticalData();
   }, [currentCity]);
 
   const handleRefresh = async () => {
-    await fetchData();
+    await fetchCriticalData();
     toast.success("Feed updated");
   };
 
@@ -166,8 +204,14 @@ const MobileHome = () => {
     visible: { y: 0, opacity: 1 }
   };
 
+  const homeBackground = `linear-gradient(to bottom, 
+    ${theme.primary[0]} 0px, 
+    ${theme.primary[1]} 350px, 
+    #f8fafc 600px, 
+    #f8fafc 100%)`;
+
   return (
-    <MobileLayout>
+    <PageTransition>
       <div
         ref={elementRef}
         className="w-full overflow-x-hidden scrollbar-hide min-h-screen"
@@ -177,18 +221,21 @@ const MobileHome = () => {
         style={{
           transform: `translateY(${Math.min(pullDistance, 80)}px)`,
           transition: isPulling ? "none" : "transform 0.3s ease-out",
-          background: `linear-gradient(to bottom, ${theme.primary[0]} 0%, ${theme.primary[1]} 15%, #f8fafc 30%, #f8fafc 100%)`
         }}>
 
-        <PromoStrip
-          activeTab={activeTab}
-          categories={categories}
-          categoryProducts={categoryProducts}
-          crazyDeals={dailyDeals}
-          heroBanner={
-            <HeroCarousel banners={banners} loading={loading} />
-          }
-        />
+        {loadingCritical ? (
+          <PromoStripSkeleton />
+        ) : (
+          <PromoStrip
+            activeTab={activeTab}
+            categories={categories}
+            categoryProducts={categoryProducts}
+            crazyDeals={dailyDeals}
+            heroBanner={
+              <HeroCarousel banners={banners} loading={loadingCritical} />
+            }
+          />
+        )}
 
         {/* Featured Categories Bubbles */}
         {/* <HomeCategoryBubble categories={categories} loading={loading} /> */}
@@ -198,7 +245,7 @@ const MobileHome = () => {
 
         {/* Brand Logos Scroll */}
         <div className="py-2">
-          <BrandLogosScroll brands={brands} loading={loading} />
+          <BrandLogosScroll brands={brands} loading={loadingSecondary} />
         </div>
 
         <motion.div
@@ -209,12 +256,16 @@ const MobileHome = () => {
         >
           {/* Featured Vendors Section */}
           <motion.div variants={itemVariants}>
-            <FeaturedVendorsSection vendors={vendors} loading={loading} />
+            {loadingSecondary ? (
+              <VendorsSkeleton />
+            ) : (
+              <FeaturedVendorsSection vendors={vendors} loading={loadingSecondary} theme={theme} />
+            )}
           </motion.div>
 
           {/* Trending Visuals (Reels) */}
           <motion.div variants={itemVariants}>
-            <TrendingReelsSection reels={reels} loading={loading} />
+            <TrendingReelsSection reels={reels} loading={loadingTertiary} />
           </motion.div>
 
           {/* Trending Now Products (NEW) */}
@@ -227,8 +278,8 @@ const MobileHome = () => {
               <Link to="/app/trending" className="text-sm text-pink-600 font-bold bg-pink-50 px-3 py-1.5 rounded-full">See All</Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {loading
-                ? [1, 2, 3, 4].map((i) => <ProductSkeleton key={i} />)
+              {loadingTertiary
+                ? <ProductGridSkeleton count={4} />
                 : trending.map((product) => (
                   <ProductCard key={product._id || product.id} product={product} />
                 ))}
@@ -242,7 +293,11 @@ const MobileHome = () => {
 
           {/* New Arrivals */}
           <motion.div variants={itemVariants}>
-            <NewArrivalsSection products={newArrivals} loading={loading} />
+            {loadingTertiary ? (
+              <ProductGridSkeleton count={6} />
+            ) : (
+              <NewArrivalsSection products={newArrivals} loading={loadingTertiary} theme={theme} />
+            )}
           </motion.div>
 
           {/* ... Rest of existing sections ... */}
@@ -281,8 +336,8 @@ const MobileHome = () => {
               <Link to="/app/search" className="text-sm text-primary-600 font-bold bg-primary-50 px-3 py-1.5 rounded-full">See All</Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {loading
-                ? [1, 2, 3, 4].map((i) => <ProductSkeleton key={i} />)
+              {loadingSecondary
+                ? <ProductGridSkeleton count={4} />
                 : mostPopular.map((product, index) => (
                   <ProductCard key={product._id || product.id} product={product} />
                 ))}
@@ -291,7 +346,7 @@ const MobileHome = () => {
 
           {/* Daily Deals */}
           <motion.div variants={itemVariants}>
-            <DailyDealsSection products={dailyDeals} loading={loading} />
+            <DailyDealsSection products={dailyDeals} loading={loadingTertiary} />
           </motion.div>
 
           {/* Flash Sale */}
@@ -329,7 +384,7 @@ const MobileHome = () => {
 
           {/* Recommended for You */}
           <motion.div variants={itemVariants}>
-            <RecommendedSection products={recommended} loading={loading} />
+            <RecommendedSection products={recommended} loading={loadingTertiary} theme={theme} />
           </motion.div>
         </motion.div>
 
@@ -358,7 +413,7 @@ const MobileHome = () => {
         </motion.div>
 
       </div>
-    </MobileLayout>
+    </PageTransition>
   );
 };
 
