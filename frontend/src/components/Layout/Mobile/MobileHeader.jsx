@@ -210,10 +210,10 @@ const MobileHeader = () => {
       </motion.div>
     ) : null;
 
-  // Reset header visibility when category changes
+  // Reset header visibility when path or category changes
   useEffect(() => {
     setIsTopRowVisible(true);
-  }, [currentCategoryId]);
+  }, [location.pathname, currentCategoryId]);
 
   const headerContent = (
     <motion.header

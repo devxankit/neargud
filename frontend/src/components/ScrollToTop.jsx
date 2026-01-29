@@ -6,43 +6,38 @@ import { useLocation } from 'react-router-dom';
  * Works for both desktop and mobile views
  */
 const ScrollToTop = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   useEffect(() => {
-    // Scroll window to top (for desktop and mobile)
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'instant', // Use 'instant' for immediate scroll, or 'smooth' for animated
-    });
+    // Prevent browser from managing scroll restoration automatically
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
 
-    // Also handle scrollable main containers in admin layouts
-    // Use setTimeout to ensure DOM is updated after route change
-    setTimeout(() => {
-      // Scroll main elements that have overflow (admin layouts have scrollable main containers)
-      const mainElements = document.querySelectorAll('main');
-      mainElements.forEach((main) => {
-        const styles = window.getComputedStyle(main);
-        if (styles.overflowY === 'auto' || styles.overflowY === 'scroll') {
-          main.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: 'instant',
-          });
-        }
-      });
+    const resetScroll = () => {
+      // 1. Window scroll
+      window.scrollTo(0, 0);
 
-      // Also handle any scrollable containers with data attribute
-      const scrollableContainers = document.querySelectorAll('[data-scroll-container]');
-      scrollableContainers.forEach((container) => {
-        container.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'instant',
-        });
+      // 2. Elements that might have their own scroll
+      const elementsToReset = [
+        document.documentElement,
+        document.body,
+        ...document.querySelectorAll('main, [data-scroll-container], .overflow-y-auto')
+      ];
+
+      elementsToReset.forEach(el => {
+        if (el && el.scrollTop !== 0) el.scrollTop = 0;
       });
-    }, 0);
-  }, [pathname]);
+    };
+
+    // Immediate
+    resetScroll();
+
+    // Repeated attempts to catch late rendering or browser overrides
+    const timers = [10, 50, 100, 200].map(delay => setTimeout(resetScroll, delay));
+
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [pathname, search]);
 
   return null;
 };

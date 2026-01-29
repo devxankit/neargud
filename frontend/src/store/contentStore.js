@@ -10,6 +10,7 @@ const defaultContent = {
         heroSubtitle: '',
         promoStrip: {
             housefullText: '',
+            saleText: '',
             saleDateText: '',
             crazyDealsText: {
                 line1: '',
@@ -50,18 +51,25 @@ export const useContentStore = create((set, get) => ({
         }
     },
 
-    // Fetch Homepage Content
+    // Fetch HomepageContent
     fetchHomepageContent: async () => {
         try {
             const response = await fetchContent('homepage');
-            const fetchedData = response?.data || {};
+            // The response structure is { success: true, data: { key: 'homepage', data: { ... } } }
+            // Sometimes data might be double-nested due to previous update bugs
+            let fetchedData = response?.data?.data || response?.data || {};
+
+            // Recursively unwrap if we find a nested 'data' property that looks like our content
+            while (fetchedData && fetchedData.data && typeof fetchedData.data === 'object' && !Array.isArray(fetchedData.data)) {
+                fetchedData = fetchedData.data;
+            }
 
             set((state) => ({
                 content: {
                     ...state.content,
                     homepage: {
                         ...state.content.homepage,
-                        ...fetchedData,
+                        ...(typeof fetchedData === 'object' ? fetchedData : {}),
                     }
                 }
             }));
@@ -97,7 +105,7 @@ export const useContentStore = create((set, get) => ({
     fetchAboutContent: async () => {
         try {
             const response = await fetchContent('about');
-            const aboutContent = response?.data || '';
+            const aboutContent = response?.data?.data || response?.data || '';
             set((state) => ({
                 content: {
                     ...state.content,
@@ -133,7 +141,7 @@ export const useContentStore = create((set, get) => ({
     fetchFAQContent: async () => {
         try {
             const response = await fetchContent('faq');
-            const faqContent = response?.data || [];
+            const faqContent = response?.data?.data || response?.data || [];
             set((state) => ({
                 content: {
                     ...state.content,

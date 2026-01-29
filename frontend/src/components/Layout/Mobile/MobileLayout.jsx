@@ -12,19 +12,22 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
   const rawHeaderHeight = useMobileHeaderHeight();
   const [stableHeaderHeight, setStableHeaderHeight] = useState(rawHeaderHeight);
 
-  // Sync stable height only when it increases (transitioning between pages)
-  // or when at the top of the page. This prevents "pulling" while scrolling down.
+  // Synchronise stable header height with measured height and route context
   useEffect(() => {
+    const isHomePage = location.pathname === '/' || location.pathname === '/app' || location.pathname === '/app/';
     const isAtTop = window.scrollY < 20;
-    if (rawHeaderHeight > stableHeaderHeight || isAtTop) {
-      setStableHeaderHeight(rawHeaderHeight);
-    }
-  }, [rawHeaderHeight, stableHeaderHeight]); // Added stableHeaderHeight to dependencies
 
-  // Force reset on route change
-  useEffect(() => {
-    setStableHeaderHeight(rawHeaderHeight);
-  }, [location.pathname, rawHeaderHeight]); // Added rawHeaderHeight to dependencies
+    // Minimum padding required to show the home page content (logo + search + categories + space)
+    const minPadding = isHomePage ? 195 : 64;
+
+    // We update the stable height if:
+    // 1. The new measured height is larger than our current stable height
+    // 2. We are at the top of the page (where jumps are acceptable to sync exactly)
+    // 3. It's the initial measurement (64 is default)
+    if (rawHeaderHeight > stableHeaderHeight || isAtTop || stableHeaderHeight <= 64) {
+      setStableHeaderHeight(Math.max(rawHeaderHeight, minPadding));
+    }
+  }, [rawHeaderHeight, location.pathname]);
 
   const excludeHeaderRoutes = [
     '/app/categories',
@@ -82,9 +85,9 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
           }`}
         style={{
           paddingTop: shouldShowHeader ? `${stableHeaderHeight}px` : '10px',
-          overflowY: isFullScreenPage ? 'hidden' : 'auto',
+          overflowY: isFullScreenPage ? 'hidden' : 'visible',
           WebkitOverflowScrolling: 'touch',
-          height: isFullScreenPage ? '100vh' : 'auto',
+          minHeight: isFullScreenPage ? '100vh' : 'auto',
           backgroundColor: location.pathname === '/app/reels' ? 'black' : 'transparent', // Black background for reels
           transition: 'background 0.3s ease-in-out',
           willChange: 'background',

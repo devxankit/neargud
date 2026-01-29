@@ -56,6 +56,11 @@ const MobileHome = () => {
   useEffect(() => {
     initializeSettings();
     fetchAllContent();
+    // Force scroll to top on mount/return to home - repeated to override browser native behaviors
+    const timers = [0, 50, 150].map(delay =>
+      setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), delay)
+    );
+    return () => timers.forEach(clearTimeout);
   }, [initializeSettings, fetchAllContent]);
 
   const [banners, setBanners] = useState([]);
@@ -223,19 +228,15 @@ const MobileHome = () => {
           transition: isPulling ? "none" : "transform 0.3s ease-out",
         }}>
 
-        {loadingCritical ? (
-          <PromoStripSkeleton />
-        ) : (
-          <PromoStrip
-            activeTab={activeTab}
-            categories={categories}
-            categoryProducts={categoryProducts}
-            crazyDeals={dailyDeals}
-            heroBanner={
-              <HeroCarousel banners={banners} loading={loadingCritical} />
-            }
-          />
-        )}
+        <PromoStrip
+          activeTab={activeTab}
+          categories={categories}
+          categoryProducts={categoryProducts}
+          crazyDeals={dailyDeals}
+          heroBanner={
+            <HeroCarousel banners={banners} loading={loadingCritical} />
+          }
+        />
 
         {/* Featured Categories Bubbles */}
         {/* <HomeCategoryBubble categories={categories} loading={loading} /> */}

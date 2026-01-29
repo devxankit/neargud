@@ -226,14 +226,30 @@ export default function PromoStrip({
   crazyDeals = []
 }: PromoStripProps) {
   const { content } = useContentStore();
-  const { housefullText = 'HOUSEFULL', saleDateText = '30TH NOV, 2025 - 7TH DEC, 2025', crazyDealsText = { line1: 'CRAZY', line2: 'DEALS' } } = content?.homepage?.promoStrip || {};
+  const homepageData = content?.homepage || {};
+  const promoStripCMS = homepageData?.promoStrip || {};
+
+  // HOUSEFULL / BANNER TEXT
+  const housefullText =
+    (promoStripCMS?.housefullText?.trim()) ||
+    (homepageData?.heroTitle?.trim()) ||
+    'HOUSEFULL\nSALE';
+
+  // SALE DATE TEXT
+  const saleDateText =
+    (promoStripCMS?.saleDateText?.trim()) || '30TH NOV, 2025 - 7TH DEC, 2025';
+
+  // CRAZY DEALS TEXT
+  const crazyDealsText = {
+    line1: promoStripCMS?.crazyDealsText?.line1 || 'CRAZY',
+    line2: promoStripCMS?.crazyDealsText?.line2 || 'DEALS',
+  };
 
   const theme = getTheme(activeTab);
   const bannerText = categoryName ? categoryName.toUpperCase() : (activeTab === 'all' ? housefullText : theme.bannerText);
+  const displaySaleText = activeTab === 'all' ? (promoStripCMS?.saleText?.trim() || theme.saleText || 'SALE') : (theme.saleText || 'SALE');
 
   const categoryCards = getCategoryCards(activeTab, categoryId, dynamicCategories, categoryProducts) || [];
-
-
 
   // If crazyDeals props is provided and has items, use it. Otherwise fallback to static getFeaturedProducts
   const featuredProducts = (crazyDeals && crazyDeals.length > 0)
@@ -509,9 +525,9 @@ export default function PromoStrip({
       className="relative w-full overflow-x-hidden"
       style={{
         background: 'transparent',
-        paddingTop: '0px',
+        paddingTop: '5px',
         paddingBottom: '20px',
-        marginTop: 0,
+        marginTop: '-10px',
         ...leatherTexture,
         ...goldenTexture,
         ...jeansTexture,
@@ -635,7 +651,7 @@ export default function PromoStrip({
                   '2px 2px 2px rgba(0, 0, 0, 0.5)',
               } as React.CSSProperties}
             >
-              {/* {theme.saleText} */}
+              {displaySaleText}
             </h2>
           </div>
 
