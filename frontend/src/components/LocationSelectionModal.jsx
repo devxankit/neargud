@@ -6,7 +6,7 @@ import { fetchSliderCities } from '../services/publicApi';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyAZ1-QCqzgSV1jKM54fMdoCAPNoGMjvVvE';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const LocationSelectionModal = ({ isOpen, onClose }) => {
     const { selectCity, currentCity } = useLocationStore();
