@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FiPlus, FiEdit, FiTrash2, FiUpload, FiX } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiUpload, FiX, FiMapPin } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import DataTable from '../../../components/Admin/DataTable';
 import ConfirmModal from '../../../components/Admin/ConfirmModal';
 import AnimatedSelect from '../../../components/Admin/AnimatedSelect';
+import GooglePlacesAutocomplete from '../../../components/Admin/GooglePlacesAutocomplete';
 import { useBannerStore } from '../../../store/bannerStore';
 import toast from 'react-hot-toast';
 
@@ -30,10 +31,21 @@ const HomeSliders = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
+  // Get unique cities that already have sliders
+  const existingCities = useMemo(() => {
+    if (!banners || banners.length === 0) return [];
+    const cities = banners
+      .map(b => b.city)
+      .filter(city => city && city.trim() !== '');
+    return [...new Set(cities)].sort();
+  }, [banners]);
+
   // Initialize store on mount
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+
 
   useEffect(() => {
     if (editingSlider) {
@@ -198,6 +210,35 @@ const HomeSliders = () => {
         </button>
       </div>
 
+      {/* Cities with Sliders */}
+      {existingCities.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+          <div className="flex items-center gap-2 mb-3">
+            <FiMapPin className="text-primary-600" />
+            <h3 className="text-sm font-semibold text-gray-700">Cities with Sliders</h3>
+            <span className="text-xs text-gray-400">({existingCities.length} cities)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setEditingSlider({ isActive: true, city: '' })}
+              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs font-medium transition-colors flex items-center gap-1"
+            >
+              <span>🌍</span> All Cities
+            </button>
+            {existingCities.map((city) => (
+              <button
+                key={city}
+                onClick={() => setEditingSlider({ isActive: true, city: city })}
+                className="px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-full text-xs font-medium transition-colors flex items-center gap-1"
+              >
+                <FiMapPin className="text-xs" />
+                {city}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
         <DataTable
           data={banners?.map(b => ({ ...b, id: b._id || b.id })) || []}
@@ -261,119 +302,205 @@ const HomeSliders = () => {
                 animate="visible"
                 exit="exit"
                 onClick={(e) => e.stopPropagation()}
-                className={`bg-white ${isAppRoute ? 'rounded-b-3xl' : 'rounded-t-3xl'} sm:rounded-xl shadow-xl p-6 max-w-md w-full pointer-events-auto`}
+                className={`bg-white ${isAppRoute ? 'rounded-b-3xl' : 'rounded-t-3xl'} sm:rounded-xl shadow-xl p-6 max-w-md w-full pointer-events-auto max-h-[90vh] overflow-y-auto`}
                 style={{ willChange: 'transform' }}
               >
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {editingSlider.id ? 'Edit Slider' : 'Add Slider'}
+                <h3 className="text-xl font-bold text-gray-800 mb-1">
+                  {editingSlider.id ? 'Edit Slider' : 'Add New Slider'}
                 </h3>
+                <p className="text-sm text-gray-500 mb-5">
+                  {editingSlider.id ? 'Update slider details below' : 'Fill in the details to create a new slider'}
+                </p>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     const form = e.target;
 
                     handleSave({
-                      type: 'hero', // Default to hero for this page
+                      type: 'hero',
                       title: form.title.value,
                       link: form.link.value,
                       order: parseInt(form.order.value),
                       isActive: editingSlider.isActive,
-                      city: form.city.value.trim()
+                      city: editingSlider.city || ''
                     });
                   }}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
-                  <div
-                    className="relative aspect-video w-full bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {previewUrl ? (
-                      <>
-                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <FiUpload className="text-white text-3xl" />
+                  {/* Image Upload */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Banner Image <span className="text-red-500">*</span>
+                    </label>
+                    <div
+                      className="relative aspect-video w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-all group"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {previewUrl ? (
+                        <>
+                          <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <div className="flex items-center gap-2 text-white">
+                              <FiUpload className="text-xl" />
+                              <span className="font-medium">Change Image</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 text-gray-400 group-hover:text-primary-500 transition-colors">
+                          <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center">
+                            <FiUpload className="text-2xl" />
+                          </div>
+                          <div className="text-center">
+                            <span className="text-sm font-semibold block">Click to upload image</span>
+                            <span className="text-xs">PNG, JPG up to 5MB</span>
+                          </div>
                         </div>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-gray-400">
-                        <FiUpload className="text-3xl" />
-                        <span className="text-sm font-medium">Select Slider Image</span>
-                      </div>
-                    )}
+                      )}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Title <span className="text-red-500">*</span>
+                    </label>
                     <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/*"
-                      className="hidden"
+                      type="text"
+                      name="title"
+                      defaultValue={editingSlider.title || ''}
+                      placeholder="Enter slider title..."
+                      required
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white focus:border-transparent text-sm transition-all"
                     />
                   </div>
 
-                  <input
-                    type="text"
-                    name="title"
-                    defaultValue={editingSlider.title || ''}
-                    placeholder="Title"
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                  />
+                  {/* Link URL */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Destination URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="link"
+                      defaultValue={editingSlider.link || ''}
+                      placeholder="https://example.com/page"
+                      required
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white focus:border-transparent text-sm transition-all"
+                    />
+                  </div>
 
-                  <input
-                    type="text"
-                    name="link"
-                    defaultValue={editingSlider.link || ''}
-                    placeholder="Link URL"
-                    required
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                  />
+                  {/* Target City */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Target City
+                      <span className="text-xs text-gray-400 font-normal ml-2">(Leave empty for all cities)</span>
+                    </label>
+                    <GooglePlacesAutocomplete
+                      name="city"
+                      value={editingSlider.city || ''}
+                      onChange={(e) => setEditingSlider({ ...editingSlider, city: e.target.value })}
+                      placeholder="Search for a city..."
+                    />
+                    {/* Quick select chips */}
+                    {existingCities.length > 0 && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-xl">
+                        <p className="text-xs font-medium text-gray-500 mb-2">Quick select:</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingSlider({ ...editingSlider, city: '' })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${!editingSlider.city
+                              ? 'bg-primary-600 text-white shadow-sm'
+                              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                              }`}
+                          >
+                            🌍 All Cities
+                          </button>
+                          {existingCities.slice(0, 5).map((city) => (
+                            <button
+                              key={city}
+                              type="button"
+                              onClick={() => setEditingSlider({ ...editingSlider, city: city })}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${editingSlider.city === city
+                                ? 'bg-primary-600 text-white shadow-sm'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                }`}
+                            >
+                              📍 {city}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
+                  {/* Order & Status */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Target City (Leave blank for All Cities)</label>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Display Order
+                      </label>
                       <input
-                        type="text"
-                        name="city"
-                        defaultValue={editingSlider.city || ''}
-                        placeholder="e.g. Indore"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                        type="number"
+                        name="order"
+                        defaultValue={editingSlider.order || 1}
+                        min="1"
+                        placeholder="1"
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white focus:border-transparent text-sm transition-all"
                       />
                     </div>
 
-                    <input
-                      type="number"
-                      name="order"
-                      defaultValue={editingSlider.order || 1}
-                      placeholder="Order"
-                      required
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                    />
-
-                    <AnimatedSelect
-                      name="status"
-                      value={editingSlider.isActive ? 'active' : 'inactive'}
-                      defaultValue={editingSlider.id ? (editingSlider.isActive ? 'active' : 'inactive') : 'active'}
-                      onChange={(e) => setEditingSlider({ ...editingSlider, isActive: e.target.value === 'active' })}
-                      options={[
-                        { value: 'active', label: 'Active' },
-                        { value: 'inactive', label: 'Inactive' },
-                      ]}
-                    />
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Status
+                      </label>
+                      <AnimatedSelect
+                        name="status"
+                        value={editingSlider.isActive ? 'active' : 'inactive'}
+                        defaultValue={editingSlider.id ? (editingSlider.isActive ? 'active' : 'inactive') : 'active'}
+                        onChange={(e) => setEditingSlider({ ...editingSlider, isActive: e.target.value === 'active' })}
+                        options={[
+                          { value: 'active', label: '✅ Active' },
+                          { value: 'inactive', label: '⏸️ Inactive' },
+                        ]}
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50 text-sm"
-                    >
-                      {isSubmitting ? 'Saving...' : 'Save'}
-                    </button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => setEditingSlider(null)}
-                      className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm"
+                      className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-semibold text-sm"
                     >
                       Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all font-semibold disabled:opacity-50 text-sm shadow-lg shadow-primary-500/25"
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Saving...
+                        </span>
+                      ) : (
+                        editingSlider.id ? 'Update Slider' : 'Create Slider'
+                      )}
                     </button>
                   </div>
                 </form>

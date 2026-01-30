@@ -15,4 +15,14 @@ router.get('/active', asyncHandler(async (req, res) => {
   });
 }));
 
+// Get cities that have active sliders
+router.get('/cities', asyncHandler(async (req, res) => {
+  const cities = await heroBannerService.getAvailableCities();
+
+  res.status(200).json({
+    success: true,
+    data: { cities }
+  });
+}));
+
 export default router;

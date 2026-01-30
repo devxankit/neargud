@@ -43,6 +43,12 @@ export const fetchActiveBanners = async (params = {}) => {
     return response;
 };
 
+// Get cities that have active sliders
+export const fetchSliderCities = async () => {
+    const response = await api.get('/public/hero-banners/cities');
+    return response;
+};
+
 // Brands
 export const fetchPublicBrands = async () => {
     const response = await api.get('/public/brands');

@@ -50,6 +50,29 @@ export const getActiveBanners = async (cityName) => {
 };
 
 /**
+ * Get all unique cities that have active sliders
+ * Returns only cities with active banners for the location selector
+ */
+export const getAvailableCities = async () => {
+  const now = new Date();
+
+  const cities = await Banner.distinct('city', {
+    type: 'hero',
+    isActive: true,
+    city: { $ne: '', $ne: null },
+    $and: [
+      { $or: [{ startDate: null }, { startDate: { $lte: now } }] },
+      { $or: [{ endDate: null }, { endDate: { $gte: now } }] }
+    ]
+  });
+
+  // Filter out empty strings and nulls, then sort alphabetically
+  return cities
+    .filter(city => city && city.trim() !== '')
+    .sort((a, b) => a.localeCompare(b));
+};
+
+/**
  * Get all hero banners (Admin)
  */
 export const getAllHeroBanners = async () => {
