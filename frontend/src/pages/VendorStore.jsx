@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
-import { FiArrowLeft, FiStar, FiShoppingBag, FiCheckCircle, FiClock, FiMail, FiFilter, FiGrid, FiList, FiShare2, FiHeart, FiGlobe, FiInfo, FiSearch, FiMessageCircle, FiPhone, FiMapPin, FiLoader, FiUser } from 'react-icons/fi';
+import { FiArrowLeft, FiStar, FiShoppingBag, FiCheckCircle, FiClock, FiMail, FiFilter, FiGrid, FiList, FiShare2, FiHeart, FiGlobe, FiInfo, FiSearch, FiMessageCircle, FiPhone, FiMapPin, FiLoader, FiUser, FiPlay } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../utils/helpers';
@@ -410,7 +410,7 @@ const VendorStore = () => {
             {/* Tabs */}
             <div className="sticky top-[60px] md:top-[70px] z-20 bg-slate-50/80 backdrop-blur-lg py-3 px-4 shadow-sm shadow-slate-200/20 border-b border-slate-100/10">
               <div className="flex bg-slate-200/50 rounded-2xl p-1 items-center relative gap-1">
-                {['Shop', 'About', 'Photos', 'Reviews'].map((tab) => (
+                {['Shop', 'About', 'Photos', 'Videos', 'Reviews'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
@@ -553,6 +553,58 @@ const VendorStore = () => {
                         <FiGrid className="text-2xl text-gray-300" />
                       </div>
                       <p className="text-gray-500 text-sm">No photos available yet.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeTab === 'videos' && (
+                <div className="bg-white rounded-2xl p-4 border border-slate-100 min-h-[300px] mb-20 shadow-sm transition-all duration-300">
+                  <div className="flex items-center justify-between mb-5 px-1">
+                    <h3 className="font-black text-slate-800 text-lg tracking-tight">Store Videos</h3>
+                    <div className="bg-rose-50 text-rose-500 text-[10px] font-bold px-2.5 py-1 rounded-full border border-rose-100 animate-pulse">
+                      LIVE REELS
+                    </div>
+                  </div>
+                  {products.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {products.slice(0, 4).map((product, idx) => (
+                        <Link
+                          key={idx}
+                          to={`/app/reels?vendorId=${vendor._id || vendor.id}`}
+                          className="relative aspect-[9/16] bg-slate-100 rounded-[1.5rem] overflow-hidden group border border-slate-200 shadow-sm"
+                        >
+                          <img
+                            src={product.image || product.imageUrl}
+                            alt="Reel Thumbnail"
+                            className="w-full h-full object-cover brightness-[0.85] group-hover:scale-110 transition-transform duration-700"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-lg"
+                            >
+                              <FiPlay className="text-white ml-0.5" fill="currentColor" size={20} />
+                            </motion.div>
+                          </div>
+                          <div className="absolute bottom-4 left-3 right-3">
+                            <p className="text-white text-[11px] font-black leading-tight line-clamp-2 drop-shadow-md">{product.name}</p>
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <div className="w-1 h-1 rounded-full bg-rose-500 animate-ping" />
+                              <p className="text-white/80 text-[9px] font-bold uppercase tracking-wider">Watch Reel</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 mx-1">
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+                        <FiPlay className="text-3xl text-slate-300 translate-x-0.5" />
+                      </div>
+                      <h4 className="text-slate-800 font-black text-base">No Videos Highlights</h4>
+                      <p className="text-slate-500 text-xs mt-1.5 px-6">The vendor hasn't shared any video reels for his products yet.</p>
                     </div>
                   )}
                 </div>

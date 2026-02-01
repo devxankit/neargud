@@ -112,12 +112,15 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
               transition={{ delay: 0.2 }}
             >
               <motion.h2
-                className="text-xl font-black text-black tracking-tight"
-                style={{ textShadow: '0 1px 1px rgba(255,255,255,0.4)' }}
+                className="text-xl font-black tracking-tight"
+                style={{
+                  color: '#000',
+                  textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff'
+                }}
               >
                 New Arrivals
               </motion.h2>
-              <p className="text-[10px] text-black/70 font-black uppercase tracking-wider mt-0.5">Fresh products just added</p>
+              <p className="text-[10px] font-black uppercase tracking-wider mt-0.5" style={{ color: '#000', opacity: 0.8, textShadow: '0.5px 0.5px 0px #fff' }}>Fresh products just added</p>
             </motion.div>
           </div>
           <motion.div

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiBox } from "react-icons/fi";
+import { FiBox, FiHome } from "react-icons/fi";
 import { getIconComponent } from "../../../utils/categoryIcons";
 import { useCategoryStore } from "../../../store/categoryStore";
 
@@ -24,6 +24,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
 
   const location = useLocation();
   const scrollContainerRef = useRef(null);
+  const homeRef = useRef(null);
   const categoryRefs = useRef({});
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
@@ -39,10 +40,17 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
   };
 
   const currentCategoryId = getCurrentCategoryId();
+  const isHome = location.pathname === '/app' || location.pathname === '/app/' || location.pathname === '/';
 
   useEffect(() => {
-    if (currentCategoryId && categoryRefs.current[currentCategoryId]) {
-      const element = categoryRefs.current[currentCategoryId];
+    let element = null;
+    if (isHome && homeRef.current) {
+      element = homeRef.current;
+    } else if (currentCategoryId && categoryRefs.current[currentCategoryId]) {
+      element = categoryRefs.current[currentCategoryId];
+    }
+
+    if (element) {
       setIndicatorStyle({
         left: element.offsetLeft,
         width: element.offsetWidth
@@ -60,12 +68,12 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
         style={{ scrollSnapType: 'x mandatory' }}
       >
         {/* Active Category Indicator */}
-        {!isLoading && currentCategoryId && (
+        {!isLoading && (isHome || currentCategoryId) && (
           <motion.div
             className={`absolute bottom-0 h-1 rounded-t-full z-10 ${indicatorBg} ${indicatorShadow}`}
             animate={{
-              left: indicatorStyle.left + (indicatorStyle.width * 0.25), // Center it: 25% offset since width is 50%
-              width: indicatorStyle.width * 0.5 // Make it 50% width of the item
+              left: indicatorStyle.left + (indicatorStyle.width * 0.25),
+              width: indicatorStyle.width * 0.5
             }}
             transition={{
               type: "spring",
@@ -76,7 +84,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
         )}
 
         {isLoading && categories.length === 0 ? (
-          Array(5).fill(0).map((_, i) => (
+          Array(6).fill(0).map((_, i) => (
             <div key={i} className="flex-shrink-0 w-[20%] flex flex-col items-center gap-2">
               <motion.div
                 animate={{ height: isTopRowVisible ? 32 : 0, opacity: isTopRowVisible ? 1 : 0 }}
@@ -86,61 +94,94 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
             </div>
           ))
         ) : (
-          mainCategories.map((category) => {
-            const IconComponent = getIconComponent(category.icon, category.name);
-            const categoryId = category._id || category.id;
-            const isActive = currentCategoryId === categoryId;
-
-            return (
-              <Link
-                key={categoryId}
-                to={`/app/category/${categoryId}`}
-                ref={(el) => (categoryRefs.current[categoryId] = el)}
-                className="flex-shrink-0 w-[20%] flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
+          <>
+            <Link
+              to="/app"
+              ref={homeRef}
+              className="flex-shrink-0 w-[20%] flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
+            >
+              <motion.div
+                initial={false}
+                animate={{
+                  height: isTopRowVisible ? 'auto' : 0,
+                  scale: isTopRowVisible ? 1 : 0.5,
+                  opacity: isTopRowVisible ? 1 : 0,
+                  marginBottom: isTopRowVisible ? 6 : 0
+                }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="relative flex items-center justify-center p-0.75 overflow-hidden"
               >
-                <motion.div
-                  initial={false}
-                  animate={{
-                    height: isTopRowVisible ? 'auto' : 0,
-                    scale: isTopRowVisible ? 1 : 0.5,
-                    opacity: isTopRowVisible ? 1 : 0,
-                    marginBottom: isTopRowVisible ? 6 : 0
-                  }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
-                  className="relative flex items-center justify-center p-0.75 overflow-hidden"
+                <FiHome className={`
+                  text-[18px] transition-all duration-300
+                  ${isHome ? `${iconColor} scale-110 ${colorScheme === 'white' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'}` : `${iconColorInactive} group-hover:${iconColorHover} group-hover:scale-105`}
+                `} strokeWidth={1.5} />
+              </motion.div>
+              <motion.span
+                animate={{ scale: isTopRowVisible ? 1 : 0.9 }}
+                className={`
+                  text-[10px] tracking-wide text-center transition-all duration-300 whitespace-nowrap px-1 w-full overflow-hidden text-ellipsis
+                  ${isHome ? `${textColor} font-bold` : `${textColorInactive} font-medium opacity-80 group-hover:opacity-100`}
+                `}>
+                All
+              </motion.span>
+            </Link>
+
+            {mainCategories.map((category) => {
+              const IconComponent = getIconComponent(category.icon, category.name);
+              const categoryId = category._id || category.id;
+              const isActive = currentCategoryId === categoryId;
+
+              return (
+                <Link
+                  key={categoryId}
+                  to={`/app/category/${categoryId}`}
+                  ref={(el) => (categoryRefs.current[categoryId] = el)}
+                  className="flex-shrink-0 w-[20%] flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
                 >
-                  {IconComponent ? (
-                    <IconComponent className={`
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      height: isTopRowVisible ? 'auto' : 0,
+                      scale: isTopRowVisible ? 1 : 0.5,
+                      opacity: isTopRowVisible ? 1 : 0,
+                      marginBottom: isTopRowVisible ? 6 : 0
+                    }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="relative flex items-center justify-center p-0.75 overflow-hidden"
+                  >
+                    {IconComponent ? (
+                      <IconComponent className={`
                         text-[18px] transition-all duration-300
                         ${isActive ? `${iconColor} scale-110 ${colorScheme === 'white' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'}` : `${iconColorInactive} group-hover:${iconColorHover} group-hover:scale-105`}
                       `} strokeWidth={1.5} />
-                  ) : category.image ? (
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className={`w-6 h-6 object-contain transition-all duration-300 ${isActive ? 'scale-110 brightness-110' : 'brightness-90 opacity-90'}`}
-                    />
-                  ) : (
-                    <FiBox className={`
+                    ) : category.image ? (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className={`w-6 h-6 object-contain transition-all duration-300 ${isActive ? 'scale-110 brightness-110' : 'brightness-90 opacity-90'}`}
+                      />
+                    ) : (
+                      <FiBox className={`
                         text-[18px] transition-all duration-300
                         ${isActive ? `${iconColor} scale-110` : iconColorInactive}
                       `} strokeWidth={1.5} />
-                  )}
-                </motion.div>
+                    )}
+                  </motion.div>
 
-                <motion.span
-                  animate={{
-                    scale: isTopRowVisible ? 1 : 0.9
-                  }}
-                  className={`
+                  <motion.span
+                    animate={{
+                      scale: isTopRowVisible ? 1 : 0.9
+                    }}
+                    className={`
                   text-[10px] tracking-wide text-center transition-all duration-300 whitespace-nowrap px-1 w-full overflow-hidden text-ellipsis
                   ${isActive ? `${textColor} font-bold` : `${textColorInactive} font-medium opacity-80 group-hover:opacity-100`}
                 `}>
-                  {category.name}
-                </motion.span>
-              </Link>
-            );
-          })
+                    {category.name}
+                  </motion.span>
+                </Link>
+              );
+            })}
+          </>
         )}
       </div>
     </div>

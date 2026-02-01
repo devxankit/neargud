@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo, memo, useCallback } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getTheme } from '../utils/themes';
@@ -26,14 +26,9 @@ const hexToRgba = (hex: string, alpha: number) => {
 // Product Card Component - Defined outside to prevent recreation on every render
 const ProductCard = memo(({
   product,
-  cartQuantity,
-  onAddToCart,
   theme
 }: {
   product: any;
-  cartQuantity: number;
-  onAddToCart: (product: any, element?: HTMLElement | null) => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
   theme: any;
 }) => {
   const navigate = useNavigate();
@@ -64,25 +59,9 @@ const ProductCard = memo(({
   const originalPrice = product.originalPrice || product.price * 1.2;
   const discount = originalPrice ? Math.round(((originalPrice - product.price) / originalPrice) * 100) : 0;
 
-  const getCategoryId = (productName: string): number => {
-    const name = productName.toLowerCase();
-    const categoryMap: Record<number, string[]> = {
-      1: ['t-shirt', 'shirt', 'jeans', 'dress', 'gown', 'skirt', 'blazer', 'jacket', 'cardigan', 'sweater', 'flannel', 'maxi'],
-      2: ['sneakers', 'pumps', 'boots', 'heels', 'shoes'],
-      3: ['bag', 'crossbody', 'handbag'],
-      4: ['necklace', 'watch', 'wristwatch'],
-      5: ['sunglasses', 'belt', 'scarf'],
-      6: ['athletic', 'running', 'track', 'sporty'],
-    };
-    for (const [categoryId, keywords] of Object.entries(categoryMap)) {
-      if (keywords.some(keyword => name.includes(keyword))) return parseInt(categoryId);
-    }
-    return 1;
-  };
 
-  const categoryId = (product.categoryId && typeof product.categoryId === 'number' && product.categoryId > 0)
-    ? product.categoryId
-    : getCategoryId(product.name);
+
+
 
   const cardBgColor = hexToRgba(theme.accentColor, 0.05);
   const linkBgColor = hexToRgba(theme.accentColor, 0.12);
@@ -127,13 +106,6 @@ const ProductCard = memo(({
               <span className="text-[11px] font-bold text-neutral-900">₹{product.price}</span>
               {originalPrice > product.price && <span className="text-[8px] text-neutral-400 line-through">₹{originalPrice}</span>}
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="w-6 h-6 rounded-full flex items-center justify-center text-white shadow-sm"
-              style={{ backgroundColor: theme.accentColor }}
-            >
-              <span className="text-xs font-bold">{cartQuantity > 0 ? cartQuantity : '+'}</span>
-            </button>
           </div>
 
           <div
@@ -157,18 +129,11 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
   const lowestPricesTitle = content?.homepage?.lowestPrices?.title || 'LOWEST PRICES EVER';
   const theme = getTheme(activeTab);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const items = useCartStore((state: any) => state.items);
   const [fontLoaded, setFontLoaded] = useState(false);
 
   useEffect(() => {
     setTimeout(() => setFontLoaded(true), 300);
   }, []);
-
-  const cartItemsMap = useMemo(() => {
-    const map = new Map();
-    items.forEach((item: any) => map.set(item.id, item.quantity));
-    return map;
-  }, [items]);
 
   const [discountedProducts, setDiscountedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,22 +172,6 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
     fetchDiscountedProducts();
   }, [activeTab]);
 
-  const addItem = useCartStore((state: any) => state.addItem);
-  const updateQuantity = useCartStore((state: any) => state.updateQuantity);
-
-  const handleAddToCart = useCallback((product: any) => {
-    addItem({
-      id: product._id || product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image || product.imageUrl,
-      quantity: 1,
-    });
-  }, [addItem]);
-
-  const handleUpdateQuantity = useCallback((productId: string, quantity: number) => {
-    updateQuantity(productId, quantity);
-  }, [updateQuantity]);
 
   if (discountedProducts.length === 0 && !loading) return null;
 
@@ -232,11 +181,17 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
     }}>
       <div className="px-4 relative z-20 mt-4 mb-3">
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-px bg-neutral-300"></div>
-          <h2 className="font-black text-[24px] text-center" style={{ fontFamily: '"Poppins", sans-serif', opacity: fontLoaded ? 1 : 0, transition: 'opacity 0.2s', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+          <div className="flex-1 h-px" style={{ backgroundColor: '#000', opacity: 0.2 }}></div>
+          <h2 className="font-black text-[24px] text-center" style={{
+            fontFamily: '"Poppins", sans-serif',
+            opacity: fontLoaded ? 1 : 0,
+            transition: 'opacity 0.2s',
+            textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff, 0px 2px 4px rgba(0,0,0,0.1)',
+            color: '#000'
+          }}>
             {lowestPricesTitle}
           </h2>
-          <div className="flex-1 h-px bg-neutral-300"></div>
+          <div className="flex-1 h-px" style={{ backgroundColor: '#000', opacity: 0.2 }}></div>
         </div>
       </div>
 
@@ -245,9 +200,6 @@ export default function LowestPricesEver({ activeTab = 'all' }: LowestPricesEver
           <ProductCard
             key={product._id || product.id}
             product={product}
-            cartQuantity={cartItemsMap.get(product._id || product.id) || 0}
-            onAddToCart={handleAddToCart}
-            onUpdateQuantity={handleUpdateQuantity}
             theme={theme}
           />
         ))}

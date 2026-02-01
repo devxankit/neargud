@@ -67,116 +67,114 @@ const MobileAddresses = () => {
   return (
     <ProtectedRoute>
       <PageTransition>
-        <MobileLayout showBottomNav showCartBar showHeader={false}>
-          <div className="pb-[160px]">
-
-            {/* Header */}
-            <div className="px-4 py-4 bg-white border-b sticky top-0 z-30">
-              <div className="flex items-center gap-3">
-                <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100">
-                  <FiArrowLeft className="text-xl" />
-                </button>
-                <h1 className="text-xl font-bold flex-1">Saved Addresses</h1>
-              </div>
-            </div>
-
-            {/* Floating Add Button */}
-            <button
-              onClick={() => {
-                setEditingAddress(null);
-                reset({
-                  name: '',
-                  fullName: '',
-                  phone: '',
-                  address: '',
-                  city: '',
-                  state: '',
-                  zipCode: '',
-                  country: ''
-                });
-                setIsFormOpen(true);
-              }}
-              className="fixed bottom-[90px] right-4 z-40 bg-green-600 text-white p-4 rounded-full shadow-xl active:scale-95"
-            >
-              <FiPlus className="text-2xl" />
+        <div className="pb-24 min-h-screen bg-gray-50">
+          {/* Header */}
+          <div className="px-4 py-4 bg-white border-b sticky top-0 z-30 flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <FiArrowLeft className="text-xl" />
             </button>
+            <h1 className="text-xl font-bold flex-1">Saved Addresses</h1>
+          </div>
 
-            {/* Address List */}
-            <div className="px-4 py-4 space-y-3">
-              {isLoading ? (
-                <div className="flex justify-center py-20">
-                  <FiLoader className="text-3xl animate-spin text-green-500" />
-                </div>
-              ) : addresses.length === 0 ? (
-                <div className="text-center py-16">
-                  <FiMapPin className="text-6xl text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold mb-2">No Address Found</h3>
-                  <button
-                    onClick={() => {
-                      setEditingAddress(null);
-                      reset({
-                        name: '',
-                        fullName: '',
-                        phone: '',
-                        address: '',
-                        city: '',
-                        state: '',
-                        zipCode: '',
-                        country: ''
-                      });
-                      setIsFormOpen(true);
-                    }}
-                    className="bg-green-600 text-white px-6 py-3 rounded-xl"
-                  >
-                    Add Address
-                  </button>
-                </div>
-              ) : (
-                addresses.map((address) => (
-                  <div key={address._id} className="bg-white rounded-2xl shadow p-4">
-                    <h3 className="font-bold">{address.name}</h3>
-                    <p className="text-sm text-gray-600">{address.fullName}</p>
-                    <p className="text-sm text-gray-600">{address.address}</p>
-                    <p className="text-sm text-gray-600">
-                      {address.city}, {address.state} {address.zipCode}
-                    </p>
-                    <p className="text-sm text-gray-600">{address.country}</p>
+          {/* Floating Add Button */}
+          <button
+            onClick={() => {
+              setEditingAddress(null);
+              reset({
+                name: '',
+                fullName: '',
+                phone: '',
+                address: '',
+                city: '',
+                state: '',
+                zipCode: '',
+                country: ''
+              });
+              setIsFormOpen(true);
+            }}
+            className="fixed bottom-6 right-6 z-40 bg-green-600 text-white p-4 rounded-full shadow-2xl active:scale-95 transition-all"
+          >
+            <FiPlus className="text-2xl" />
+          </button>
 
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => handleEdit(address)}
-                        className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(address._id)}
-                        className="flex-1 py-2 bg-red-50 text-red-600 rounded-xl"
-                      >
-                        Delete
-                      </button>
+          {/* Address List */}
+          <div className="px-4 py-4 space-y-4">
+            {isLoading ? (
+              <div className="flex justify-center py-20">
+                <FiLoader className="text-3xl animate-spin text-green-500" />
+              </div>
+            ) : addresses.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FiMapPin className="text-4xl text-gray-400" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">No Address Found</h3>
+                <p className="text-gray-500 text-sm mb-6">Add an address to continue checkout</p>
+                <button
+                  onClick={() => setIsFormOpen(true)}
+                  className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-green-200"
+                >
+                  Add New Address
+                </button>
+              </div>
+            ) : (
+              addresses.map((address) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={address._id || address.id}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-green-50 rounded-lg">
+                        <FiMapPin className="text-green-600" />
+                      </div>
+                      <h3 className="font-bold text-gray-800">{address.name}</h3>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                  <div className="space-y-0.5 ml-9">
+                    <p className="text-sm font-semibold text-gray-700">{address.fullName}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{address.address}</p>
+                    <p className="text-sm text-gray-500">
+                      {address.city}, {address.state} {address.zipCode}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{address.phone}</p>
+                  </div>
 
-            {/* Address Modal */}
-            <AnimatePresence>
-              {isFormOpen && (
-                <AddressFormModal
-                  onSubmit={onSubmit}
-                  onCancel={handleCancel}
-                  editingAddress={editingAddress}
-                  register={register}
-                  handleSubmit={handleSubmit}
-                  errors={errors}
-                />
-              )}
-            </AnimatePresence>
-
+                  <div className="flex gap-3 mt-4 ml-9">
+                    <button
+                      onClick={() => handleEdit(address)}
+                      className="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold active:scale-95 transition-all"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(address._id || address.id)}
+                      className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-bold active:scale-95 transition-all"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
-        </MobileLayout>
+
+          {/* Address Modal */}
+          <AnimatePresence>
+            {isFormOpen && (
+              <AddressFormModal
+                onSubmit={onSubmit}
+                onCancel={handleCancel}
+                editingAddress={editingAddress}
+                register={register}
+                handleSubmit={handleSubmit}
+                errors={errors}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </PageTransition>
     </ProtectedRoute>
   );

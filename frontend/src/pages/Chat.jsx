@@ -442,15 +442,23 @@ const Chat = () => {
 
     return (
         <PageTransition>
-            <MobileLayout showBottomNav={!selectedChat} className="bg-white">
-                <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white">
+            <MobileLayout showBottomNav={false} showCartBar={false} style={{ paddingTop: 0 }} className="bg-white">
+                <div className="flex h-[100vh] overflow-hidden bg-white">
                     {/* Chat List - Hidden on mobile if chat selected */}
                     <div className={`w-full lg:w-1/3 flex flex-col border-r border-gray-100 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
-                            <h1 className="text-2xl font-bold text-gray-800 mb-3">
-                                Messages
-                            </h1>
+                            <div className="flex items-center gap-3 mb-3">
+                                <button
+                                    onClick={() => navigate('/app')}
+                                    className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full"
+                                >
+                                    <FiArrowLeft size={24} />
+                                </button>
+                                <h1 className="text-2xl font-bold text-gray-800">
+                                    Messages
+                                </h1>
+                            </div>
 
                             {/* Tabs */}
                             <div className="flex p-1 bg-gray-100 rounded-xl mb-3">
@@ -641,7 +649,7 @@ const Chat = () => {
                     </div>
                 </div>
             </MobileLayout>
-        </PageTransition>
+        </PageTransition >
     );
 };
 
