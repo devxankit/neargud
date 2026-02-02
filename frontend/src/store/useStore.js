@@ -112,7 +112,7 @@ export const useCartStore = create(
         const vendorGroups = {};
 
         state.items.forEach((item) => {
-          const vendorId = item.vendorId || item.id || item._id; 
+          const vendorId = item.vendorId || item.id || item._id;
           const vendorName = item.vendorName || item.name;
 
           if (!vendorGroups[vendorId]) {
@@ -145,9 +145,11 @@ export const useUIStore = create((set) => ({
   isCartOpen: false,
   isLoading: false,
   cartAnimationTrigger: 0,
+  headerHeight: 190,
   toggleMenu: () => set((state) => ({ isMenuOpen: !state.isMenuOpen })),
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
   setLoading: (loading) => set({ isLoading: loading }),
   triggerCartAnimation: () => set((state) => ({ cartAnimationTrigger: state.cartAnimationTrigger + 1 })),
+  setHeaderHeight: (height) => set({ headerHeight: height }),
 }));
 

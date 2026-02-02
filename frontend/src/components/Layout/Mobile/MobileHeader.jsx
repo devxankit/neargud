@@ -15,7 +15,7 @@ import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
 import LocationSelectionModal from "../../LocationSelectionModal";
 import { useLocationStore } from "../../../store/locationStore";
-import { useTheme } from "/src/context/ThemeContext";
+import { useTheme } from "../../../context/ThemeContext";
 import { getTheme } from "../../../utils/themes";
 import { useCategoryStore } from "../../../store/categoryStore";
 
@@ -36,6 +36,7 @@ const MobileHeader = () => {
   const cartRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const isHeaderHidden = useRef(false);
 
   const itemCount = useCartStore((state) => state.getItemCount());
   const toggleCart = useUIStore((state) => state.toggleCart);
@@ -137,19 +138,48 @@ const MobileHeader = () => {
     return null; // Not a themed header
   }, [currentCategoryId, categoryThemeTab, currentPage, theme]);
 
-  // Hide header on scroll
+  const setGlobalHeaderHeight = useUIStore(state => state.setHeaderHeight);
+  const headerRef = useRef(null);
+
+  // Measure and sync header height globally
+  useEffect(() => {
+    if (!headerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === headerRef.current) {
+          setGlobalHeaderHeight(entry.target.offsetHeight);
+        }
+      }
+    });
+
+    resizeObserver.observe(headerRef.current);
+    // Initial measurement
+    setGlobalHeaderHeight(headerRef.current.offsetHeight);
+
+    return () => resizeObserver.disconnect();
+  }, [setGlobalHeaderHeight]);
+
   useEffect(() => {
     let ticking = false;
+    const SCROLL_THRESHOLD = 15; // Increased threshold
+
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
+          const currentScrollY = Math.max(0, window.scrollY);
           const lastScrollY = lastScrollYRef.current;
+          const scrollDiff = currentScrollY - lastScrollY;
 
-          if (currentScrollY < 20) setIsTopRowVisible(true);
-          else if (currentScrollY < lastScrollY) setIsTopRowVisible(true);
-          else if (currentScrollY > lastScrollY && currentScrollY > 120)
-            setIsTopRowVisible(false);
+          // Detect if near bottom of page
+          const windowHeight = window.innerHeight;
+          const documentHeight = document.documentElement.scrollHeight;
+          const isNearBottom = (windowHeight + currentScrollY) >= (documentHeight - 100);
+
+          const shouldShowTopRow = currentScrollY < 10;
+
+          setIsTopRowVisible(shouldShowTopRow);
+          isHeaderHidden.current = !shouldShowTopRow;
 
           lastScrollYRef.current = currentScrollY;
           ticking = false;
@@ -224,6 +254,7 @@ const MobileHeader = () => {
   const headerContent = (
     <motion.header
       key="mobile-header"
+      ref={headerRef} // Added ref here
       className={`fixed top-0 left-0 right-0 z-[9999] ${currentPage === "home" ? "border-none" : "border-b border-white/30"
         }`}
       style={{

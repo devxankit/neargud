@@ -525,9 +525,7 @@ export default function PromoStrip({
       className="relative w-full overflow-x-hidden"
       style={{
         background: 'transparent',
-        paddingTop: '5px',
         paddingBottom: '20px',
-        marginTop: '-10px',
         ...leatherTexture,
         ...goldenTexture,
         ...jeansTexture,

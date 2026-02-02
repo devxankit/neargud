@@ -4,30 +4,16 @@ import MobileHeader from './MobileHeader';
 import MobileBottomNav from './MobileBottomNav';
 import MobileCartBar from './MobileCartBar';
 import useMobileHeaderHeight from '../../../hooks/useMobileHeaderHeight';
+import { useUIStore } from '../../../store/useStore';
 
 const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, showHeader, style = {} }) => {
   const location = useLocation();
+  const headerHeight = useUIStore(state => state.headerHeight);
 
-  // Use a stable header height for padding to avoid "pulling" during scroll folding
-  const rawHeaderHeight = useMobileHeaderHeight();
-  const [stableHeaderHeight, setStableHeaderHeight] = useState(rawHeaderHeight);
-
-  // Synchronise stable header height with measured height and route context
-  useEffect(() => {
-    const isHomePage = location.pathname === '/' || location.pathname === '/app' || location.pathname === '/app/';
-    const isAtTop = window.scrollY < 20;
-
-    // Use exact measured height for padding to avoid gaps
-    const minPadding = 0;
-
-    // We update the stable height if:
-    // 1. The new measured height is larger than our current stable height
-    // 2. We are at the top of the page (where jumps are acceptable to sync exactly)
-    // 3. It's the initial measurement (64 is default)
-    if (rawHeaderHeight > stableHeaderHeight || isAtTop || stableHeaderHeight <= 64) {
-      setStableHeaderHeight(Math.max(rawHeaderHeight, minPadding));
-    }
-  }, [rawHeaderHeight, location.pathname]);
+  const isThemedPage = location.pathname === '/' ||
+    location.pathname === '/app' ||
+    location.pathname === '/app/' ||
+    location.pathname.startsWith('/app/category/');
 
   const excludeHeaderRoutes = [
     '/app/categories',
@@ -95,7 +81,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
               showCartBar ? 'pb-24' : ''
           }`}
         style={{
-          paddingTop: shouldShowHeader ? `${stableHeaderHeight}px` : '10px',
+          paddingTop: isThemedPage ? '0px' : (shouldShowHeader ? `${headerHeight}px` : '10px'),
           overflowY: isFullScreenPage ? 'hidden' : 'visible',
           WebkitOverflowScrolling: 'touch',
           minHeight: isFullScreenPage ? '100vh' : 'auto',
@@ -114,4 +100,3 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
 };
 
 export default MobileLayout;
-

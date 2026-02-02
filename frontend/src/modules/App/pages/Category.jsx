@@ -16,14 +16,14 @@ import NewArrivalsSection from "../components/NewArrivalsSection";
 import RecommendedSection from "../components/RecommendedSection";
 import { useTheme } from "../../../context/ThemeContext";
 import { getTheme } from "../../../utils/themes";
-import useMobileHeaderHeight from "../../../hooks/useMobileHeaderHeight";
+import { useUIStore } from "../../../store/useStore";
 
 const MobileCategory = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const categoryId = id;
   const { categories } = useCategoryStore();
-  const headerHeight = useMobileHeaderHeight();
+  const headerHeight = useUIStore(state => state.headerHeight);
 
   const [category, setCategory] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
@@ -176,7 +176,6 @@ const MobileCategory = () => {
       <div className="w-full overflow-x-hidden">
         <div style={{
           background: `linear-gradient(to bottom, ${theme.primary[0]} 0px, ${theme.primary[1]} ${headerHeight}px, ${theme.primary[2]} 100%)`,
-          marginTop: `-${headerHeight + 2}px`,
           paddingTop: `${headerHeight + 2}px`
         }}>
           {/* PromoStrip with banners */}
