@@ -5,6 +5,7 @@ export interface Theme {
   accentColor: string;
   bannerText: string;
   saleText: string;
+  isDark: boolean;
 }
 
 export const themes: Record<string, Theme> = {
@@ -13,8 +14,9 @@ export const themes: Record<string, Theme> = {
     secondary: ['rgb(139, 92, 246)', 'rgb(124, 58, 237)', 'rgb(109, 40, 217)'],
     textColor: '#5b21b6',
     accentColor: '#6d28d9',
-    bannerText: 'HOUSEFULL'
-    // saleText: 'SALE',
+    bannerText: 'HOUSEFULL',
+    saleText: 'SALE',
+    isDark: true,
   },
   wedding: {
     primary: ['rgb(252, 165, 165)', 'rgb(253, 182, 182)', 'rgb(254, 202, 202)', 'rgb(255, 228, 228)'],
@@ -23,6 +25,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#991b1b',
     bannerText: 'WEDDING',
     saleText: 'SALE',
+    isDark: false,
   },
   footwear: {
     primary: ['rgb(180, 130, 70)', 'rgb(205, 133, 63)', 'rgb(222, 184, 135)', 'rgb(238, 203, 173)'], // Medium brown to light brown
@@ -31,6 +34,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#a0826d', // Medium brown accent
     bannerText: 'FOOTWEAR',
     saleText: 'SALE',
+    isDark: false,
   },
   winter: {
     primary: ['rgb(186, 230, 253)', 'rgb(191, 234, 255)', 'rgb(207, 250, 254)', 'rgb(224, 242, 254)'],
@@ -39,6 +43,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#075985',
     bannerText: 'WINTER',
     saleText: 'SALE',
+    isDark: false,
   },
   electronics: {
     primary: ['rgb(253, 224, 71)', 'rgb(253, 230, 138)', 'rgb(254, 240, 138)', 'rgb(254, 249, 195)'],
@@ -47,6 +52,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#854d0e',
     bannerText: 'ELECTRONICS',
     saleText: 'SALE',
+    isDark: false,
   },
   beauty: {
     primary: ['rgb(251, 207, 232)', 'rgb(252, 218, 238)', 'rgb(253, 224, 239)', 'rgb(254, 240, 246)'],
@@ -55,6 +61,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#9f1239',
     bannerText: 'BEAUTY',
     saleText: 'SALE',
+    isDark: false,
   },
   grocery: {
     primary: ['rgb(187, 247, 208)', 'rgb(209, 250, 229)', 'rgb(220, 252, 231)', 'rgb(236, 253, 245)'],
@@ -63,6 +70,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#166534',
     bannerText: 'GROCERY',
     saleText: 'SALE',
+    isDark: false,
   },
   fashion: {
     primary: ['rgb(196, 181, 253)', 'rgb(205, 192, 255)', 'rgb(221, 214, 254)', 'rgb(237, 233, 254)'],
@@ -71,6 +79,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#5b21b6',
     bannerText: 'FASHION',
     saleText: 'SALE',
+    isDark: false,
   },
   sports: {
     primary: ['rgb(147, 197, 253)', 'rgb(165, 208, 255)', 'rgb(191, 219, 254)', 'rgb(219, 234, 254)'],
@@ -79,6 +88,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#1e40af',
     bannerText: 'SPORTS',
     saleText: 'SALE',
+    isDark: false,
   },
   leather: {
     primary: ['rgb(180, 130, 70)', 'rgb(210, 180, 140)', 'rgb(222, 184, 135)', 'rgb(245, 222, 179)'], // Tan to light tan (lighter, more tan-focused)
@@ -87,6 +97,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#8b5a3c', // Tan brown accent
     bannerText: 'BAGS',
     saleText: 'SALE',
+    isDark: false,
   },
   jewelry: {
     primary: ['rgb(184, 134, 11)', 'rgb(218, 165, 32)', 'rgb(255, 215, 0)', 'rgb(255, 223, 0)'], // Rich dark gold to bright gold
@@ -95,6 +106,7 @@ export const themes: Record<string, Theme> = {
     accentColor: '#b8860b', // Rich golden accent
     bannerText: 'JEWELRY',
     saleText: 'SALE',
+    isDark: false,
   },
 };
 

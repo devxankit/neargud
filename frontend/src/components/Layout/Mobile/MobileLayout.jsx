@@ -17,8 +17,8 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     const isHomePage = location.pathname === '/' || location.pathname === '/app' || location.pathname === '/app/';
     const isAtTop = window.scrollY < 20;
 
-    // Minimum padding required to show the home page content (logo + search + categories + space)
-    const minPadding = isHomePage ? 195 : 64;
+    // Use exact measured height for padding to avoid gaps
+    const minPadding = 0;
 
     // We update the stable height if:
     // 1. The new measured height is larger than our current stable height

@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import MobileLayout from "./MobileLayout";
-import { useMemo } from "react";
 import { getTheme } from "../../../utils/themes";
 import { useCategoryStore } from "../../../store/categoryStore";
+import { useTheme } from "../../../context/ThemeContext";
 
 const MobileAppLayout = () => {
     const location = useLocation();
@@ -16,48 +17,42 @@ const MobileAppLayout = () => {
 
     const currentCategoryId = getCurrentCategoryId();
 
-    // Unified theme background logic for the entire mobile app
-    const appBackground = useMemo(() => {
-        if (currentCategoryId) {
-            const category = categories.find(c => (c.id === currentCategoryId || c._id === currentCategoryId));
-            const catName = category?.name;
+    const { theme: contextTheme } = useTheme();
 
-            // Basic theme mapping logic
+    // Sync app background with category-specific themes to prevent mismatching "pull" reveals
+    const appBackground = useMemo(() => {
+        const path = location.pathname;
+        const isHome = path === '/' || path === '/app' || path === '/app/';
+
+        if (currentCategoryId) {
+            // Replicate theme mapping logic
             const themeMap = {
-                '1': 'fashion',
-                '2': 'footwear',
-                '3': 'leather',
-                '4': 'jewelry',
-                '5': 'winter',
-                '6': 'sports',
+                '1': 'fashion', '2': 'footwear', '3': 'leather',
+                '4': 'jewelry', '5': 'winter', '6': 'sports'
             };
 
-            let themeTab = themeMap[currentCategoryId] || 'all';
-
-            if (themeTab === 'all' && catName) {
-                const name = catName.toLowerCase();
-                if (name.includes('cloth') || name.includes('fashion')) themeTab = 'fashion';
-                else if (name.includes('shoe') || name.includes('footwear')) themeTab = 'footwear';
-                else if (name.includes('bag') || name.includes('leather')) themeTab = 'leather';
-                else if (name.includes('jewel')) themeTab = 'jewelry';
-                else if (name.includes('winter')) themeTab = 'winter';
-                else if (name.includes('sport')) themeTab = 'sports';
-                else if (name.includes('beauty')) themeTab = 'beauty';
-                else if (name.includes('electron')) themeTab = 'electronics';
-                else if (name.includes('grocer')) themeTab = 'grocery';
+            let tab = themeMap[currentCategoryId] || 'all';
+            if (tab === 'all') {
+                const category = categories.find(c => c.id === currentCategoryId || c._id === currentCategoryId);
+                if (category?.name) {
+                    const name = category.name.toLowerCase();
+                    if (name.includes('cloth') || name.includes('fashion')) tab = 'fashion';
+                    else if (name.includes('shoe') || name.includes('footwear')) tab = 'footwear';
+                    else if (name.includes('bag') || name.includes('leather')) tab = 'leather';
+                    else if (name.includes('jewel')) tab = 'jewelry';
+                    else if (name.includes('winter')) tab = 'winter';
+                    else if (name.includes('sport')) tab = 'sports';
+                    else if (name.includes('beauty')) tab = 'beauty';
+                    else if (name.includes('electron')) tab = 'electronics';
+                    else if (name.includes('grocer')) tab = 'grocery';
+                }
             }
-
-            const categoryTheme = getTheme(themeTab);
-            return `linear-gradient(to bottom, ${categoryTheme.primary[0]} 0%, ${categoryTheme.primary[1]} 100%)`;
+            const catTheme = getTheme(tab);
+            return catTheme.primary[1];
         }
 
-        if (location.pathname === '/' || location.pathname === '/app' || location.pathname === '/app/') {
-            // Default home gradient
-            return `linear-gradient(to bottom, rgb(91, 33, 182) 0px, rgb(109, 40, 217) 350px, #f8fafc 600px, #f8fafc 100%)`;
-        }
-
-        return 'transparent';
-    }, [currentCategoryId, location.pathname, categories]);
+        return isHome ? contextTheme.primary[1] : 'transparent';
+    }, [currentCategoryId, location.pathname, contextTheme, categories]);
 
     return (
         <MobileLayout style={{ background: appBackground }}>

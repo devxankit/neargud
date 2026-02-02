@@ -131,6 +131,12 @@ const MobileHeader = () => {
     return pageGradients[currentPage] || pageGradients.default;
   }, [currentCategoryId, currentPage, theme, categoryThemeTab]);
 
+  const currentHeaderTheme = useMemo(() => {
+    if (currentCategoryId) return getTheme(categoryThemeTab);
+    if (currentPage === "home") return theme;
+    return null; // Not a themed header
+  }, [currentCategoryId, categoryThemeTab, currentPage, theme]);
+
   // Hide header on scroll
   useEffect(() => {
     let ticking = false;
@@ -325,7 +331,7 @@ const MobileHeader = () => {
         <div className="w-full mt-1 pb-1">
           <MobileCategoryIcons
             isTopRowVisible={isTopRowVisible}
-            colorScheme={location.pathname === '/app' ? 'white' : 'black'}
+            colorScheme={currentHeaderTheme ? (currentHeaderTheme.isDark ? 'white' : 'black') : 'black'}
           />
         </div>
       </div>

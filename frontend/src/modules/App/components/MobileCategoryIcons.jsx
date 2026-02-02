@@ -8,10 +8,10 @@ import { useCategoryStore } from "../../../store/categoryStore";
 const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) => {
   // colorScheme: 'white' for home page, 'black' for category pages
   const iconColor = colorScheme === 'white' ? 'text-white' : 'text-gray-900';
-  const iconColorInactive = colorScheme === 'white' ? 'text-white/90' : 'text-gray-600';
+  const iconColorInactive = colorScheme === 'white' ? 'text-white/65' : 'text-gray-500';
   const iconColorHover = colorScheme === 'white' ? 'text-white' : 'text-gray-900';
   const textColor = colorScheme === 'white' ? 'text-white' : 'text-gray-900';
-  const textColorInactive = colorScheme === 'white' ? 'text-white' : 'text-gray-700';
+  const textColorInactive = colorScheme === 'white' ? 'text-white/70' : 'text-gray-600';
   const indicatorBg = colorScheme === 'white' ? 'bg-white' : 'bg-gray-900';
   const indicatorShadow = colorScheme === 'white' ? 'shadow-[0_0_10px_rgba(255,255,255,0.6)]' : 'shadow-[0_0_10px_rgba(0,0,0,0.3)]';
   const { categories, fetchCategories, isLoading } = useCategoryStore();
@@ -112,9 +112,9 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
                 className="relative flex items-center justify-center p-0.75 overflow-hidden"
               >
                 <FiHome className={`
-                  text-[18px] transition-all duration-300
-                  ${isHome ? `${iconColor} scale-110 ${colorScheme === 'white' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'}` : `${iconColorInactive} group-hover:${iconColorHover} group-hover:scale-105`}
-                `} strokeWidth={1.5} />
+                    text-[18px] transition-all duration-300
+                    ${isHome ? `${iconColor} scale-110 ${colorScheme === 'white' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'}` : `${iconColorInactive} group-hover:${iconColorHover} group-hover:scale-105`}
+                  `} strokeWidth={isHome ? 2.5 : 2} />
               </motion.div>
               <motion.span
                 animate={{ scale: isTopRowVisible ? 1 : 0.9 }}
@@ -152,8 +152,8 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
                     {IconComponent ? (
                       <IconComponent className={`
                         text-[18px] transition-all duration-300
-                        ${isActive ? `${iconColor} scale-110 ${colorScheme === 'white' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'}` : `${iconColorInactive} group-hover:${iconColorHover} group-hover:scale-105`}
-                      `} strokeWidth={1.5} />
+                        ${isActive ? `${iconColor} scale-110 ${colorScheme === 'white' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'}` : `${iconColorInactive} group-hover:${iconColorHover} group-hover:scale-105`}
+                      `} strokeWidth={isActive ? 2.5 : 2} />
                     ) : category.image ? (
                       <img
                         src={category.image}
