@@ -50,7 +50,8 @@ export const getCartController = async (req, res, next) => {
 export const addToCartController = async (req, res, next) => {
   try {
     const userId = req.user.userId;
-    const { productId, quantity = 1 } = req.body;
+    const productId = req.body.productId || req.body.id || req.body._id;
+    const { quantity = 1 } = req.body;
 
     if (!productId) {
       return res.status(400).json({

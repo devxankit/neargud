@@ -79,7 +79,11 @@ export const useCartStore = create(
 
         set({ isLoading: true, error: null });
         try {
-          const response = await cartApi.addToCart(productData);
+          const payload = {
+            ...productData,
+            productId: productData.productId || productData._id || productData.id,
+          };
+          const response = await cartApi.addToCart(payload);
           const cartData = response.data.data || response.data;
           set({
             cart: cartData,

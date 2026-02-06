@@ -30,7 +30,7 @@ export const getWishlistController = async (req, res, next) => {
 export const addToWishlistController = async (req, res, next) => {
   try {
     const userId = req.user.userId;
-    const { productId } = req.body;
+    const productId = req.body.productId || req.body.id || req.body._id;
 
     if (!productId) {
       return res.status(400).json({
