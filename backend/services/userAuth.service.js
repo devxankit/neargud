@@ -321,12 +321,30 @@ export const loginUser = async (identifier, password) => {
       throw new Error('Email/phone and password are required');
     }
 
-    // Find user by email or phone
+    // Check if identifier is email or phone
+    const isEmail = identifier.includes('@');
+
+    let queryConditions = [];
+
+    if (isEmail) {
+      queryConditions.push({ email: identifier.toLowerCase() });
+    } else {
+      // Phone number handling
+      const rawPhone = identifier;
+      const sanitizedPhone = rawPhone.replace(/[\s\-\(\)]/g, ''); // Remove common formatting
+      const cleanPhone = sanitizedPhone.replace(/^\+/, ''); // Remove leading +
+
+      // Add multiple permutations to catch various stored formats
+      queryConditions = [
+        { phone: rawPhone }, // Exact match
+        { phone: sanitizedPhone }, // Match without formatting
+        { phone: `+${cleanPhone}` }, // Match with + prefix
+        { phone: cleanPhone }, // Match without + prefix
+      ];
+    }
+
     const user = await User.findOne({
-      $or: [
-        { email: identifier.toLowerCase() },
-        { phone: identifier },
-      ],
+      $or: queryConditions,
     }).select('+password'); // Include password field
 
     if (!user) {
@@ -395,11 +413,25 @@ export const getUserById = async (userId) => {
  */
 export const updateUserProfile = async (userId, updateData) => {
   try {
-    const { name, phone, avatar } = updateData;
+    const { name, firstName, lastName, phone, avatar } = updateData;
     const updateFields = {};
 
-    if (name) {
-      updateFields.name = name.trim();
+    if (firstName) {
+      updateFields.firstName = firstName.trim();
+    }
+
+    if (lastName) {
+      updateFields.lastName = lastName.trim();
+    }
+
+    // Fallback for name if firstName/lastName not provided
+    if (name && !firstName && !lastName) {
+      // Split name into firstName and lastName
+      const nameParts = name.trim().split(' ');
+      if (nameParts.length > 0) {
+        updateFields.firstName = nameParts[0];
+        updateFields.lastName = nameParts.slice(1).join(' ') || '';
+      }
     }
 
     if (phone !== undefined) {

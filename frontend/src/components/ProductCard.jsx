@@ -191,8 +191,8 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
                 className={`text-xs transition-all duration-300 ${isFavorite
-                    ? "text-primary-700 fill-primary-700 scale-110"
-                    : "text-gray-400 group-hover:text-primary-500"
+                  ? "text-primary-700 fill-primary-700 scale-110"
+                  : "text-gray-400 group-hover:text-primary-500"
                   }`}
               />
             </button>
@@ -231,16 +231,16 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
             </div>
           )}
 
-          {!hideRating && (
+          {!hideRating && product.rating > 0 && product.reviewCount > 0 && (
             <div className="flex items-center gap-1 mb-1.5">
               <div className="flex items-center bg-green-50 px-1 py-0.5 rounded border border-green-100">
                 <span className="text-[9px] text-green-700 font-bold mr-0.5">
-                  {product.rating || 4.2}
+                  {product.rating}
                 </span>
                 <FiStar className="text-[8px] text-green-700 fill-green-700" />
               </div>
               <span className="text-[9px] text-gray-400">
-                ({product.reviewCount || 42})
+                ({product.reviewCount})
               </span>
             </div>
           )}

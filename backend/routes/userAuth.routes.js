@@ -14,6 +14,7 @@ import {
 } from '../controllers/user-controllers/userAuth.controller.js';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware.js';
 import { asyncHandler } from '../middleware/errorHandler.middleware.js';
+import { upload } from '../utils/upload.util.js';
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.post('/reset-password', asyncHandler(resetPassword));
 // Logout uses optional authentication to allow logout even with expired tokens
 router.post('/logout', optionalAuthenticate, asyncHandler(logout));
 router.get('/me', authenticate, asyncHandler(getMe));
-router.put('/profile', authenticate, asyncHandler(updateProfile));
+router.put('/profile', authenticate, upload.single('profileImage'), asyncHandler(updateProfile));
 router.put('/change-password', authenticate, asyncHandler(changePassword));
 
 export default router;

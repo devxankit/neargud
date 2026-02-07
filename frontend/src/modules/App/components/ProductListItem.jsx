@@ -113,10 +113,10 @@ const ProductListItem = ({ product, index }) => {
           </div>
 
           {/* Rating */}
-          {product.rating && (
+          {product.rating > 0 && product.reviewCount > 0 && (
             <div className="flex items-center gap-0.5 mb-0.5">
               <span className="text-[10px] text-gray-600 font-medium">
-                ⭐ {product.rating} ({product.reviewCount || 0})
+                ⭐ {product.rating} ({product.reviewCount})
               </span>
             </div>
           )}

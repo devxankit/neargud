@@ -69,10 +69,10 @@ export const register = async (req, res, next) => {
       stack: error.stack, // Always log stack for production debugging
       body: req.body
         ? {
-            name: req.body.name,
-            email: req.body.email,
-            hasPhone: !!req.body.phone,
-          }
+          name: req.body.name,
+          email: req.body.email,
+          hasPhone: !!req.body.phone,
+        }
         : undefined,
       timestamp: new Date().toISOString(),
     });
@@ -197,6 +197,8 @@ export const getMe = async (req, res, next) => {
   }
 };
 
+import { uploadToCloudinary } from "../../utils/cloudinary.util.js";
+
 /**
  * Update user profile
  * PUT /api/auth/user/profile
@@ -205,6 +207,19 @@ export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const updateData = req.body;
+
+    // Handle profile image upload
+    if (req.file) {
+      try {
+        const result = await uploadToCloudinary(req.file.buffer, 'users/avatars');
+        updateData.avatar = result.secure_url;
+      } catch (uploadError) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload profile image: ' + uploadError.message
+        });
+      }
+    }
 
     const updatedUser = await updateUserProfile(userId, updateData);
 

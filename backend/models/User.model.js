@@ -89,10 +89,15 @@ userSchema.index({ role: 1 });
 
 // Remove password from JSON output
 userSchema.methods.toJSON = function () {
-  const obj = this.toObject();
+  const obj = this.toObject({ virtuals: true });
   delete obj.password;
   return obj;
 };
+
+// Add virtual for profileImage -> avatar
+userSchema.virtual('profileImage').get(function () {
+  return this.avatar;
+});
 
 const User = mongoose.model('User', userSchema);
 

@@ -30,6 +30,8 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/register',
     '/app/verification',
     '/verification',
+    '/app/forgot-password',
+    '/forgot-password',
     '/app/checkout',
     '/checkout',
     '/app/addresses',
@@ -40,7 +42,9 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
   // Hide header and bottom nav on login, register, and verification pages
   const isAuthPage = location.pathname === '/app/login' ||
     location.pathname === '/app/register' ||
-    location.pathname === '/app/verification';
+    location.pathname === '/app/verification' ||
+    location.pathname === '/app/forgot-password' ||
+    location.pathname === '/forgot-password';
 
   // Always show bottom nav on /app routes, except auth pages and specific exclusions
   const isFullScreenPage = location.pathname === '/app/reels' ||
@@ -50,8 +54,6 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
   const isExcludedFromBottomNav = isAuthPage ||
     location.pathname === '/app/addresses' ||
     location.pathname === '/addresses' ||
-    location.pathname === '/app/chat' ||
-    location.pathname === '/chat' ||
     location.pathname === '/app/policies';
   const shouldShowBottomNav = !isExcludedFromBottomNav && showBottomNav;
 

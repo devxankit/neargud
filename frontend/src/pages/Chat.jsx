@@ -442,8 +442,8 @@ const Chat = () => {
 
     return (
         <PageTransition>
-            <MobileLayout showBottomNav={false} showCartBar={false} style={{ paddingTop: 0 }} className="bg-white">
-                <div className="flex h-[100vh] overflow-hidden bg-white">
+            <MobileLayout showBottomNav={true} showCartBar={false} style={{ paddingTop: 0 }} className="bg-white">
+                <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white">
                     {/* Chat List - Hidden on mobile if chat selected */}
                     <div className={`w-full lg:w-1/3 flex flex-col border-r border-gray-100 ${selectedChat ? 'hidden lg:flex' : 'flex'}`}>
                         {/* Header */}
@@ -509,7 +509,7 @@ const Chat = () => {
                     </div>
 
                     {/* Chat Window - Full screen on mobile */}
-                    <div className={`w-full lg:w-2/3 flex flex-col bg-white ${!selectedChat ? 'hidden lg:flex' : 'flex fixed inset-0 lg:static z-[60]'
+                    <div className={`w-full lg:w-2/3 flex flex-col bg-white ${!selectedChat ? 'hidden lg:flex' : 'flex fixed top-0 left-0 right-0 bottom-16 lg:static z-[60]'
                         }`}>
                         {selectedChat ? (
                             <>

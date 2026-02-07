@@ -96,10 +96,12 @@ const ProductCard = memo(({
             <h3 className="text-[10px] font-bold text-neutral-900 line-clamp-2 leading-tight">{product.name}</h3>
           </div>
 
-          <div className="flex items-center gap-0.5 mb-0.5">
-            <FiStar size={8} className="text-yellow-400 fill-yellow-400" />
-            <span className="text-[8px] text-neutral-500">({product.reviewCount || 85})</span>
-          </div>
+          {product.rating > 0 && product.reviewCount > 0 && (
+            <div className="flex items-center gap-0.5 mb-0.5">
+              <FiStar size={8} className="text-yellow-400 fill-yellow-400" />
+              <span className="text-[8px] text-neutral-500">({product.reviewCount})</span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between mt-auto pt-1">
             <div className="flex flex-col">

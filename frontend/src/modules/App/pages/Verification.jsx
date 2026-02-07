@@ -78,8 +78,30 @@ const MobileVerification = () => {
     }
   };
 
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
+  // Timer logic
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timerId);
+    } else {
+      setCanResend(true);
+    }
+  }, [timeLeft]);
+
   const handleResend = () => {
+    if (!canResend) return;
     toast.success('Verification code sent to your email');
+    setTimeLeft(60);
+    setCanResend(false);
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   return (
@@ -162,12 +184,18 @@ const MobileVerification = () => {
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
                   Didn't receive the code?{' '}
-                  <button
-                    onClick={handleResend}
-                    className="text-primary-600 hover:text-primary-700 font-semibold"
-                  >
-                    Resend
-                  </button>
+                  {canResend ? (
+                    <button
+                      onClick={handleResend}
+                      className="text-primary-600 hover:text-primary-700 font-semibold"
+                    >
+                      Resend
+                    </button>
+                  ) : (
+                    <span className="text-gray-400 font-medium ml-1">
+                      Resend in {formatTime(timeLeft)}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

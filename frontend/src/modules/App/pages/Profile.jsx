@@ -56,13 +56,27 @@ const MobileProfile = () => {
     register: registerPersonal,
     handleSubmit: handleSubmitPersonal,
     formState: { errors: personalErrors },
+    reset: resetPersonal,
   } = useForm({
     defaultValues: {
-      name: user?.name || '',
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
       email: user?.email || '',
       phone: user?.phone || '',
     },
   });
+
+  // Update form values when user data changes
+  useEffect(() => {
+    if (user) {
+      resetPersonal({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+    }
+  }, [user, resetPersonal]);
 
   const {
     register: registerPassword,
@@ -222,13 +236,23 @@ const MobileProfile = () => {
               {/* User Profile Card */}
               <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 flex items-center gap-4 border border-gray-100 mt-2">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-full gradient-green flex items-center justify-center text-white text-2xl font-bold shadow-md">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
+                  {user?.profileImage || user?.avatar ? (
+                    <img
+                      src={user.profileImage || user.avatar}
+                      alt={user.firstName}
+                      className="w-16 h-16 rounded-full object-cover shadow-md"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full gradient-green flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                      {user?.firstName?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
                   <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-gray-800 truncate">{user?.name || 'User'}</h2>
+                  <h2 className="text-lg font-bold text-gray-800 truncate">
+                    {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : (user?.name || 'User')}
+                  </h2>
                   <p className="text-sm text-gray-500 truncate">{user?.email || 'No email'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{user?.phone || 'No phone'}</p>
                 </div>
@@ -317,10 +341,10 @@ const MobileProfile = () => {
               <div className="glass-card rounded-2xl p-4 bg-white shadow-sm border border-gray-100">
                 <div className="flex justify-center mb-6">
                   <div className="relative">
-                    {user?.profileImage ? (
+                    {user?.profileImage || user?.avatar ? (
                       <img
-                        src={user.profileImage}
-                        alt={user.name}
+                        src={user.profileImage || user.avatar}
+                        alt={user.firstName}
                         className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                       />
                     ) : (
@@ -350,18 +374,33 @@ const MobileProfile = () => {
                 </div>
 
                 <form onSubmit={handleSubmitPersonal(onPersonalSubmit)} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-                    <div className="relative">
-                      <FiUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        {...registerPersonal('name', { required: 'Name is required' })}
-                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
-                        placeholder="Your full name"
-                      />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+                      <div className="relative">
+                        <FiUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          {...registerPersonal('firstName', { required: 'First Name is required' })}
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
+                          placeholder="First Name"
+                        />
+                      </div>
+                      {personalErrors.firstName && <p className="text-red-500 text-xs mt-1">{personalErrors.firstName.message}</p>}
                     </div>
-                    {personalErrors.name && <p className="text-red-500 text-xs mt-1">{personalErrors.name.message}</p>}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                      <div className="relative">
+                        <FiUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          {...registerPersonal('lastName', { required: 'Last Name is required' })}
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
+                          placeholder="Last Name"
+                        />
+                      </div>
+                      {personalErrors.lastName && <p className="text-red-500 text-xs mt-1">{personalErrors.lastName.message}</p>}
+                    </div>
                   </div>
 
                   <div>
@@ -380,16 +419,29 @@ const MobileProfile = () => {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-                    <div className="relative">
-                      <FiPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="tel"
-                        {...registerPersonal('phone', { validate: (v) => !v || isValidPhone(v) || 'Invalid phone' })}
-                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none transition-colors"
-                        placeholder="Phone Number"
-                      />
+                    <div className="flex gap-2">
+                      <div className="w-24 relative">
+                        <select
+                          className="w-full pl-2 pr-8 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none appearance-none"
+                          disabled
+                        >
+                          <option value="+91">+91</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                        </div>
+                      </div>
+                      <div className="relative flex-1">
+                        <FiPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="tel"
+                          {...registerPersonal('phone')}
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 focus:outline-none cursor-not-allowed"
+                          placeholder="Phone Number"
+                          readOnly
+                        />
+                      </div>
                     </div>
-                    {personalErrors.phone && <p className="text-red-500 text-xs mt-1">{personalErrors.phone.message}</p>}
                   </div>
 
                   <button

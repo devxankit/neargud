@@ -479,7 +479,7 @@ const VendorChat = () => {
       </div>
 
       {/* Chat Window */}
-      <div className={`w-full lg:w-2/3 flex flex-col bg-white ${!selectedChat ? 'hidden lg:flex' : 'flex fixed inset-0 lg:static z-50'
+      <div className={`w-full lg:w-2/3 flex flex-col bg-white ${!selectedChat ? 'hidden lg:flex' : 'flex fixed inset-0 lg:static z-[10000]'
         }`}>
         {selectedChat ? (
           <>

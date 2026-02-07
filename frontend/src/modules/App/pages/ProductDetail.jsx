@@ -419,13 +419,14 @@ const MobileProductDetail = () => {
                       <FiCheckCircle className="text-blue-500 text-sm" />
                     )}
                   </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <FiStar className="text-xs text-amber-400 fill-amber-400" />
-                    <span className="text-[11px] font-bold text-gray-600">
-                      {vendor.rating?.toFixed(1) || "4.5"} (
-                      {vendor.reviewCount || 0} reviews)
-                    </span>
-                  </div>
+                  {vendor.rating > 0 && vendor.reviewCount > 0 && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <FiStar className="text-xs text-amber-400 fill-amber-400" />
+                      <span className="text-[11px] font-bold text-gray-600">
+                        {vendor.rating.toFixed(1)} ({vendor.reviewCount} reviews)
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <FiArrowLeft className="rotate-180 text-gray-400" />
               </Link>
@@ -439,17 +440,19 @@ const MobileProductDetail = () => {
           )}
 
           {/* Rating Summary */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-              <span className="text-xs font-bold text-emerald-700">
-                {product.rating || "4.5"}
+          {product.rating > 0 && product.reviewCount > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                <span className="text-xs font-bold text-emerald-700">
+                  {product.rating}
+                </span>
+                <FiStar className="text-[10px] text-emerald-700 fill-emerald-700 ml-0.5" />
+              </div>
+              <span className="text-xs font-medium text-gray-400">
+                {product.reviewCount} Ratings & Reviews
               </span>
-              <FiStar className="text-[10px] text-emerald-700 fill-emerald-700 ml-0.5" />
             </div>
-            <span className="text-xs font-medium text-gray-400">
-              {product.reviewCount || "0"} Ratings & Reviews
-            </span>
-          </div>
+          )}
 
           {/* Price section */}
           <div className="flex items-center gap-3 mb-4">

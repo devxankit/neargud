@@ -13,23 +13,18 @@ const MobileRegister = () => {
   const navigate = useNavigate();
   const { register: registerUser, isLoading } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
-  const [formMode, setFormMode] = useState('signup'); // 'signup' or 'login'
-
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      countryCode: '+91'
+    }
+  });
 
   const password = watch('password');
-
-  const handleModeChange = (mode) => {
-    setFormMode(mode);
-    if (mode === 'login') {
-      navigate('/app/login');
-    }
-  };
 
   const onSubmit = async (data) => {
     try {
@@ -62,32 +57,6 @@ const MobileRegister = () => {
                 <p className="text-sm text-gray-600">Create an account or log in to explore about our app</p>
               </div>
 
-              {/* Sign Up / Log In Toggle */}
-              <div className="mb-6">
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    type="button"
-                    onClick={() => handleModeChange('signup')}
-                    className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${formMode === 'signup'
-                        ? 'bg-primary-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    Sign Up
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleModeChange('login')}
-                    className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${formMode === 'login'
-                        ? 'bg-primary-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    Log In
-                  </button>
-                </div>
-              </div>
-
               {/* Register Form */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* First Name */}
@@ -107,8 +76,8 @@ const MobileRegister = () => {
                         },
                       })}
                       className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.firstName
-                          ? 'border-red-300 focus:border-red-500'
-                          : 'border-gray-200 focus:border-primary-500'
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
                         } focus:outline-none transition-colors text-base`}
                       placeholder="Raj"
                     />
@@ -135,8 +104,8 @@ const MobileRegister = () => {
                         },
                       })}
                       className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.lastName
-                          ? 'border-red-300 focus:border-red-500'
-                          : 'border-gray-200 focus:border-primary-500'
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
                         } focus:outline-none transition-colors text-base`}
                       placeholder="Sarkar"
                     />
@@ -161,8 +130,8 @@ const MobileRegister = () => {
                           isValidEmail(value) || 'Please enter a valid email',
                       })}
                       className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.email
-                          ? 'border-red-300 focus:border-red-500'
-                          : 'border-gray-200 focus:border-primary-500'
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
                         } focus:outline-none transition-colors text-base`}
                       placeholder="sarkarraj0766@gmail.com"
                     />
@@ -185,8 +154,8 @@ const MobileRegister = () => {
                         required: 'Birth date is required',
                       })}
                       className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.birthDate
-                          ? 'border-red-300 focus:border-red-500'
-                          : 'border-gray-200 focus:border-primary-500'
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
                         } focus:outline-none transition-colors text-base`}
                     />
                   </div>
@@ -205,9 +174,9 @@ const MobileRegister = () => {
                       {...register('countryCode', { required: true })}
                       className="w-24 px-3 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none text-sm"
                     >
+                      <option value="+91">+91</option>
                       <option value="+880">+880</option>
                       <option value="+1">+1</option>
-                      <option value="+91">+91</option>
                       <option value="+44">+44</option>
                     </select>
                     <div className="relative flex-1">
@@ -220,8 +189,8 @@ const MobileRegister = () => {
                             isValidPhone(value) || 'Please enter a valid phone number',
                         })}
                         className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.phone
-                            ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-primary-500'
+                          ? 'border-red-300 focus:border-red-500'
+                          : 'border-gray-200 focus:border-primary-500'
                           } focus:outline-none transition-colors text-base`}
                         placeholder="4547260592"
                       />
@@ -249,8 +218,8 @@ const MobileRegister = () => {
                         },
                       })}
                       className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.password
-                          ? 'border-red-300 focus:border-red-500'
-                          : 'border-gray-200 focus:border-primary-500'
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
                         } focus:outline-none transition-colors text-base`}
                       placeholder="Create a password"
                     />
