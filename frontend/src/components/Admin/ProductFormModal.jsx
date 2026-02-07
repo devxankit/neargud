@@ -15,7 +15,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
   const isAppRoute = location.pathname.startsWith('/app');
   const isEdit = productId && productId !== "new";
 
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +60,7 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
   }, []);
 

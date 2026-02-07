@@ -6,6 +6,7 @@ import {
   deleteCategory,
   bulkDeleteCategories,
   bulkUpdateCategoryOrder,
+  getPublicCategories,
 } from '../../services/categoryManagement.service.js';
 import {
   uploadBase64ToCloudinary,
@@ -31,6 +32,38 @@ export const getCategories = async (req, res, next) => {
     const result = await getAllCategories({
       search,
       isActive,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Categories retrieved successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get public categories with active products
+ * GET /api/categories
+ */
+export const getPublicCategoryList = async (req, res, next) => {
+  try {
+    const {
+      search = '',
+      page = 1,
+      limit = 100, // Default larger limit for public view
+      sortBy = 'order',
+      sortOrder = 'asc',
+    } = req.query;
+
+    const result = await getPublicCategories({
+      search,
       page,
       limit,
       sortBy,

@@ -16,7 +16,7 @@ const ProductForm = () => {
 
   const productsPath = "/admin/products";
 
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
 
   const [formData, setFormData] = useState({
@@ -51,7 +51,7 @@ const ProductForm = () => {
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
   }, []);
 

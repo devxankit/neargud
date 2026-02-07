@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import toast from 'react-hot-toast';
 import {
   fetchCategories,
+  fetchAdminCategories,
   fetchCategoryById,
   createCategoryApi,
   updateCategoryApi,
@@ -27,11 +28,32 @@ export const useCategoryStore = create((set, get) => ({
   page: 1,
   totalPages: 0,
 
-  // Fetch all categories from API
+  // Fetch all categories from API (Public)
   fetchCategories: async (params = {}) => {
     set({ isLoading: true });
     try {
       const result = await fetchCategories(params);
+      const transformedCategories = result.categories.map(transformCategory);
+      set({
+        categories: transformedCategories,
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+        isLoading: false,
+      });
+      return transformedCategories;
+    } catch (error) {
+      set({ isLoading: false });
+      toast.error('Failed to fetch categories');
+      throw error;
+    }
+  },
+
+  // Fetch all categories from API (Admin)
+  fetchAdminCategories: async (params = {}) => {
+    set({ isLoading: true });
+    try {
+      const result = await fetchAdminCategories(params);
       const transformedCategories = result.categories.map(transformCategory);
       set({
         categories: transformedCategories,
@@ -82,13 +104,13 @@ export const useCategoryStore = create((set, get) => ({
     try {
       const newCategory = await createCategoryApi(categoryData);
       const transformed = transformCategory(newCategory);
-      
+
       // Add to local state
       set((state) => ({
         categories: [...state.categories, transformed],
         isLoading: false,
       }));
-      
+
       toast.success('Category created successfully');
       return transformed;
     } catch (error) {
@@ -104,7 +126,7 @@ export const useCategoryStore = create((set, get) => ({
     try {
       const updatedCategory = await updateCategoryApi(id, categoryData);
       const transformed = transformCategory(updatedCategory);
-      
+
       // Update in local state
       set((state) => ({
         categories: state.categories.map((cat) =>
@@ -112,7 +134,7 @@ export const useCategoryStore = create((set, get) => ({
         ),
         isLoading: false,
       }));
-      
+
       toast.success('Category updated successfully');
       return transformed;
     } catch (error) {
@@ -127,7 +149,7 @@ export const useCategoryStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       await deleteCategoryApi(id);
-      
+
       // Remove from local state
       set((state) => ({
         categories: state.categories.filter(
@@ -135,7 +157,7 @@ export const useCategoryStore = create((set, get) => ({
         ),
         isLoading: false,
       }));
-      
+
       toast.success('Category deleted successfully');
       return true;
     } catch (error) {
@@ -150,7 +172,7 @@ export const useCategoryStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const result = await bulkDeleteCategoriesApi(ids);
-      
+
       // Remove from local state
       set((state) => ({
         categories: state.categories.filter(
@@ -158,7 +180,7 @@ export const useCategoryStore = create((set, get) => ({
         ),
         isLoading: false,
       }));
-      
+
       if (result.failedIds && result.failedIds.length > 0) {
         toast.success(
           `${result.deletedCount} categories deleted. ${result.failedIds.length} categories could not be deleted (have subcategories).`
@@ -204,10 +226,10 @@ export const useCategoryStore = create((set, get) => ({
         id,
         order: index + 1,
       }));
-      
+
       const result = await bulkUpdateCategoryOrderApi(orders);
       const transformedCategories = result.categories.map(transformCategory);
-      
+
       // Update local state
       set((state) => {
         const updatedCategories = state.categories.map((cat) => {
@@ -221,7 +243,7 @@ export const useCategoryStore = create((set, get) => ({
           isLoading: false,
         };
       });
-      
+
       toast.success('Categories reordered successfully');
       return true;
     } catch (error) {

@@ -11,7 +11,7 @@ import { createProduct } from "../../../services/productApi";
 
 const AddProduct = () => {
   const navigate = useNavigate();
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
   const [loading, setLoading] = useState(false);
 
@@ -56,9 +56,9 @@ const AddProduct = () => {
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
-  }, [fetchCategories, fetchBrands]);
+  }, [fetchAdminCategories, fetchBrands]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

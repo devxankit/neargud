@@ -20,7 +20,7 @@ const ManageProducts = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
 
   const [pagination, setPagination] = useState({
@@ -83,7 +83,7 @@ const ManageProducts = () => {
   };
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
   }, []);
 

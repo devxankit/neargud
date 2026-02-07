@@ -5,12 +5,12 @@ import { useCategoryStore } from '../../../store/categoryStore';
 import toast from 'react-hot-toast';
 
 const CategoryOrder = () => {
-  const { categories, fetchCategories, reorderCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories, reorderCategories } = useCategoryStore();
   const [orderedCategories, setOrderedCategories] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
   }, []); // Remove dependency on fetchCategories to avoid infinite loop if reference changes
 
   useEffect(() => {

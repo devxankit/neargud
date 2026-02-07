@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 const ManageCategories = () => {
   const {
     categories,
-    fetchCategories,
+    fetchAdminCategories,
     deleteCategory,
   } = useCategoryStore();
 
@@ -27,7 +27,7 @@ const ManageCategories = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
   }, []);
 
   const filteredCategories = useMemo(() => {
@@ -144,8 +144,8 @@ const ManageCategories = () => {
             <button
               onClick={() => setViewMode('tree')}
               className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${viewMode === 'tree'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-600'
                 }`}
             >
               Tree View
@@ -153,8 +153,8 @@ const ManageCategories = () => {
             <button
               onClick={() => setViewMode('list')}
               className={`flex-1 sm:flex-initial px-3 py-2 rounded text-sm font-medium transition-colors ${viewMode === 'list'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-600'
                 }`}
             >
               List View

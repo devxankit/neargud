@@ -17,7 +17,7 @@ import { getVendorProducts, deleteVendorProduct } from "../../services/productSe
 const ManageProducts = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
 
   const [products, setProducts] = useState([]);
@@ -34,9 +34,9 @@ const ManageProducts = () => {
   const vendorId = vendor?._id || vendor?.id;
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
-  }, [fetchCategories, fetchBrands]);
+  }, [fetchAdminCategories, fetchBrands]);
 
   useEffect(() => {
     loadProducts();

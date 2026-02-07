@@ -16,6 +16,16 @@ export const fetchCategories = async (params = {}) => {
 };
 
 /**
+ * Get all categories for Admin (Unfiltered)
+ * @param {Object} params - { search, isActive, page, limit, sortBy, sortOrder }
+ * @returns {Promise<Object>} { categories, total, page, totalPages }
+ */
+export const fetchAdminCategories = async (params = {}) => {
+  const response = await api.get('/admin/categories', { params });
+  return response.data;
+};
+
+/**
  * Get category by ID
  * @param {String} id - Category ID
  * @returns {Promise<Object>} Category object

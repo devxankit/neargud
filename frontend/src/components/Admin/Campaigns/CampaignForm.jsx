@@ -63,7 +63,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
   const productsPerPage = 20;
 
   // Get stores
-  const { categories, getRootCategories, getCategoriesByParent, fetchCategories: initCategories } = useCategoryStore();
+  const { categories, getRootCategories, getCategoriesByParent, fetchAdminCategories: initCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
 
   // Initialize stores
@@ -76,7 +76,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
   const generatedSlug = useMemo(() => {
     if (formData.name) {
       const campaigns = useCampaignStore.getState().campaigns;
-      const existingCampaigns = isEdit 
+      const existingCampaigns = isEdit
         ? campaigns.filter(c => c.id !== campaign.id)
         : campaigns;
       return generateSlug(formData.name, existingCampaigns);
@@ -121,8 +121,8 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
         bannerConfig: campaign.bannerConfig ? {
           ...campaign.bannerConfig,
           // Detect if image is base64 (custom uploaded image)
-          customImage: campaign.bannerConfig.image && campaign.bannerConfig.image.startsWith('data:image/') 
-            ? true 
+          customImage: campaign.bannerConfig.image && campaign.bannerConfig.image.startsWith('data:image/')
+            ? true
             : (campaign.bannerConfig.customImage || false),
         } : {
           title: '',
@@ -146,7 +146,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     // Handle nested pageConfig updates
     if (name.startsWith('pageConfig.')) {
       const configKey = name.split('.')[1];
@@ -208,7 +208,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
       // Get all subcategories for this parent category
       const subcategories = getCategoriesByParent(parentCategoryId);
       const allCategoryIds = [parentCategoryId, ...subcategories.map(cat => cat.id)];
-      
+
       filtered = filtered.filter(
         (product) => allCategoryIds.includes(product.categoryId)
       );
@@ -258,7 +258,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
   const handleSelectAllFiltered = () => {
     const filteredIds = filteredProducts.map(p => p.id);
     const allSelected = filteredIds.every(id => formData.productIds.includes(id));
-    
+
     if (allSelected) {
       // Deselect all filtered
       setFormData({
@@ -311,7 +311,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
           bannerConfig: {
             ...formData.bannerConfig,
             image: reader.result, // Preview
-            customImage: true, 
+            customImage: true,
           },
         });
         toast.success('Banner image selected');
@@ -325,7 +325,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('Campaign name is required');
       return;
@@ -345,7 +345,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
 
     try {
       const payload = new FormData();
-      
+
       // Append basic fields
       payload.append('name', formData.name);
       payload.append('type', formData.type);
@@ -361,15 +361,15 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
       // Append complex objects as JSON strings
       payload.append('productIds', JSON.stringify(formData.productIds));
       payload.append('pageConfig', JSON.stringify(formData.pageConfig));
-      
+
       // Handle banner config
       const bannerConfigToSend = { ...formData.bannerConfig };
       // If we have a new file, we don't need to send the base64 string in the config
       // The backend will set the image URL after upload
       if (bannerImageFile) {
-         payload.append('image', bannerImageFile);
-         // backend expects bannerConfig object too, but maybe without the huge base64 image
-         bannerConfigToSend.image = ''; 
+        payload.append('image', bannerImageFile);
+        // backend expects bannerConfig object too, but maybe without the huge base64 image
+        bannerConfigToSend.image = '';
       }
       payload.append('bannerConfig', JSON.stringify(bannerConfigToSend));
 
@@ -383,19 +383,19 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
         createdCampaign = await updateCampaign(campaign.id || campaign._id, payload);
       } else {
         createdCampaign = await createCampaign(payload);
-        
+
         // Auto-create banner if enabled (Note: if payload is FormData, createCampaign returns the backend response object)
         // If createCampaign returns the created object directly:
         if (formData.autoCreateBanner && createdCampaign) {
-             // We can trigger banner creation. 
-             // However, our backend might have extracted the image URL and put it in createdCampaign.bannerConfig.
-             // Let's try to use that.
-             try {
-                // We need to pass the updated campaign object which has the real image URL
-                await createCampaignBanner(createdCampaign, createdCampaign.bannerConfig); 
-             } catch (bannerError) {
-                 console.error('Failed to create banner:', bannerError);
-             }
+          // We can trigger banner creation. 
+          // However, our backend might have extracted the image URL and put it in createdCampaign.bannerConfig.
+          // Let's try to use that.
+          try {
+            // We need to pass the updated campaign object which has the real image URL
+            await createCampaignBanner(createdCampaign, createdCampaign.bannerConfig);
+          } catch (bannerError) {
+            console.error('Failed to create banner:', bannerError);
+          }
         }
       }
       onSave?.();
@@ -419,7 +419,7 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
           className="fixed inset-0 bg-black/50 z-[10001]"
           style={{ zIndex: 10001 }}
         />
-        
+
         {/* Modal Content - Mobile: Slide up from bottom, Desktop: Center with scale */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -430,27 +430,27 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
         >
           <motion.div
             variants={{
-              hidden: { 
+              hidden: {
                 y: isAppRoute ? '-100%' : '100%',
                 scale: 0.95,
                 opacity: 0
               },
-              visible: { 
+              visible: {
                 y: 0,
                 scale: 1,
                 opacity: 1,
-                transition: { 
+                transition: {
                   type: 'spring',
                   damping: 22,
                   stiffness: 350,
                   mass: 0.7
                 }
               },
-              exit: { 
+              exit: {
                 y: isAppRoute ? '-100%' : '100%',
                 scale: 0.95,
                 opacity: 0,
-                transition: { 
+                transition: {
                   type: 'spring',
                   damping: 30,
                   stiffness: 400
@@ -476,734 +476,733 @@ const CampaignForm = ({ campaign, onClose, onSave }) => {
               />
             </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Basic Information */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Basic Information</h3>
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Basic Information */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Campaign Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g., Summer Sale 2024"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Campaign Type <span className="text-red-500">*</span>
-                </label>
-                <AnimatedSelect
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  required
-                  options={[
-                    { value: 'flash_sale', label: 'Flash Sale' },
-                    { value: 'daily_deal', label: 'Daily Deal' },
-                    { value: 'special_offer', label: 'Special Offer' },
-                    { value: 'festival', label: 'Festival Offer' },
-                  ]}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Campaign description..."
-                />
-              </div>
-
-              {/* Slug and Route Preview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    URL Slug
-                  </label>
-                  <div className="relative">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Basic Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Campaign Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      name="slug"
-                      value={formData.slug}
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
+                      required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="Auto-generated from name"
+                      placeholder="e.g., Summer Sale 2024"
                     />
-                    <FiLink className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">URL-friendly version of campaign name</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Page URL
-                  </label>
-                  <div className="relative">
-                    <div className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-600 flex items-center gap-2">
-                      <FiEye className="text-gray-400" />
-                      <span>/sale/{formData.slug || generatedSlug || 'campaign-slug'}</span>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Campaign Type <span className="text-red-500">*</span>
+                    </label>
+                    <AnimatedSelect
+                      name="type"
+                      value={formData.type}
+                      onChange={handleChange}
+                      required
+                      options={[
+                        { value: 'flash_sale', label: 'Flash Sale' },
+                        { value: 'daily_deal', label: 'Daily Deal' },
+                        { value: 'special_offer', label: 'Special Offer' },
+                        { value: 'festival', label: 'Festival Offer' },
+                      ]}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="Campaign description..."
+                    />
+                  </div>
+
+                  {/* Slug and Route Preview */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        URL Slug
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="slug"
+                          value={formData.slug}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="Auto-generated from name"
+                        />
+                        <FiLink className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">URL-friendly version of campaign name</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Page URL
+                      </label>
+                      <div className="relative">
+                        <div className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-600 flex items-center gap-2">
+                          <FiEye className="text-gray-400" />
+                          <span>/sale/{formData.slug || generatedSlug || 'campaign-slug'}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Preview of the campaign page URL</p>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Preview of the campaign page URL</p>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Discount Settings */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Discount Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Discount Settings */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Discount Type <span className="text-red-500">*</span>
-                </label>
-                <AnimatedSelect
-                  name="discountType"
-                  value={formData.discountType}
-                  onChange={handleChange}
-                  required
-                  options={[
-                    { value: 'percentage', label: 'Percentage' },
-                    { value: 'fixed', label: 'Fixed Amount' },
-                  ]}
-                />
-              </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Discount Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Discount Type <span className="text-red-500">*</span>
+                    </label>
+                    <AnimatedSelect
+                      name="discountType"
+                      value={formData.discountType}
+                      onChange={handleChange}
+                      required
+                      options={[
+                        { value: 'percentage', label: 'Percentage' },
+                        { value: 'fixed', label: 'Fixed Amount' },
+                      ]}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Discount Value <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="discountValue"
-                  value={formData.discountValue}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step={formData.discountType === 'percentage' ? '1' : '0.01'}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={formData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 10.00'}
-                />
-                {formData.discountType === 'percentage' && (
-                  <p className="text-xs text-gray-500 mt-1">Enter percentage (e.g., 20 for 20%)</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Schedule */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Schedule</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Start Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  End Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  required
-                  min={formData.startDate}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Products */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Select Products</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">
-                  {formData.productIds.length} selected
-                </span>
-                {filteredProducts.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleSelectAllFiltered}
-                    className="flex items-center gap-1 px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                  >
-                    {allFilteredSelected ? (
-                      <>
-                        <FiCheckSquare className="text-base" />
-                        <span>Deselect All</span>
-                      </>
-                    ) : (
-                      <>
-                        <FiSquare className="text-base" />
-                        <span>Select All ({filteredProducts.length})</span>
-                      </>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Discount Value <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="discountValue"
+                      value={formData.discountValue}
+                      onChange={handleChange}
+                      required
+                      min="0"
+                      step={formData.discountType === 'percentage' ? '1' : '0.01'}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder={formData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 10.00'}
+                    />
+                    {formData.discountType === 'percentage' && (
+                      <p className="text-xs text-gray-500 mt-1">Enter percentage (e.g., 20 for 20%)</p>
                     )}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="space-y-3 mb-4">
-              {/* Search Bar */}
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={productSearchQuery}
-                  onChange={(e) => setProductSearchQuery(e.target.value)}
-                  placeholder="Search products by name..."
-                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                {productSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setProductSearchQuery('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <FiXCircle />
-                  </button>
-                )}
+                  </div>
+                </div>
               </div>
 
-              {/* Filter Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {/* Category Filter - Only Parent Categories */}
-                <AnimatedSelect
-                  value={selectedProductCategory}
-                  onChange={(e) => setSelectedProductCategory(e.target.value)}
-                  options={[
-                    { value: 'all', label: 'All Categories' },
-                    ...getRootCategories()
-                      .filter((cat) => cat.isActive !== false)
-                      .map((cat) => ({ value: String(cat.id), label: cat.name })),
-                  ]}
-                />
+              {/* Schedule */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Schedule</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      value={formData.startDate}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
 
-                {/* Brand Filter */}
-                <AnimatedSelect
-                  value={selectedProductBrand}
-                  onChange={(e) => setSelectedProductBrand(e.target.value)}
-                  options={[
-                    { value: 'all', label: 'All Brands' },
-                    ...(brands || [])
-                      .filter((brand) => brand.isActive !== false)
-                      .map((brand) => ({ value: String(brand.id), label: brand.name })),
-                  ]}
-                />
-
-                {/* Stock Filter */}
-                <AnimatedSelect
-                  value={selectedProductStock}
-                  onChange={(e) => setSelectedProductStock(e.target.value)}
-                  options={[
-                    { value: 'all', label: 'All Stock' },
-                    { value: 'in_stock', label: 'In Stock' },
-                    { value: 'low_stock', label: 'Low Stock' },
-                    { value: 'out_of_stock', label: 'Out of Stock' },
-                  ]}
-                />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      required
+                      min={formData.startDate}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Clear Filters Button */}
-              {(productSearchQuery || selectedProductCategory !== 'all' || selectedProductBrand !== 'all' || selectedProductStock !== 'all') && (
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800"
-                >
-                  <FiXCircle className="text-xs" />
-                  <span>Clear all filters</span>
-                </button>
-              )}
+              {/* Products */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Select Products</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                      {formData.productIds.length} selected
+                    </span>
+                    {filteredProducts.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleSelectAllFiltered}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                      >
+                        {allFilteredSelected ? (
+                          <>
+                            <FiCheckSquare className="text-base" />
+                            <span>Deselect All</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiSquare className="text-base" />
+                            <span>Select All ({filteredProducts.length})</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-              {/* Results Count */}
-              <div className="text-sm text-gray-600">
-                Showing {paginatedProducts.length} of {filteredProducts.length} products
-                {filteredProducts.length !== products.length && ` (${products.length} total)`}
-              </div>
-            </div>
+                {/* Search and Filters */}
+                <div className="space-y-3 mb-4">
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={productSearchQuery}
+                      onChange={(e) => setProductSearchQuery(e.target.value)}
+                      placeholder="Search products by name..."
+                      className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    {productSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setProductSearchQuery('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <FiXCircle />
+                      </button>
+                    )}
+                  </div>
 
-            {/* Products List */}
-            <div className="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto scrollbar-admin">
-              {filteredProducts.length === 0 ? (
-                <div className="text-center py-8">
-                  <FiSearch className="text-4xl text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500">No products found</p>
+                  {/* Filter Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {/* Category Filter - Only Parent Categories */}
+                    <AnimatedSelect
+                      value={selectedProductCategory}
+                      onChange={(e) => setSelectedProductCategory(e.target.value)}
+                      options={[
+                        { value: 'all', label: 'All Categories' },
+                        ...getRootCategories()
+                          .filter((cat) => cat.isActive !== false)
+                          .map((cat) => ({ value: String(cat.id), label: cat.name })),
+                      ]}
+                    />
+
+                    {/* Brand Filter */}
+                    <AnimatedSelect
+                      value={selectedProductBrand}
+                      onChange={(e) => setSelectedProductBrand(e.target.value)}
+                      options={[
+                        { value: 'all', label: 'All Brands' },
+                        ...(brands || [])
+                          .filter((brand) => brand.isActive !== false)
+                          .map((brand) => ({ value: String(brand.id), label: brand.name })),
+                      ]}
+                    />
+
+                    {/* Stock Filter */}
+                    <AnimatedSelect
+                      value={selectedProductStock}
+                      onChange={(e) => setSelectedProductStock(e.target.value)}
+                      options={[
+                        { value: 'all', label: 'All Stock' },
+                        { value: 'in_stock', label: 'In Stock' },
+                        { value: 'low_stock', label: 'Low Stock' },
+                        { value: 'out_of_stock', label: 'Out of Stock' },
+                      ]}
+                    />
+                  </div>
+
+                  {/* Clear Filters Button */}
                   {(productSearchQuery || selectedProductCategory !== 'all' || selectedProductBrand !== 'all' || selectedProductStock !== 'all') && (
                     <button
                       type="button"
                       onClick={handleClearFilters}
-                      className="mt-2 text-sm text-primary-600 hover:text-primary-700"
+                      className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800"
                     >
-                      Clear filters to see all products
+                      <FiXCircle className="text-xs" />
+                      <span>Clear all filters</span>
                     </button>
                   )}
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    {paginatedProducts.map((product) => (
-                      <label
-                        key={product.id}
-                        className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer border border-transparent hover:border-gray-200 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.productIds.includes(product.id)}
-                          onChange={() => handleProductToggle(product.id)}
-                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500 flex-shrink-0"
-                        />
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/48x48?text=Product';
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-sm font-medium text-gray-700">{formatPrice(product.price)}</p>
-                            {product.originalPrice && product.originalPrice > product.price && (
-                              <p className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
-                            )}
-                            {product.stock && (
-                              <span className={`text-xs px-2 py-0.5 rounded ${
-                                product.stock === 'in_stock' ? 'bg-green-100 text-green-700' :
-                                product.stock === 'low_stock' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {product.stock.replace('_', ' ')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
 
-                  {/* Pagination */}
-                  {totalProductPages > 1 && (
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                      <button
-                        type="button"
-                        onClick={() => setProductPage(p => Math.max(1, p - 1))}
-                        disabled={productPage === 1}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-sm text-gray-600">
-                        Page {productPage} of {totalProductPages}
+                  {/* Results Count */}
+                  <div className="text-sm text-gray-600">
+                    Showing {paginatedProducts.length} of {filteredProducts.length} products
+                    {filteredProducts.length !== products.length && ` (${products.length} total)`}
+                  </div>
+                </div>
+
+                {/* Products List */}
+                <div className="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto scrollbar-admin">
+                  {filteredProducts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FiSearch className="text-4xl text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500">No products found</p>
+                      {(productSearchQuery || selectedProductCategory !== 'all' || selectedProductBrand !== 'all' || selectedProductStock !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={handleClearFilters}
+                          className="mt-2 text-sm text-primary-600 hover:text-primary-700"
+                        >
+                          Clear filters to see all products
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        {paginatedProducts.map((product) => (
+                          <label
+                            key={product.id}
+                            className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer border border-transparent hover:border-gray-200 transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.productIds.includes(product.id)}
+                              onChange={() => handleProductToggle(product.id)}
+                              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500 flex-shrink-0"
+                            />
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                              onError={(e) => {
+                                e.target.src = 'https://via.placeholder.com/48x48?text=Product';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-800 truncate">{product.name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-sm font-medium text-gray-700">{formatPrice(product.price)}</p>
+                                {product.originalPrice && product.originalPrice > product.price && (
+                                  <p className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
+                                )}
+                                {product.stock && (
+                                  <span className={`text-xs px-2 py-0.5 rounded ${product.stock === 'in_stock' ? 'bg-green-100 text-green-700' :
+                                      product.stock === 'low_stock' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-red-100 text-red-700'
+                                    }`}>
+                                    {product.stock.replace('_', ' ')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {totalProductPages > 1 && (
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => setProductPage(p => Math.max(1, p - 1))}
+                            disabled={productPage === 1}
+                            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-sm text-gray-600">
+                            Page {productPage} of {totalProductPages}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setProductPage(p => Math.min(totalProductPages, p + 1))}
+                            disabled={productPage === totalProductPages}
+                            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Selected Products Summary */}
+                {formData.productIds.length > 0 && (
+                  <div className="mt-3 p-3 bg-primary-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-primary-800">
+                        {formData.productIds.length} product(s) selected
                       </span>
                       <button
                         type="button"
-                        onClick={() => setProductPage(p => Math.min(totalProductPages, p + 1))}
-                        disabled={productPage === totalProductPages}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => setFormData({ ...formData, productIds: [] })}
+                        className="text-xs text-primary-600 hover:text-primary-700"
                       >
-                        Next
+                        Clear selection
                       </button>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Selected Products Summary */}
-            {formData.productIds.length > 0 && (
-              <div className="mt-3 p-3 bg-primary-50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-primary-800">
-                    {formData.productIds.length} product(s) selected
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, productIds: [] })}
-                    className="text-xs text-primary-600 hover:text-primary-700"
-                  >
-                    Clear selection
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Page Options */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Page Options</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      name="pageConfig.showCountdown"
-                      checked={formData.pageConfig.showCountdown}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">Show Countdown Timer</span>
-                  </label>
-                  {formData.pageConfig.showCountdown && (
-                    <div className="mt-2">
-                      <label className="block text-xs text-gray-600 mb-1">Countdown Type</label>
+              {/* Page Options */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Page Options</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          name="pageConfig.showCountdown"
+                          checked={formData.pageConfig.showCountdown}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-semibold text-gray-700">Show Countdown Timer</span>
+                      </label>
+                      {formData.pageConfig.showCountdown && (
+                        <div className="mt-2">
+                          <label className="block text-xs text-gray-600 mb-1">Countdown Type</label>
+                          <AnimatedSelect
+                            name="pageConfig.countdownType"
+                            value={formData.pageConfig.countdownType}
+                            onChange={handleChange}
+                            options={[
+                              { value: 'campaign_end', label: 'Campaign End' },
+                              { value: 'daily_reset', label: 'Daily Reset' },
+                            ]}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          name="pageConfig.showStats"
+                          checked={formData.pageConfig.showStats}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-semibold text-gray-700">Show Stats Banner</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        View Modes
+                      </label>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="viewMode"
+                            value="grid"
+                            checked={formData.pageConfig.viewModes.includes('grid')}
+                            onChange={handleChange}
+                            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                          />
+                          <span className="text-sm text-gray-700">Grid View</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="viewMode"
+                            value="list"
+                            checked={formData.pageConfig.viewModes.includes('list')}
+                            onChange={handleChange}
+                            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                          />
+                          <span className="text-sm text-gray-700">List View</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Default View Mode
+                      </label>
                       <AnimatedSelect
-                        name="pageConfig.countdownType"
-                        value={formData.pageConfig.countdownType}
+                        name="pageConfig.defaultViewMode"
+                        value={formData.pageConfig.defaultViewMode}
                         onChange={handleChange}
-                        options={[
-                          { value: 'campaign_end', label: 'Campaign End' },
-                          { value: 'daily_reset', label: 'Daily Reset' },
-                        ]}
+                        options={formData.pageConfig.viewModes.map(mode => ({
+                          value: mode,
+                          label: mode.charAt(0).toUpperCase() + mode.slice(1),
+                        }))}
                       />
                     </div>
-                  )}
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      name="pageConfig.showStats"
-                      checked={formData.pageConfig.showStats}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">Show Stats Banner</span>
-                  </label>
-                </div>
-              </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    View Modes
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="viewMode"
-                        value="grid"
-                        checked={formData.pageConfig.viewModes.includes('grid')}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-gray-700">Grid View</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          name="pageConfig.enableFilters"
+                          checked={formData.pageConfig.enableFilters}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-semibold text-gray-700">Enable Filters</span>
+                      </label>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          name="pageConfig.enableSorting"
+                          checked={formData.pageConfig.enableSorting}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-semibold text-gray-700">Enable Sorting</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Products Per Page
                     </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="viewMode"
-                        value="list"
-                        checked={formData.pageConfig.viewModes.includes('list')}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-gray-700">List View</span>
-                    </label>
+                    <input
+                      type="number"
+                      name="pageConfig.productsPerPage"
+                      value={formData.pageConfig.productsPerPage}
+                      onChange={handleChange}
+                      min="6"
+                      max="48"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Default View Mode
-                  </label>
-                  <AnimatedSelect
-                    name="pageConfig.defaultViewMode"
-                    value={formData.pageConfig.defaultViewMode}
-                    onChange={handleChange}
-                    options={formData.pageConfig.viewModes.map(mode => ({
-                      value: mode,
-                      label: mode.charAt(0).toUpperCase() + mode.slice(1),
-                    }))}
-                  />
-                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      name="pageConfig.enableFilters"
-                      checked={formData.pageConfig.enableFilters}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">Enable Filters</span>
-                  </label>
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      name="pageConfig.enableSorting"
-                      checked={formData.pageConfig.enableSorting}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm font-semibold text-gray-700">Enable Sorting</span>
-                  </label>
-                </div>
-              </div>
-
+              {/* Banner Settings */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Products Per Page
-                </label>
-                <input
-                  type="number"
-                  name="pageConfig.productsPerPage"
-                  value={formData.pageConfig.productsPerPage}
-                  onChange={handleChange}
-                  min="6"
-                  max="48"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Banner Settings */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Banner Settings</h3>
-            <div className="space-y-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="autoCreateBanner"
-                  checked={formData.autoCreateBanner}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm font-semibold text-gray-700">Auto-create Banner</span>
-              </label>
-
-              {formData.autoCreateBanner && (
-                <div className="space-y-4 pl-6 border-l-2 border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Banner Title (Optional - defaults to campaign name)
-                    </label>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Banner Settings</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2">
                     <input
-                      type="text"
-                      name="bannerConfig.title"
-                      value={formData.bannerConfig.title}
+                      type="checkbox"
+                      name="autoCreateBanner"
+                      checked={formData.autoCreateBanner}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="Leave empty to use campaign name"
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Banner Subtitle (Optional - defaults to discount info)
-                    </label>
-                    <input
-                      type="text"
-                      name="bannerConfig.subtitle"
-                      value={formData.bannerConfig.subtitle}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="Leave empty for auto-generated subtitle"
-                    />
-                  </div>
-                  
-                  {/* Banner Image Options */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Banner Image
-                    </label>
-                    <div className="space-y-3">
-                      {/* Option 1: Upload Custom Image */}
+                    <span className="text-sm font-semibold text-gray-700">Auto-create Banner</span>
+                  </label>
+
+                  {formData.autoCreateBanner && (
+                    <div className="space-y-4 pl-6 border-l-2 border-gray-200">
                       <div>
-                        <label className="block text-xs text-gray-600 mb-2">Option 1: Upload Custom Image</label>
-                        <div className="relative">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleBannerImageUpload}
-                            className="hidden"
-                            id="banner-image-upload"
-                          />
-                          <label
-                            htmlFor="banner-image-upload"
-                            className="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors bg-white"
-                          >
-                            <FiUpload className="text-lg text-primary-600" />
-                            <span className="text-sm font-medium text-gray-700">
-                              {formData.bannerConfig.image && formData.bannerConfig.customImage
-                                ? 'Change Custom Banner Image'
-                                : 'Upload Custom Banner Image'}
-                            </span>
-                          </label>
-                        </div>
-                        {/* Preview for custom uploaded image */}
-                        {formData.bannerConfig.image && formData.bannerConfig.customImage && (
-                          <div className="mt-3">
-                            <div className="relative inline-block">
-                              <img
-                                src={formData.bannerConfig.image}
-                                alt="Banner preview"
-                                className="w-full max-w-xs h-32 object-cover rounded-lg border border-gray-200"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                }}
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Banner Title (Optional - defaults to campaign name)
+                        </label>
+                        <input
+                          type="text"
+                          name="bannerConfig.title"
+                          value={formData.bannerConfig.title}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="Leave empty to use campaign name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Banner Subtitle (Optional - defaults to discount info)
+                        </label>
+                        <input
+                          type="text"
+                          name="bannerConfig.subtitle"
+                          value={formData.bannerConfig.subtitle}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="Leave empty for auto-generated subtitle"
+                        />
+                      </div>
+
+                      {/* Banner Image Options */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Banner Image
+                        </label>
+                        <div className="space-y-3">
+                          {/* Option 1: Upload Custom Image */}
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-2">Option 1: Upload Custom Image</label>
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleBannerImageUpload}
+                                className="hidden"
+                                id="banner-image-upload"
                               />
-                              <button
-                                type="button"
-                                onClick={() => {
+                              <label
+                                htmlFor="banner-image-upload"
+                                className="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors bg-white"
+                              >
+                                <FiUpload className="text-lg text-primary-600" />
+                                <span className="text-sm font-medium text-gray-700">
+                                  {formData.bannerConfig.image && formData.bannerConfig.customImage
+                                    ? 'Change Custom Banner Image'
+                                    : 'Upload Custom Banner Image'}
+                                </span>
+                              </label>
+                            </div>
+                            {/* Preview for custom uploaded image */}
+                            {formData.bannerConfig.image && formData.bannerConfig.customImage && (
+                              <div className="mt-3">
+                                <div className="relative inline-block">
+                                  <img
+                                    src={formData.bannerConfig.image}
+                                    alt="Banner preview"
+                                    className="w-full max-w-xs h-32 object-cover rounded-lg border border-gray-200"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData({
+                                        ...formData,
+                                        bannerConfig: {
+                                          ...formData.bannerConfig,
+                                          image: '',
+                                          customImage: false,
+                                        },
+                                      });
+                                    }}
+                                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                    title="Remove image"
+                                  >
+                                    <FiX className="text-sm" />
+                                  </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Custom uploaded image</p>
+                              </div>
+                            )}
+
+                            {/* Preview for URL image */}
+                            {formData.bannerConfig.image && !formData.bannerConfig.customImage && !formData.bannerConfig.image.startsWith('data:') && (
+                              <div className="mt-3">
+                                <div className="relative inline-block">
+                                  <img
+                                    src={formData.bannerConfig.image}
+                                    alt="Banner preview"
+                                    className="w-full max-w-xs h-32 object-cover rounded-lg border border-gray-200"
+                                    onError={(e) => {
+                                      e.target.parentElement.style.display = 'none';
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData({
+                                        ...formData,
+                                        bannerConfig: {
+                                          ...formData.bannerConfig,
+                                          image: '',
+                                        },
+                                      });
+                                    }}
+                                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                    title="Remove image"
+                                  >
+                                    <FiX className="text-sm" />
+                                  </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Image from URL</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Option 2: Image URL */}
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-2">Option 2: Use Image URL (Optional - defaults to promotional image)</label>
+                            <div className="relative">
+                              <FiImage className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                              <input
+                                type="text"
+                                name="bannerConfig.image"
+                                value={formData.bannerConfig.customImage ? '' : formData.bannerConfig.image}
+                                onChange={(e) => {
                                   setFormData({
                                     ...formData,
                                     bannerConfig: {
                                       ...formData.bannerConfig,
-                                      image: '',
+                                      image: e.target.value,
                                       customImage: false,
                                     },
                                   });
                                 }}
-                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                title="Remove image"
-                              >
-                                <FiX className="text-sm" />
-                              </button>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">Custom uploaded image</p>
-                          </div>
-                        )}
-                        
-                        {/* Preview for URL image */}
-                        {formData.bannerConfig.image && !formData.bannerConfig.customImage && !formData.bannerConfig.image.startsWith('data:') && (
-                          <div className="mt-3">
-                            <div className="relative inline-block">
-                              <img
-                                src={formData.bannerConfig.image}
-                                alt="Banner preview"
-                                className="w-full max-w-xs h-32 object-cover rounded-lg border border-gray-200"
-                                onError={(e) => {
-                                  e.target.parentElement.style.display = 'none';
-                                }}
+                                disabled={formData.bannerConfig.customImage}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                placeholder="/images/promotional/beauty.jpg"
                               />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFormData({
-                                    ...formData,
-                                    bannerConfig: {
-                                      ...formData.bannerConfig,
-                                      image: '',
-                                    },
-                                  });
-                                }}
-                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                title="Remove image"
-                              >
-                                <FiX className="text-sm" />
-                              </button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Image from URL</p>
+                            {formData.bannerConfig.image && !formData.bannerConfig.customImage && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Leave empty to use default promotional image
+                              </p>
+                            )}
                           </div>
-                        )}
-                      </div>
-
-                      {/* Option 2: Image URL */}
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-2">Option 2: Use Image URL (Optional - defaults to promotional image)</label>
-                        <div className="relative">
-                          <FiImage className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="text"
-                            name="bannerConfig.image"
-                            value={formData.bannerConfig.customImage ? '' : formData.bannerConfig.image}
-                            onChange={(e) => {
-                              setFormData({
-                                ...formData,
-                                bannerConfig: {
-                                  ...formData.bannerConfig,
-                                  image: e.target.value,
-                                  customImage: false,
-                                },
-                              });
-                            }}
-                            disabled={formData.bannerConfig.customImage}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            placeholder="/images/promotional/beauty.jpg"
-                          />
                         </div>
-                        {formData.bannerConfig.image && !formData.bannerConfig.customImage && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Leave empty to use default promotional image
-                          </p>
-                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
-          {/* Settings */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Settings</h3>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="isActive"
-                checked={formData.isActive}
-                onChange={handleChange}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <span className="text-sm font-semibold text-gray-700">Active</span>
-            </label>
-          </div>
+              {/* Settings */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Settings</h3>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">Active</span>
+                </label>
+              </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
-            <Button
-              type="button"
-              onClick={onClose}
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              icon={FiSave}
-            >
-              {isEdit ? 'Update Campaign' : 'Create Campaign'}
-            </Button>
-          </div>
-        </form>
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  onClick={onClose}
+                  variant="secondary"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  icon={FiSave}
+                >
+                  {isEdit ? 'Update Campaign' : 'Create Campaign'}
+                </Button>
+              </div>
+            </form>
           </motion.div>
         </motion.div>
       </>
