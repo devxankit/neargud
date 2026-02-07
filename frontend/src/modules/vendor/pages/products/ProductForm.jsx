@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiSave, FiX, FiUpload, FiArrowLeft, FiLoader } from "react-icons/fi";
+import { FiSave, FiX, FiUpload, FiArrowLeft, FiLoader, FiPlus, FiLayers, FiTrash2 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
 import { useCategoryStore } from "../../../../store/categoryStore";
@@ -19,7 +19,7 @@ const ProductForm = () => {
   const vendorId = vendor?._id || vendor?.id;
   const vendorName = vendor?.storeName || vendor?.name || "Vendor";
 
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
 
   const [loading, setLoading] = useState(false);
@@ -54,6 +54,7 @@ const ProductForm = () => {
     taxIncluded: false,
     description: "",
     tags: [],
+    colorVariants: [],
     variants: {
       sizes: [],
       colors: [],
@@ -68,7 +69,7 @@ const ProductForm = () => {
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
   }, []);
 
@@ -131,13 +132,13 @@ const ProductForm = () => {
         taxIncluded: product.taxIncluded || false,
         description: product.description || "",
         tags: product.tags || [],
+        colorVariants: product.variants?.colorVariants || product.colorVariants || [],
         variants: {
           sizes: product.variants?.sizes || product.sizes || [],
           colors: product.variants?.colors || [],
           materials: product.variants?.materials || [],
           prices: product.variants?.prices || {},
           defaultVariant: product.variants?.defaultVariant || {},
-          colorVariants: product.variants?.colorVariants || [],
         },
         seoTitle: product.seoTitle || "",
         seoDescription: product.seoDescription || "",
@@ -235,6 +236,123 @@ const ProductForm = () => {
     });
   };
 
+  const addColorVariant = () => {
+    setFormData(prev => ({
+      ...prev,
+      colorVariants: [
+        ...(prev.colorVariants || []),
+        {
+          color: "",
+          thumbnail: "",
+          images: [],
+          sizes: []
+        }
+      ]
+    }));
+  };
+
+  const removeColorVariant = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      colorVariants: prev.colorVariants.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateColorVariant = (index, field, value) => {
+    setFormData(prev => {
+      const newVariants = [...(prev.colorVariants || [])];
+      newVariants[index] = { ...newVariants[index], [field]: value };
+      return { ...prev, colorVariants: newVariants };
+    });
+  };
+
+  const handleVariantThumbnail = (index, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateColorVariant(index, 'thumbnail', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleVariantImages = (index, e) => {
+    const files = Array.from(e.target.files);
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then(results => {
+      setFormData(prev => {
+        const newVariants = [...(prev.colorVariants || [])];
+        newVariants[index] = {
+          ...newVariants[index],
+          images: [...(newVariants[index].images || []), ...results]
+        };
+        return { ...prev, colorVariants: newVariants };
+      });
+    });
+  };
+
+  const addSizeToVariant = (index) => {
+    setFormData(prev => {
+      const newVariants = [...(prev.colorVariants || [])];
+      if (!newVariants[index].sizes) newVariants[index].sizes = [];
+      newVariants[index].sizes.push({
+        size: "",
+        price: prev.price || "",
+        originalPrice: prev.originalPrice || "",
+        stock: ""
+      });
+      return { ...prev, colorVariants: newVariants };
+    });
+  };
+
+  const bulkAddSizes = (index, sizesStr) => {
+    const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s);
+    setFormData(prev => {
+      const newVariants = [...(prev.colorVariants || [])];
+      if (!newVariants[index].sizes) newVariants[index].sizes = [];
+      const existingSizes = newVariants[index].sizes.map(s => s.size);
+      const newSizes = sizes
+        .filter(s => !existingSizes.includes(s))
+        .map(s => ({
+          size: s,
+          price: prev.price || "",
+          originalPrice: prev.originalPrice || "",
+          stock: ""
+        }));
+      newVariants[index].sizes = [...newVariants[index].sizes, ...newSizes];
+      return { ...prev, colorVariants: newVariants };
+    });
+  };
+
+  const updateSizeData = (vIdx, sIdx, field, value) => {
+    setFormData(prev => {
+      const newVariants = [...(prev.colorVariants || [])];
+      if (!newVariants[vIdx].sizes) newVariants[vIdx].sizes = [];
+      newVariants[vIdx].sizes[sIdx] = {
+        ...newVariants[vIdx].sizes[sIdx],
+        [field]: value
+      };
+      return { ...prev, colorVariants: newVariants };
+    });
+  };
+
+  const removeSizeVariant = (vIdx, sIdx) => {
+    setFormData(prev => {
+      const newVariants = [...(prev.colorVariants || [])];
+      if (!newVariants[vIdx].sizes) return prev;
+      newVariants[vIdx].sizes = newVariants[vIdx].sizes.filter((_, i) => i !== sIdx);
+      return { ...prev, colorVariants: newVariants };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -262,6 +380,18 @@ const ProductForm = () => {
         subcategoryId: formData.subcategoryId || null,
         subSubCategoryId: formData.subSubCategoryId || null,
         brandId: formData.brandId || null,
+        variants: {
+          ...formData.variants,
+          colorVariants: (formData.colorVariants || []).map(cv => ({
+            ...cv,
+            sizes: (cv.sizes || []).map(s => ({
+              ...s,
+              price: parseFloat(s.price),
+              originalPrice: s.originalPrice ? parseFloat(s.originalPrice) : null,
+              stock: parseInt(s.stock)
+            }))
+          }))
+        }
       };
 
       await updateVendorProduct(id, payload);
@@ -640,99 +770,207 @@ const ProductForm = () => {
           <h2 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">
             Product Variants
           </h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Sizes (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={(formData.variants?.sizes || []).join(", ")}
-                onChange={(e) => {
-                  const sizes = e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter((s) => s);
-                  setFormData({
-                    ...formData,
-                    variants: { ...formData.variants, sizes },
-                  });
-                }}
-                placeholder="S, M, L, XL"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              />
+          <div className="space-y-6">
+            <div className="bg-primary-50 p-4 sm:p-6 rounded-2xl border border-primary-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm sm:text-lg font-bold text-primary-900 mb-1">Color & Size Variations</h3>
+                <p className="text-xs text-primary-600 font-medium">Manage color options, images, and size-specific stock.</p>
+              </div>
+              <button
+                type="button"
+                onClick={addColorVariant}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-primary-700 transition-all shadow-md hover:shadow-lg shadow-primary-200"
+              >
+                <FiPlus /> Add Variant
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Colors (comma-separated)
-              </label>
-              <input
-                type="text"
-                value={(formData.variants?.colors || []).join(", ")}
-                onChange={(e) => {
-                  const colors = e.target.value
-                    .split(",")
-                    .map((c) => c.trim())
-                    .filter((c) => c);
-                  setFormData({
-                    ...formData,
-                    variants: { ...formData.variants, colors },
-                  });
-                }}
-                placeholder="Red, Blue, Green, Black"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              />
+
+            <div className="space-y-6">
+              {formData.colorVariants && formData.colorVariants.map((variant, vIdx) => (
+                <div key={vIdx} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xs">
+                        {vIdx + 1}
+                      </div>
+                      <h4 className="font-bold text-gray-900 text-sm sm:text-base">Variant {vIdx + 1}</h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeColorVariant(vIdx)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </div>
+
+                  <div className="p-4 sm:p-6 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Left: Color & Images */}
+                      <div className="space-y-5">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Color Name *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Red, Blue..."
+                            value={variant.color}
+                            onChange={(e) => updateColorVariant(vIdx, 'color', e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-sm font-medium transition-all"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Thumbnail</label>
+                            <div className="relative group">
+                              {variant.thumbnail ? (
+                                <div className="relative aspect-square rounded-xl overflow-hidden border-2 border-primary-100">
+                                  <img src={variant.thumbnail} className="w-full h-full object-cover" alt="Thumbnail" />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateColorVariant(vIdx, 'thumbnail', '')}
+                                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-md shadow-md hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100"
+                                  >
+                                    <FiX size={12} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-all">
+                                  <FiUpload className="text-xl text-gray-400 mb-1" />
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase">Upload</span>
+                                  <input type="file" accept="image/*" onChange={(e) => handleVariantThumbnail(vIdx, e)} className="hidden" />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Images</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(variant.images || []).slice(0, 3).map((img, iIdx) => (
+                                <div key={iIdx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-100 group">
+                                  <img src={img} className="w-full h-full object-cover" alt={`Var ${iIdx}`} />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newImgs = [...variant.images];
+                                      newImgs.splice(iIdx, 1);
+                                      updateColorVariant(vIdx, 'images', newImgs);
+                                    }}
+                                    className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded opacity-0 group-hover:opacity-100"
+                                  >
+                                    <FiX size={10} />
+                                  </button>
+                                </div>
+                              ))}
+                              {(!variant.images || variant.images.length < 4) && (
+                                <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-all">
+                                  <FiPlus className="text-gray-400" />
+                                  <input type="file" multiple accept="image/*" onChange={(e) => handleVariantImages(vIdx, e)} className="hidden" />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Sizes */}
+                      <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex flex-col h-full">
+                        <div className="flex items-center justify-between mb-3">
+                          <h5 className="text-xs font-bold text-gray-700">Size Variants</h5>
+                          <button
+                            type="button"
+                            onClick={() => addSizeToVariant(vIdx)}
+                            className="text-[10px] font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-white px-2 py-1 rounded border border-primary-100 shadow-sm"
+                          >
+                            <FiPlus /> Add Size
+                          </button>
+                        </div>
+
+                        <div className="mb-3">
+                          <input
+                            type="text"
+                            placeholder="Bulk add (e.g. S, M, L)... Press Enter"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                bulkAddSizes(vIdx, e.target.value);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none text-xs"
+                          />
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto max-h-[250px] pr-2 space-y-3 custom-scrollbar">
+                          {variant.sizes && variant.sizes.length > 0 ? (
+                            variant.sizes.map((sz, sIdx) => (
+                              <div key={sIdx} className="bg-white p-3 rounded-xl border border-gray-200 relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => removeSizeVariant(vIdx, sIdx)}
+                                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-100 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all z-10 shadow-sm"
+                                >
+                                  <FiX size={10} />
+                                </button>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[10px] text-gray-400 block mb-0.5">Size</label>
+                                    <input
+                                      type="text"
+                                      value={sz.size}
+                                      onChange={(e) => updateSizeData(vIdx, sIdx, 'size', e.target.value)}
+                                      className="w-full px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs font-bold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-gray-400 block mb-0.5">Stock</label>
+                                    <input
+                                      type="number"
+                                      value={sz.stock}
+                                      onChange={(e) => updateSizeData(vIdx, sIdx, 'stock', e.target.value)}
+                                      className="w-full px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs font-bold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-gray-400 block mb-0.5">Price</label>
+                                    <input
+                                      type="number"
+                                      value={sz.price}
+                                      onChange={(e) => updateSizeData(vIdx, sIdx, 'price', e.target.value)}
+                                      className="w-full px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs font-bold"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-gray-400 block mb-0.5">Orig. Price</label>
+                                    <input
+                                      type="number"
+                                      value={sz.originalPrice}
+                                      onChange={(e) => updateSizeData(vIdx, sIdx, 'originalPrice', e.target.value)}
+                                      className="w-full px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs font-bold"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-6">
+                              <p className="text-[10px] text-gray-400">No sizes added yet.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+
             </div>
           </div>
         </div>
 
-        {/* Additional Info */}
-        <div>
-          <h2 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">
-            Additional Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Warranty Period
-              </label>
-              <input
-                type="text"
-                name="warrantyPeriod"
-                value={formData.warrantyPeriod}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                placeholder="e.g., 1 Year"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Guarantee Period
-              </label>
-              <input
-                type="text"
-                name="guaranteePeriod"
-                value={formData.guaranteePeriod}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                placeholder="e.g., 6 Months"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                HSN Code
-              </label>
-              <input
-                type="text"
-                name="hsnCode"
-                value={formData.hsnCode}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                placeholder="HSN Code"
-              />
-            </div>
-          </div>
-        </div>
+
 
         {/* Tags */}
         <div>
@@ -754,39 +992,6 @@ const ProductForm = () => {
             <p className="mt-1.5 text-xs text-gray-500">
               Separate tags with commas
             </p>
-          </div>
-        </div>
-
-        {/* SEO */}
-        <div>
-          <h2 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">SEO</h2>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                SEO Title
-              </label>
-              <input
-                type="text"
-                name="seoTitle"
-                value={formData.seoTitle}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                placeholder="SEO optimized title"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                SEO Description
-              </label>
-              <textarea
-                name="seoDescription"
-                value={formData.seoDescription}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm resize-none"
-                placeholder="SEO optimized description"
-              />
-            </div>
           </div>
         </div>
 

@@ -27,7 +27,7 @@ import { createVendorProduct } from "../../services/productService";
 const AddProduct = () => {
   const navigate = useNavigate();
   const { vendor } = useVendorAuthStore();
-  const { categories, fetchCategories } = useCategoryStore();
+  const { categories, fetchAdminCategories } = useCategoryStore();
   const { brands, fetchBrands } = useBrandStore();
   const { promoCodes, fetchPromoCodes } = usePromoCodeStore();
   const [loading, setLoading] = useState(false);
@@ -266,7 +266,7 @@ const AddProduct = () => {
   };
 
   useEffect(() => {
-    fetchCategories();
+    fetchAdminCategories();
     fetchBrands();
     fetchPromoCodes();
   }, []);
@@ -395,15 +395,19 @@ const AddProduct = () => {
         vendorName: vendorName,
         applicableCoupons: formData.applicablePromoCodes, // Send IDs to backend
         // Ensure colorVariants data is clean
-        colorVariants: formData.colorVariants.map(cv => ({
-          ...cv,
-          sizes: cv.sizes.map(s => ({
-            ...s,
-            price: parseFloat(s.price),
-            originalPrice: s.originalPrice ? parseFloat(s.originalPrice) : null,
-            stock: parseInt(s.stock)
+        // Ensure variants are nested correctly
+        variants: {
+          ...formData.variants,
+          colorVariants: formData.colorVariants.map(cv => ({
+            ...cv,
+            sizes: cv.sizes.map(s => ({
+              ...s,
+              price: parseFloat(s.price),
+              originalPrice: s.originalPrice ? parseFloat(s.originalPrice) : null,
+              stock: parseInt(s.stock)
+            }))
           }))
-        }))
+        }
       };
 
       await createVendorProduct(payload);
@@ -576,11 +580,18 @@ const AddProduct = () => {
                           value={formData.mainColor}
                           onChange={handleChange}
                           placeholder="Enter color name (e.g. Red, Blue)..."
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                          className="w-full pl-4 pr-32 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                         />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-[10px] text-gray-400">
-                          <span className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: formData.mainColor.toLowerCase() }}></span>
-                          Select Color
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer hover:text-primary-600 transition-colors">
+                          <input
+                            type="color"
+                            value={/^#[0-9A-F]{6}$/i.test(formData.mainColor) ? formData.mainColor : "#000000"}
+                            onChange={(e) => setFormData(prev => ({ ...prev, mainColor: e.target.value }))}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            title="Pick visual color"
+                          />
+                          <span className="w-4 h-4 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: formData.mainColor ? formData.mainColor.toLowerCase() : 'transparent' }}></span>
+                          <span>Select Color</span>
                         </div>
                       </div>
                     </div>

@@ -1,4 +1,99 @@
 import Category from '../models/Category.model.js';
+import Product from '../models/Product.model.js';
+
+/**
+ * Get public categories (only those with active products and active status)
+ * @param {Object} filters - { search, page, limit, sortBy, sortOrder }
+ * @returns {Promise<Object>} { categories, total, page, totalPages }
+ */
+export const getPublicCategories = async (filters = {}) => {
+  try {
+    const {
+      search = '',
+      page = 1,
+      limit = 10,
+      sortBy = 'order',
+      sortOrder = 'asc',
+    } = filters;
+
+    // 1. Get IDs of categories that have active products
+    // We check categoryId, subcategoryId, and subSubCategoryId
+    // Products must be active, visible, and not deleted
+    const activeProductQuery = {
+      isActive: true,
+      isVisible: true,
+      stock: { $ne: 'out_of_stock' } // Optional: only show categories with in-stock products?
+      // Use standard active criteria
+    };
+
+    // Use distinct to get unique IDs efficiently
+    const [categoryIds, subcategoryIds, subSubCategoryIds] = await Promise.all([
+      Product.distinct('categoryId', activeProductQuery),
+      Product.distinct('subcategoryId', activeProductQuery),
+      Product.distinct('subSubCategoryId', activeProductQuery)
+    ]);
+
+    // Combine all IDs into a unique set
+    const activeCategoryIds = [...new Set([
+      ...categoryIds.map(id => id.toString()),
+      ...subcategoryIds.filter(id => id).map(id => id.toString()),
+      ...subSubCategoryIds.filter(id => id).map(id => id.toString())
+    ])];
+
+    if (activeCategoryIds.length === 0) {
+      return {
+        categories: [],
+        total: 0,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: 0,
+      };
+    }
+
+    // 2. Build Query for Categories
+    const query = {
+      isActive: true, // Category itself must be active
+      _id: { $in: activeCategoryIds }
+    };
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Sort options
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Execute query
+    const [categories, total] = await Promise.all([
+      Category.find(query)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Category.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    return {
+      categories,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
 
 /**
  * Get all categories with optional filters
