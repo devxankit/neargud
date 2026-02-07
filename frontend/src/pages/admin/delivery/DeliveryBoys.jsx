@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FiPlus, FiSearch, FiEdit, FiTrash2, FiMapPin, FiPhone, FiCheckCircle, FiXCircle, FiEye, FiDollarSign } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiEdit, FiTrash2, FiMapPin, FiPhone, FiCheckCircle, FiXCircle, FiEye, FiEyeOff, FiDollarSign } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import DataTable from '../../../components/Admin/DataTable';
 import Badge from '../../../components/Badge';
@@ -19,6 +19,7 @@ const DeliveryBoys = () => {
   const [editingBoy, setEditingBoy] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [historyModal, setHistoryModal] = useState({ isOpen: false, boy: null, data: [], loading: false });
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchDeliveryPartners = useCallback(async () => {
     setLoading(true);
@@ -392,8 +393,13 @@ const DeliveryBoys = () => {
                     type="tel"
                     name="phone"
                     defaultValue={editingBoy.phone || ''}
-                    placeholder="Phone"
+                    placeholder="Phone (10 digits)"
                     required
+                    maxLength={10}
+                    minLength={10}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    }}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                   <input
@@ -405,13 +411,22 @@ const DeliveryBoys = () => {
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                   {!editingBoy._id && (
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="Password"
-                      required
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        placeholder="Password"
+                        required
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      >
+                        {showPassword ? <FiEyeOff /> : <FiEye />}
+                      </button>
+                    </div>
                   )}
                   <input
                     type="text"
@@ -464,9 +479,14 @@ const DeliveryBoys = () => {
                       type="text"
                       name="vehicleNumber"
                       defaultValue={editingBoy.vehicleNumber || ''}
-                      placeholder="Vehicle Number"
+                      placeholder="Vehicle Number (e.g. MP09AB1234)"
                       required
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      pattern="^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$"
+                      title="Please enter a valid vehicle number (e.g. MP09AB1234 or MH12A1234)"
+                      onInput={(e) => {
+                        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                      }}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 invalid:border-red-500"
                     />
                   </div>
                   <AnimatedSelect

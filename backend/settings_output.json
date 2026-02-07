@@ -1,0 +1,45 @@
+﻿{
+    "success":  true,
+    "message":  "Public settings retrieved successfully",
+    "data":  {
+                 "settings":  {
+                                  "general":  {
+                                                  "storeName":  "Neargud",
+                                                  "storeLogo":  "/images/logos/logo.png",
+                                                  "favicon":  "/images/logos/logo.png",
+                                                  "storeDescription":  "egvrgr",
+                                                  "contactEmail":  "contact@example.com",
+                                                  "contactPhone":  "+1234567890",
+                                                  "address":  "efe",
+                                                  "socialMedia":  {
+                                                                      "facebook":  "http://localhost:5173/admin/settings/general",
+                                                                      "instagram":  "http://localhost:5173/admin/settings/general",
+                                                                      "twitter":  "http://localhost:5173/admin/settings/general",
+                                                                      "linkedin":  "http://localhost:5173/admin/settings/general"
+                                                                  },
+                                                  "businessHours":  "Mon-Fri 9AM-6PM",
+                                                  "timezone":  "UTC",
+                                                  "currency":  "INR",
+                                                  "language":  "en"
+                                              },
+                                  "theme":  {
+                                                "primaryColor":  "#3c6255",
+                                                "secondaryColor":  "#181d25",
+                                                "accentColor":  "#867928",
+                                                "fontFamily":  "Inter"
+                                            },
+                                  "products":  {
+                                                   "itemsPerPage":  12,
+                                                   "gridColumns":  4,
+                                                   "defaultSort":  "popularity",
+                                                   "outOfStockBehavior":  "show"
+                                               },
+                                  "tax":  {
+                                              "taxName":  "Tax",
+                                              "taxType":  "percentage",
+                                              "taxValue":  5,
+                                              "isEnabled":  true
+                                          }
+                              }
+             }
+}

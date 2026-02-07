@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const settingsSchema = new mongoose.Schema(
   {
     general: {
-      storeName: { type: String, trim: true, default: 'Appzeto E-commerce' },
+      storeName: { type: String, trim: true, default: 'Neargud' },
       storeLogo: { type: String, trim: true, default: '/images/logos/logo.png' },
       favicon: { type: String, trim: true, default: '/images/logos/logo.png' },
       storeDescription: { type: String, trim: true, default: '' },

@@ -372,7 +372,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-white text-sm truncate">
-                {settings?.general?.storeName || "Near Gud Admin"}
+                {settings?.general?.storeName || "Neargud Admin"}
               </h2>
               <p className="text-xs text-gray-400 truncate">
                 {admin?.name || "Administrator"}

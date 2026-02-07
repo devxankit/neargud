@@ -167,7 +167,7 @@ const MobilePolicies = lazy(() => import("./modules/App/pages/Policies"));
 const MobileSavedCards = lazy(() => import("./modules/App/pages/SavedCards"));
 const Wallet = lazy(() => import("./modules/App/pages/Wallet"));
 const MobileNotifications = lazy(() => import("./modules/App/pages/Notifications"));
-const BrandManager = lazy(() => import("./components/BrandManager"));
+import BrandManager from "./components/BrandManager";
 import MobileAppLayout from "./components/Layout/Mobile/MobileAppLayout";
 // Delivery Routes - lazy load entire delivery module
 const DeliveryLogin = lazy(() => import("./pages/delivery/Login"));

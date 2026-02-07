@@ -15,7 +15,7 @@ const Invoice = () => {
   const [loading, setLoading] = useState(true);
   const { settings } = useSettingsStore();
   const storeLogo = settings?.general?.storeLogo || '/images/logos/logo.png';
-  const storeName = settings?.general?.storeName || 'Appzeto E-commerce';
+  const storeName = settings?.general?.storeName || 'Neargud';
 
   useEffect(() => {
     const fetchOrder = async () => {

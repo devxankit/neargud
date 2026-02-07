@@ -7,8 +7,6 @@ const StatsCards = ({ stats }) => {
       title: 'Total Revenue',
       value: stats?.totalRevenue || 0,
       prefix: '₹',
-      change: '+12.5%',
-      isIncrease: true,
       icon: FiDollarSign,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-green-500 to-emerald-600',
@@ -18,8 +16,6 @@ const StatsCards = ({ stats }) => {
     {
       title: 'Total Orders',
       value: stats?.totalOrders || 0,
-      change: '+8.2%',
-      isIncrease: true,
       icon: FiShoppingBag,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-blue-500 to-indigo-600',
@@ -29,8 +25,6 @@ const StatsCards = ({ stats }) => {
     {
       title: 'Total Customers',
       value: stats?.totalCustomers || 0,
-      change: '+5.4%',
-      isIncrease: true,
       icon: FiUsers,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-purple-500 to-violet-600',
@@ -40,8 +34,6 @@ const StatsCards = ({ stats }) => {
     {
       title: 'Total Products',
       value: stats?.totalProducts || 0,
-      change: '+2.1%',
-      isIncrease: true,
       icon: FiBox,
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-orange-500 to-amber-600',
@@ -70,13 +62,6 @@ const StatsCards = ({ stats }) => {
             <div className="flex items-center justify-between mb-3 sm:mb-4 relative z-10">
               <div className={`${card.bgColor} ${card.iconBg} p-2 sm:p-3 rounded-lg shadow-md`}>
                 <Icon className={`${card.color} text-lg sm:text-xl`} />
-              </div>
-              <div
-                className={`text-xs sm:text-sm font-semibold px-2 py-1 rounded-full ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}
-              >
-                {isPositive ? '+' : ''}
-                {card.change}%
               </div>
             </div>
             <div className="relative z-10">

@@ -79,7 +79,7 @@ const Footer = () => {
               </div>
               <span className="text-2xl font-extrabold">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-300 to-accent-500">
-                  {settings?.general?.storeName || 'Appzeto E-commerce'}
+                  {settings?.general?.storeName || 'Neargud'}
                 </span>
               </span>
             </Link>

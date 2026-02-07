@@ -26,7 +26,7 @@ const AdminHeader = ({ onMenuClick }) => {
   const getPageName = (pathname) => {
     const path = pathname.split('/').pop() || 'dashboard';
     const pageNames = {
-      dashboard: 'Dashboard',
+      dashboard: 'Neargud',
       products: 'Products',
       categories: 'Categories',
       brands: 'Brands',

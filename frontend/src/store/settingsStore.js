@@ -5,7 +5,7 @@ import { adminSettingsApi } from '../services/adminSettingsApi';
 
 const defaultSettings = {
   general: {
-    storeName: 'Appzeto E-commerce',
+    storeName: 'Neargud',
     storeLogo: '/images/logos/logo.png',
     favicon: '/images/logos/logo.png',
     contactEmail: 'contact@example.com',
@@ -181,7 +181,7 @@ export const useSettingsStore = create(
       },
     }),
     {
-      name: 'settings-storage',
+      name: 'settings-storage-v2',
       storage: createJSONStorage(() => localStorage),
     }
   )
