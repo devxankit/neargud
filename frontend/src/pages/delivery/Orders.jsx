@@ -230,7 +230,7 @@ const DeliveryOrders = () => {
     <PageTransition>
       <div className="pb-24">
         {/* Header Section */}
-        <div className="bg-white px-6 pt-8 pb-6 rounded-b-[40px] shadow-sm sticky top-0 z-20">
+        <div className="bg-white px-6 pt-16 pb-6 rounded-b-[40px] shadow-sm sticky top-0 z-20">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-black text-gray-900 font-outfit">Orders</h1>

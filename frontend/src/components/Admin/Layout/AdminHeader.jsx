@@ -47,7 +47,7 @@ const AdminHeader = ({ onMenuClick }) => {
   const pageName = getPageName(location.pathname);
 
   return (
-    <header 
+    <header
       className="bg-white border-b border-gray-200 fixed top-0 left-0 lg:left-64 right-0 z-30"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -62,7 +62,7 @@ const AdminHeader = ({ onMenuClick }) => {
             className="lg:hidden text-gray-700"
             icon={FiMenu}
           />
-          
+
           {/* Page Heading - Desktop Only */}
           <div className="hidden lg:block">
             <h1 className="text-2xl font-bold text-gray-800 mb-1">{pageName}</h1>
@@ -82,7 +82,7 @@ const AdminHeader = ({ onMenuClick }) => {
               icon={FiBell}
             />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            
+
             {/* Notification Window - positioned relative to this container */}
             <NotificationWindow
               isOpen={showNotifications}

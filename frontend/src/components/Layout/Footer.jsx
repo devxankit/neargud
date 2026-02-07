@@ -23,7 +23,7 @@ const Footer = () => {
     location.pathname.startsWith('/track-order') ||
     location.pathname.startsWith('/app/track-order');
 
-  if (location.pathname.startsWith('/app') || isCheckoutRoute) {
+  if (location.pathname.startsWith('/app') || location.pathname.startsWith('/policies') || isCheckoutRoute) {
     return null;
   }
 

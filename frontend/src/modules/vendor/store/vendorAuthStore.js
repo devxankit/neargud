@@ -59,18 +59,19 @@ export const useVendorAuthStore = create(
 
       // Vendor logout action
       logout: async () => {
+        // Clear state immediately for better UI response
+        set({
+          vendor: null,
+          token: null,
+          isAuthenticated: false,
+        });
+        localStorage.removeItem('vendor-token');
+
         try {
-          // Attempt server-side logout (optional)
+          // Attempt server-side logout in the background
           await api.post('/auth/vendor/logout');
         } catch (err) {
           console.error("Logout error", err);
-        } finally {
-          set({
-            vendor: null,
-            token: null,
-            isAuthenticated: false,
-          });
-          localStorage.removeItem('vendor-token');
         }
       },
 

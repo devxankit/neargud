@@ -95,7 +95,7 @@ const DeliveryOrderDetail = () => {
 
   return (
     <PageTransition>
-      <div className="px-4 py-6 space-y-4">
+      <div className="px-4 pt-20 pb-6 space-y-4">
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
           <button

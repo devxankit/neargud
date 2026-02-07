@@ -110,6 +110,14 @@ const deliveryPartnerSchema = new mongoose.Schema(
         fcmTokenMobile: {
             type: [String],
             default: []
+        },
+        avgRating: {
+            type: Number,
+            default: 0,
+        },
+        totalRatings: {
+            type: Number,
+            default: 0,
         }
     },
     {

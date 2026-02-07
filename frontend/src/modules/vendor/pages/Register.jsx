@@ -26,12 +26,13 @@ const VendorRegister = () => {
     },
     businessLicense: null,
     panCard: null,
+    agreedToPolicies: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     if (name.startsWith('address.')) {
       const addressField = name.split('.')[1];
@@ -42,10 +43,15 @@ const VendorRegister = () => {
           [addressField]: value,
         },
       });
-    } else if (e.target.type === 'file') {
+    } else if (type === 'file') {
       setFormData({
         ...formData,
         [name]: e.target.files[0],
+      });
+    } else if (type === 'checkbox') {
+      setFormData({
+        ...formData,
+        [name]: checked,
       });
     } else {
       setFormData({
@@ -61,6 +67,11 @@ const VendorRegister = () => {
     // Validation
     if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.storeName) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!formData.agreedToPolicies) {
+      toast.error('Please agree to the Terms & Conditions and Privacy Policy');
       return;
     }
 
@@ -83,7 +94,7 @@ const VendorRegister = () => {
       data.append('storeName', formData.storeName);
       data.append('storeDescription', formData.storeDescription);
       data.append('address', JSON.stringify(formData.address));
-      
+
       if (formData.businessLicense) {
         data.append('businessLicense', formData.businessLicense);
       }
@@ -382,6 +393,29 @@ const VendorRegister = () => {
               <strong>Note:</strong> Your registration will be reviewed by our admin team.
               You'll receive an email once your account is approved.
             </p>
+          </div>
+
+          {/* Terms & Conditions */}
+          <div className="flex items-start gap-3 py-2">
+            <input
+              type="checkbox"
+              id="agreedToPolicies"
+              name="agreedToPolicies"
+              checked={formData.agreedToPolicies}
+              onChange={handleChange}
+              className="mt-1 w-4 h-4 text-primary-600 rounded focus:ring-primary-500 cursor-pointer"
+              required
+            />
+            <label htmlFor="agreedToPolicies" className="text-sm text-gray-600 cursor-pointer">
+              I agree to the{' '}
+              <Link to="/app/policies" className="text-primary-600 hover:text-primary-700 font-semibold underline">
+                Terms & Conditions
+              </Link>{' '}
+              and{' '}
+              <Link to="/app/policies" className="text-primary-600 hover:text-primary-700 font-semibold underline">
+                Privacy Policy
+              </Link>
+            </label>
           </div>
 
           {/* Submit Button */}

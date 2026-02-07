@@ -13,5 +13,6 @@ router.post('/forgot-password', asyncHandler(deliveryAuthController.forgotPasswo
 router.post('/verify-reset-otp', asyncHandler(deliveryAuthController.verifyResetOTP));
 router.post('/reset-password', asyncHandler(deliveryAuthController.resetPassword));
 router.get('/me', authenticate, asyncHandler(deliveryAuthController.getMe));
+router.patch('/me', authenticate, asyncHandler(deliveryAuthController.updateProfile));
 
 export default router;

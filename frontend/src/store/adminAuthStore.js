@@ -52,18 +52,19 @@ export const useAdminAuthStore = create(
       ,
       // Admin logout action
       logout: async () => {
+        // Clear state immediately
+        set({
+          admin: null,
+          token: null,
+          isAuthenticated: false,
+          error: null,
+        });
+        localStorage.removeItem('admin-token');
+
         try {
           await adminAuthApi.logout();
         } catch (error) {
           console.error("Logout error:", error);
-        } finally {
-          set({
-            admin: null,
-            token: null,
-            isAuthenticated: false,
-            error: null,
-          });
-          localStorage.removeItem('admin-token');
         }
       },
 

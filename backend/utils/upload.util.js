@@ -19,6 +19,23 @@ const imageFileFilter = (req, file, cb) => {
   }
 };
 
+// File filter for vendor documents (Images + PDF)
+const vendorFileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp|avif|jfif|heic|heif|pdf/;
+  const extname = allowedTypes.test(
+    path.extname(file.originalname).toLowerCase()
+  );
+  const mimetype = allowedTypes.test(file.mimetype) ||
+    file.mimetype.startsWith('image/') ||
+    file.mimetype === 'application/pdf';
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image and PDF files are allowed'));
+  }
+};
+
 // File filter for videos
 const videoFileFilter = (req, file, cb) => {
   const allowedTypes = /mp4|mov|avi|wmv|flv|webm|mkv|m4v|3gp|3gpp|quicktime/;
@@ -59,6 +76,15 @@ export const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: imageFileFilter,
+});
+
+// Multer configuration for vendor registration (Images + PDF)
+export const uploadVendor = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for documents
+  },
+  fileFilter: vendorFileFilter,
 });
 
 // Multer configuration for videos (larger file size)

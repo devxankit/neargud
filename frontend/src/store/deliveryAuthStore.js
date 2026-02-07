@@ -93,6 +93,25 @@ export const useDeliveryAuthStore = create(
         localStorage.removeItem('delivery-auth-storage');
       },
 
+      // Update profile action
+      updateProfile: async (profileData) => {
+        set({ isLoading: true });
+        try {
+          const response = await api.patch('/auth/delivery/me', profileData);
+          const partner = response.data;
+
+          set({
+            deliveryBoy: partner,
+            isLoading: false,
+          });
+
+          return { success: true, partner };
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
       // Update delivery boy status
       updateStatus: (status) => {
         const current = get();

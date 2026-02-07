@@ -11,14 +11,14 @@ import {
   resetPassword,
   verifyResetOTP,
 } from '../controllers/vendor-controllers/vendorAuth.controller.js';
-import { upload } from '../utils/upload.util.js';
+import { uploadVendor } from '../utils/upload.util.js';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware.js';
 import { vendorApproved } from '../middleware/role.middleware.js';
 import { asyncHandler } from '../middleware/errorHandler.middleware.js';
 const router = express.Router();
 
 // Public routes
-router.post('/register', upload.fields([
+router.post('/register', uploadVendor.fields([
   { name: 'businessLicense', maxCount: 1 },
   { name: 'panCard', maxCount: 1 }
 ]), asyncHandler(register));

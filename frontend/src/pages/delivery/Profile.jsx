@@ -21,7 +21,9 @@ const DeliveryProfile = () => {
     activeOrders: 0,
     completedToday: 0,
     totalDelivered: 0,
-    earnings: 0
+    earnings: 0,
+    avgRating: 0,
+    totalRatings: 0
   };
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -31,6 +33,10 @@ const DeliveryProfile = () => {
     phone: deliveryBoy?.phone || '',
     vehicleType: deliveryBoy?.vehicleType || '',
     vehicleNumber: deliveryBoy?.vehicleNumber || '',
+    address: deliveryBoy?.address || '',
+    city: deliveryBoy?.city || '',
+    state: deliveryBoy?.state || '',
+    zipcode: deliveryBoy?.zipcode || '',
   });
 
   const handleChange = (e) => {
@@ -40,10 +46,16 @@ const DeliveryProfile = () => {
     });
   };
 
-  const handleSave = () => {
-    // Save profile changes - replace with actual API call
-    setIsEditing(false);
-    // Update store with new data
+  const handleSave = async () => {
+    try {
+      const response = await useDeliveryAuthStore.getState().updateProfile(formData);
+      if (response.success) {
+        toast.success('Profile updated successfully');
+        setIsEditing(false);
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to update profile');
+    }
   };
 
   const handleCancel = () => {
@@ -54,6 +66,10 @@ const DeliveryProfile = () => {
       phone: deliveryBoy?.phone || '',
       vehicleType: deliveryBoy?.vehicleType || '',
       vehicleNumber: deliveryBoy?.vehicleNumber || '',
+      address: deliveryBoy?.address || '',
+      city: deliveryBoy?.city || '',
+      state: deliveryBoy?.state || '',
+      zipcode: deliveryBoy?.zipcode || '',
     });
     setIsEditing(false);
   };
@@ -67,18 +83,18 @@ const DeliveryProfile = () => {
   const statsData = [
     { label: 'Total Deliveries', value: (displayStats.totalDelivered || 0).toString() },
     { label: 'Completed Today', value: (displayStats.completedToday || 0).toString() },
-    { label: 'Rating', value: '4.8' }, // Rating might need backend support later
+    { label: 'Rating', value: displayStats.totalRatings > 0 ? displayStats.avgRating.toFixed(1) : 'New' },
     { label: 'Earnings', value: formatPrice(displayStats.earnings || 0) },
   ];
 
   return (
     <PageTransition>
-      <div className="px-4 py-6 space-y-6">
+      <div className="space-y-6">
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white"
+          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-b-[40px] px-6 pt-20 pb-8 text-white shadow-lg"
         >
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">My Profile</h1>
@@ -118,7 +134,7 @@ const DeliveryProfile = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 px-4">
           {statsData.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -138,7 +154,7 @@ const DeliveryProfile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-4 shadow-sm space-y-4"
+          className="bg-white rounded-2xl p-4 shadow-sm space-y-4 mx-4"
         >
           <h2 className="text-lg font-bold text-gray-800 mb-4">Personal Information</h2>
 
@@ -216,6 +232,75 @@ const DeliveryProfile = () => {
               <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.phone}</p>
             )}
           </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Address</label>
+            {isEditing ? (
+              <textarea
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                rows="2"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
+                placeholder="Full Address"
+              />
+            ) : (
+              <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.address || 'Not set'}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* City */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
+                  placeholder="City"
+                />
+              ) : (
+                <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.city || 'Not set'}</p>
+              )}
+            </div>
+            {/* State */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">State</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
+                  placeholder="State"
+                />
+              ) : (
+                <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.state || 'Not set'}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Zipcode */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Zipcode</label>
+            {isEditing ? (
+              <input
+                type="text"
+                name="zipcode"
+                value={formData.zipcode}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none"
+                placeholder="Zipcode"
+              />
+            ) : (
+              <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-800">{formData.zipcode || 'Not set'}</p>
+            )}
+          </div>
         </motion.div>
 
         {/* Vehicle Information */}
@@ -223,7 +308,7 @@ const DeliveryProfile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl p-4 shadow-sm space-y-4"
+          className="bg-white rounded-2xl p-4 shadow-sm space-y-4 mx-4"
         >
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             <FiTruck />
@@ -272,7 +357,7 @@ const DeliveryProfile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl p-4 shadow-sm"
+          className="bg-white rounded-2xl p-4 shadow-sm mx-4"
         >
           <button
             onClick={handleLogout}

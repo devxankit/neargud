@@ -230,3 +230,30 @@ export const resetPassword = async (email, otp, newPassword) => {
 
     return { message: 'Password reset successfully' };
 };
+
+/**
+ * Update delivery partner profile
+ */
+export const updatePartnerProfile = async (id, updateData) => {
+    const allowedFields = ['firstName', 'lastName', 'phone', 'vehicleType', 'vehicleNumber', 'address', 'city', 'state', 'zipcode'];
+    const filteredUpdate = Object.keys(updateData)
+        .filter(key => allowedFields.includes(key))
+        .reduce((obj, key) => {
+            obj[key] = updateData[key];
+            return obj;
+        }, {});
+
+    const partner = await DeliveryPartner.findByIdAndUpdate(
+        id,
+        { $set: filteredUpdate },
+        { new: true, runValidators: true }
+    );
+
+    if (!partner) {
+        const error = new Error('Delivery partner not found');
+        error.status = 404;
+        throw error;
+    }
+
+    return partner;
+};

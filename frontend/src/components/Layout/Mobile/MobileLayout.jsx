@@ -34,6 +34,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/checkout',
     '/app/addresses',
     '/addresses',
+    '/app/policies',
   ];
 
   // Hide header and bottom nav on login, register, and verification pages
@@ -50,7 +51,8 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     location.pathname === '/app/addresses' ||
     location.pathname === '/addresses' ||
     location.pathname === '/app/chat' ||
-    location.pathname === '/chat';
+    location.pathname === '/chat' ||
+    location.pathname === '/app/policies';
   const shouldShowBottomNav = !isExcludedFromBottomNav && showBottomNav;
 
   const calculatedShouldShowHeader = !excludeHeaderRoutes.includes(location.pathname) &&

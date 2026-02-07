@@ -11,9 +11,21 @@ const VendorVerification = () => {
   const { verifyEmail, resendOTP } = useVendorAuthStore();
   const [codes, setCodes] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
-  
+
   const email = location.state?.email;
+
+  // Timer Effect
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timerId);
+    } else {
+      setCanResend(true);
+    }
+  }, [timeLeft]);
 
   // Focus first input on mount
   useEffect(() => {
@@ -29,7 +41,7 @@ const VendorVerification = () => {
   const handleChange = (index, value) => {
     // Only allow single digit
     if (value.length > 1) return;
-    
+
     const newCodes = [...codes];
     newCodes[index] = value;
     setCodes(newCodes);
@@ -60,7 +72,7 @@ const VendorVerification = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const verificationCode = codes.join('');
-    
+
     if (verificationCode.length !== 4) {
       toast.error('Please enter the complete verification code');
       return;
@@ -79,11 +91,14 @@ const VendorVerification = () => {
   };
 
   const handleResend = async () => {
+    if (!canResend) return;
     try {
-        await resendOTP(email);
-        toast.success('Verification code sent to your email');
-    } catch(error) {
-        toast.error(error.message || 'Failed to resend OTP');
+      await resendOTP(email);
+      toast.success('Verification code sent to your email');
+      setTimeLeft(60);
+      setCanResend(false);
+    } catch (error) {
+      toast.error(error.message || 'Failed to resend OTP');
     }
   };
 
@@ -126,15 +141,21 @@ const VendorVerification = () => {
             ))}
           </div>
 
-          {/* Resend Code */}
+          {/* Resend Code & Timer */}
           <div className="text-center">
-            <button
-              type="button"
-              onClick={handleResend}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              Didn't receive the code? Resend
-            </button>
+            {canResend ? (
+              <button
+                type="button"
+                onClick={handleResend}
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Didn't receive the code? Resend
+              </button>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Resend code in <span className="font-semibold text-primary-600">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}

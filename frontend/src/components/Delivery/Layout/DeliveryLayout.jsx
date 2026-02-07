@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { FiLogOut, FiTruck, FiPackage, FiHome, FiUser } from "react-icons/fi";
 import { useDeliveryAuthStore } from "../../../store/deliveryAuthStore";
@@ -12,6 +12,19 @@ const DeliveryLayout = () => {
   const location = useLocation();
   const { deliveryBoy, logout } = useDeliveryAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const isDashboard = location.pathname === "/delivery" || location.pathname === "/delivery/dashboard";
+  const isProfile = location.pathname === "/delivery/profile";
+  const hasDarkHeader = (isDashboard || isProfile) && !isScrolled;
 
   const handleLogout = () => {
     logout();
@@ -41,17 +54,22 @@ const DeliveryLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
-        <div className="flex items-center justify-between px-4 py-3">
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+          ? "bg-white/80 backdrop-blur-md shadow-md py-2"
+          : "bg-transparent py-3"
+          }`}>
+        <div className="flex items-center justify-between px-4">
           {/* Logo */}
           <Link
             to="/delivery/dashboard"
             className="flex items-center flex-shrink-0 overflow-visible relative z-10">
-            <div className="overflow-visible">
+            <div className="overflow-visible h-8 flex items-center">
               <img
                 src={appLogo.src}
                 alt={appLogo.alt}
-                className="h-8 w-auto object-contain origin-left"
+                className={`h-8 w-auto object-contain origin-left transition-all duration-300 ${hasDarkHeader ? "" : "brightness-0"
+                  }`}
                 style={{ transform: "scale(4) translateX(-3px)" }}
                 onError={(e) => {
                   // Fallback to placeholder if logo doesn't exist
@@ -65,8 +83,15 @@ const DeliveryLayout = () => {
           <div
             className="flex items-center gap-2"
             style={{ marginLeft: "30px" }}>
-            <FiTruck className="text-primary-600 text-xl" />
-            <h1 className="text-lg font-bold text-gray-800">Delivery</h1>
+            <FiTruck
+              className={`transition-colors duration-300 text-xl ${hasDarkHeader ? "text-white" : "text-primary-600"
+                }`}
+            />
+            <h1
+              className={`text-lg font-bold transition-colors duration-300 ${hasDarkHeader ? "text-white" : "text-gray-800"
+                }`}>
+              Delivery
+            </h1>
           </div>
         </div>
       </header>
@@ -126,11 +151,10 @@ const DeliveryLayout = () => {
                         navigate(item.path);
                         setSidebarOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${
-                        isActive
-                          ? "bg-primary-50 text-primary-700"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}>
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${isActive
+                        ? "bg-primary-50 text-primary-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                        }`}>
                       <Icon className="text-xl" />
                       <span className="font-medium">{item.label}</span>
                     </button>
@@ -153,7 +177,7 @@ const DeliveryLayout = () => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="pt-16 pb-20">
+      <main className="pb-20">
         <Outlet />
       </main>
 

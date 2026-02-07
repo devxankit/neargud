@@ -95,17 +95,6 @@ We currently ship to select international locations. Additional customs fees may
         <PageTransition>
             <MobileLayout showBottomNav={false} showCartBar={false} showHeader={false}>
                 <div className="min-h-screen bg-gray-50 pb-8">
-                    {/* Header */}
-                    <div className="bg-white px-4 py-4 sticky top-0 z-10 shadow-sm flex items-center gap-3">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <FiArrowLeft className="text-xl text-gray-600" />
-                        </button>
-                        <h1 className="text-lg font-bold text-gray-800">Terms & Policies</h1>
-                    </div>
-
                     {/* Content */}
                     <div className="p-4 space-y-6">
                         {isLoading ? (

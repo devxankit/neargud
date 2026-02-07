@@ -37,7 +37,7 @@ export const getDashboardStats = async (req, res, next) => {
         // Active: Orders assigned but not yet delivered
         const activeStatuses = ['dispatched', 'shipped', 'out_for_delivery', 'ready_to_ship', 'shipped_seller'];
 
-        const [activeOrders, completedToday, totalDelivered, settings] = await Promise.all([
+        const [activeOrders, completedToday, totalDelivered, settings, deliveryPartner] = await Promise.all([
             Order.countDocuments({
                 deliveryPartnerId,
                 status: { $in: activeStatuses }
@@ -51,7 +51,8 @@ export const getDashboardStats = async (req, res, next) => {
                 deliveryPartnerId,
                 status: 'delivered'
             }),
-            Settings.getSettings()
+            Settings.getSettings(),
+            DeliveryPartner.findById(deliveryPartnerId).select('avgRating totalRatings')
         ]);
 
         const deliveryPartnerFee = settings?.delivery?.deliveryPartnerFee || 50;
@@ -62,7 +63,9 @@ export const getDashboardStats = async (req, res, next) => {
                 activeOrders,
                 completedToday,
                 totalDelivered,
-                earnings: totalDelivered * deliveryPartnerFee
+                earnings: totalDelivered * deliveryPartnerFee,
+                avgRating: deliveryPartner?.avgRating || 0,
+                totalRatings: deliveryPartner?.totalRatings || 0
             }
         });
     } catch (error) {

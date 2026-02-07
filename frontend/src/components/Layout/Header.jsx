@@ -59,7 +59,9 @@ const Header = () => {
     location.pathname.startsWith("/order-confirmation") ||
     location.pathname.startsWith("/app/order-confirmation") ||
     location.pathname.startsWith("/track-order") ||
-    location.pathname.startsWith("/app/track-order");
+    location.pathname.startsWith("/app/track-order") ||
+    location.pathname.startsWith("/policies") ||
+    location.pathname.startsWith("/app/policies");
 
   if (shouldHideHeader) {
     return null;

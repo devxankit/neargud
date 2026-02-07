@@ -23,7 +23,9 @@ const DeliveryDashboard = () => {
     activeOrders: 0,
     completedToday: 0,
     totalDelivered: 0,
-    earnings: 0
+    earnings: 0,
+    avgRating: 0,
+    totalRatings: 0
   };
 
   const statCards = [
@@ -99,12 +101,12 @@ const DeliveryDashboard = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gray-50 px-4 py-6 space-y-6">
+      <div className="min-h-screen bg-gray-50 space-y-6">
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white"
+          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-b-[40px] px-6 pt-20 pb-8 text-white shadow-lg"
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
@@ -170,7 +172,7 @@ const DeliveryDashboard = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 px-4">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -199,7 +201,7 @@ const DeliveryDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl p-4 shadow-sm"
+          className="bg-white rounded-2xl p-4 shadow-sm mx-4"
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-800">Recent Orders</h2>
