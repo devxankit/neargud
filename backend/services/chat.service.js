@@ -134,8 +134,29 @@ class ChatService {
         })), null, 2));
       }
 
-      // Transform conversations to include participant info
-      return conversations.map((conv) => {
+      // Transform conversations to include participant info and filter out deleted/empty ones
+      const visibleConversations = conversations.filter(conv => {
+        // If no last message, check if we want to show empty chats. 
+        // Usually, if a user explicitly deleted chat, lastMessage remains but is marked deleted.
+        // If it was never started (just created), lastMessage might be null.
+        // Let's hide if lastMessage is deleted for user.
+
+        if (conv.lastMessage) {
+          const isDeletedForUser = conv.lastMessage.deletedFor?.some(
+            d => d.userId.toString() === userId.toString() && d.role === 'user'
+          );
+          if (isDeletedForUser) return false;
+        } else {
+          // If no last message, it's an empty chat. 
+          // If the user wants to "remove" chats, we should probably hide empty ones too 
+          // unless they are currently active (handled by frontend state usually).
+          // But for the *list*, hide empty ones.
+          return false;
+        }
+        return true;
+      });
+
+      return visibleConversations.map((conv) => {
         const otherParticipant = conv.participants.find(
           (p) => p.userId && (p.userId._id || p.userId).toString() !== userId.toString()
         );

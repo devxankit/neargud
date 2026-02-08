@@ -21,7 +21,7 @@ import {
   FiDollarSign
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import PageTransition from '../../../components/PageTransition';
 import { useAuthStore } from '../../../store/authStore';
@@ -34,13 +34,21 @@ import { sendTestNotification } from '../../../services/notificationApi';
 
 const MobileProfile = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, logout, updateProfile, uploadProfileImage, changePassword } = useAuthStore();
   const { unreadCount, fetchUnreadCount } = useNotificationStore();
   const { wallet, fetchWallet, addMoney, isLoading } = useWalletStore();
   const [addAmount, setAddAmount] = useState('');
 
-  const [view, setView] = useState('main'); // 'main', 'personal', 'password'
-  const [showCurrentPassword, setShowCurrentPassworkd] = useState(false);
+  // Derive view from URL query param, default to 'main'
+  const view = searchParams.get('view') || 'main';
+
+  // Helper to set view in URL
+  const setView = (newView) => {
+    setSearchParams({ view: newView });
+  };
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);

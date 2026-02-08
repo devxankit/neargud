@@ -45,11 +45,12 @@ export const getPublicVendors = async (req, res, next) => {
         let totalReviews = 0;
 
         if (products.length > 0) {
+          totalReviews = products.reduce((sum, p) => sum + (p.reviewCount || 0), 0);
+
           const productsWithRating = products.filter(p => p.rating > 0);
           if (productsWithRating.length > 0) {
             const sumRating = productsWithRating.reduce((sum, p) => sum + (p.rating || 0), 0);
             averageRating = sumRating / productsWithRating.length;
-            totalReviews = products.reduce((sum, p) => sum + (p.reviewCount || 0), 0);
           }
         }
 
@@ -127,18 +128,28 @@ export const getPublicVendor = async (req, res, next) => {
     let totalReviews = 0;
 
     if (products.length > 0) {
+      // Calculate total reviews from all products
+      totalReviews = products.reduce((sum, p) => sum + (p.reviewCount || 0), 0);
+
       const productsWithRating = products.filter(p => p.rating > 0);
       if (productsWithRating.length > 0) {
         const sumRating = productsWithRating.reduce((sum, p) => sum + (p.rating || 0), 0);
         averageRating = sumRating / productsWithRating.length;
-        totalReviews = products.reduce((sum, p) => sum + (p.reviewCount || 0), 0);
       }
     }
+
+    // Check if vendor has any reels/videos
+    const hasReels = await Product.exists({
+      vendorId: vendor._id,
+      isActive: true,
+      videos: { $exists: true, $not: { $size: 0 } },
+    });
 
     // Transform vendor data for public consumption
     const publicVendor = {
       id: vendor._id.toString(),
       _id: vendor._id,
+      hasReels: !!hasReels,
       name: vendor.name,
       email: vendor.email,
       phone: vendor.phone,

@@ -12,7 +12,7 @@ import {
   FiMessageCircle,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { useCartStore } from "../../../store/cartStore";
+import { useCartStore } from "../../../store/useStore";
 import { useWishlistStore } from "../../../store/wishlistStore";
 import { useFavoritesStore } from "../../../store/favoritesStore";
 import { useReviewsStore } from "../../../store/reviewsStore";
@@ -45,9 +45,9 @@ const MobileProductDetail = () => {
   const [eligibleOrderId, setEligibleOrderId] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
-  const addToCart = useCartStore((state) => state.addToCart);
+  const addItem = useCartStore((state) => state.addItem);
   const cartItems = useCartStore((state) => state.items);
-  const updateCartItem = useCartStore((state) => state.updateCartItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
 
   const { user } = useAuthStore();
   const {
@@ -66,8 +66,8 @@ const MobileProductDetail = () => {
     () =>
       cartItems?.find(
         (item) =>
-          (item.productId?._id || item.productId || item.id) ===
-          (product?._id || product?.id),
+          String(item.productId?._id || item.productId || item.id) ===
+          String(product?._id || product?.id),
       ),
     [cartItems, product],
   );
@@ -186,17 +186,37 @@ const MobileProductDetail = () => {
     }
 
     const newQty = cartItem.quantity + val;
-    if (newQty > 0 && newQty <= (product?.stockQuantity || 10)) {
-      updateCartItem(product._id || product.id, newQty);
+    if (newQty <= (product?.stockQuantity || 10)) {
+      // Allow passing 0 or negative to trigger removal in store
+      // Using updateQuantity instead of updateCartItem
+      updateQuantity(product._id || product.id, newQty);
     }
   };
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product) return false;
 
     if (product.stock === "out_of_stock") {
       toast.error("Product is out of stock");
-      return;
+      return false;
+    }
+
+    // Validate Variants
+    if (product.variants) {
+      const hasSizes = product.variants.sizes && product.variants.sizes.length > 0;
+      const hasColors = product.variants.colors && product.variants.colors.length > 0;
+
+      if (hasSizes && (!selectedVariant || !selectedVariant.size)) {
+        toast.error("Please select a size");
+        document.getElementById('variant-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+
+      if (hasColors && (!selectedVariant || !selectedVariant.color)) {
+        toast.error("Please select a color");
+        document.getElementById('variant-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
     }
 
     let finalPrice = product?.price;
@@ -214,7 +234,8 @@ const MobileProductDetail = () => {
       }
     }
 
-    addToCart({
+    // Using addItem instead of addToCart
+    addItem({
       id: product?._id || product?.id,
       _id: product?._id || product?.id,
       name: product?.name,
@@ -222,10 +243,12 @@ const MobileProductDetail = () => {
       image: product?.image,
       quantity: quantity,
       variant: selectedVariant,
-      applicableCoupons: product?.applicableCoupons,
       isCouponEligible: product?.isCouponEligible,
-      vendorId: product?.vendorId,
+      vendorId: product?.vendorId || (vendor?._id || vendor?.id),
+      vendorName: vendor?.storeName || vendor?.name || 'NearGud Store',
+      storeName: vendor?.storeName,
     });
+    return true;
 
     // If not authenticated, we could prompt them to login or just let them add to cart
     // but they will be blocked at checkout.
@@ -273,16 +296,31 @@ const MobileProductDetail = () => {
     }
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    const shareData = {
+      title: product?.name,
+      text: `Check out ${product?.name} on NearGud`,
+      url: window.location.href,
+    };
+
     if (navigator.share) {
-      navigator.share({
-        title: product?.name,
-        text: `Check out ${product?.name} on NearGud`,
-        url: window.location.href,
-      });
+      try {
+        await navigator.share(shareData);
+        // Toast for success could be annoying if system sheet already confirms, but okay to leave out or generic
+      } catch (err) {
+        console.error('Error sharing:', err);
+        // Fallback to clipboard if share failed (e.g. not supported in this context or permission denied)
+        // But if user cancelled, maybe don't copy?
+        // Usually if it fails we might want to copy as backup, or just do nothing if cancelled.
+        // Let's rely on the else block for non-supported browsers, and catch block for errors.
+      }
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard");
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard");
+      } catch (err) {
+        toast.error("Failed to copy link");
+      }
     }
   };
 
@@ -493,7 +531,7 @@ const MobileProductDetail = () => {
 
           {/* Variant Selector */}
           {product.variants && (
-            <div className="mb-8 p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
+            <div id="variant-selector" className="mb-8 p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
               <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                 Select Variation
               </h4>
@@ -696,8 +734,13 @@ const MobileProductDetail = () => {
                 <button
                   onClick={() => {
                     if (product.isBuy === false) return;
-                    if (!cartItem) handleAddToCart();
-                    navigate("/app/checkout");
+                    if (cartItem) {
+                      navigate("/app/checkout");
+                    } else {
+                      if (handleAddToCart()) {
+                        navigate("/app/checkout");
+                      }
+                    }
                   }}
                   disabled={
                     product.stock === "out_of_stock" || product.isBuy === false

@@ -262,17 +262,17 @@ const Chat = () => {
     };
 
     const filteredChats = conversations.filter((chat) => {
-        if (!searchQuery) return true;
+        if (!searchQuery?.trim()) return true;
         const vendorParticipant = chat.participants?.find(p => p.role === 'vendor');
         const vendorName = vendorParticipant?.userId?.storeName ||
             vendorParticipant?.userId?.name || '';
-        return vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+        return vendorName.toLowerCase().includes(searchQuery.toLowerCase().trim());
     });
 
     // Filter vendors ensuring we handle the structure correctly
     const filteredVendors = vendors.filter(v => {
-        if (!vendorSearchQuery) return true;
-        const search = vendorSearchQuery.toLowerCase();
+        if (!vendorSearchQuery?.trim()) return true;
+        const search = vendorSearchQuery.toLowerCase().trim();
         return (v.storeName?.toLowerCase().includes(search) ||
             v.name?.toLowerCase().includes(search) ||
             v.businessName?.toLowerCase().includes(search));

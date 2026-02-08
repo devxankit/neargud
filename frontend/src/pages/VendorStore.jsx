@@ -32,7 +32,15 @@ const VendorStore = () => {
   // Follower Logic
   const [isFollowing, setIsFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
-  const [activeTab, setActiveTab] = useState('shop');
+
+  // Sync activeTab with URL
+  const activeTab = searchParams.get('tab') || 'shop';
+  const setActiveTab = (tab) => {
+    setSearchParams(prev => {
+      prev.set('tab', tab);
+      return prev;
+    });
+  };
 
   // Fetch Vendor and Products
   useEffect(() => {
@@ -290,10 +298,34 @@ const VendorStore = () => {
                   <FiArrowLeft size={20} />
                 </button>
                 <div className="flex gap-2">
-                  <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
+                  <button
+                    onClick={() => navigate(`/app/search?vendorId=${vendor._id || vendor.id}`)}
+                    className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
                     <FiSearch size={20} />
                   </button>
-                  <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
+                  <button
+                    onClick={async () => {
+                      const shareData = {
+                        title: vendor.storeName,
+                        text: `Check out ${vendor.storeName} on NearGud`,
+                        url: window.location.href,
+                      };
+                      if (navigator.share) {
+                        try {
+                          await navigator.share(shareData);
+                        } catch (err) {
+                          console.error('Error sharing:', err);
+                        }
+                      } else {
+                        try {
+                          await navigator.clipboard.writeText(window.location.href);
+                          toast.success("Link copied to clipboard");
+                        } catch (err) {
+                          toast.error("Failed to copy link");
+                        }
+                      }
+                    }}
+                    className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
                     <FiShare2 size={20} />
                   </button>
                 </div>
@@ -344,7 +376,7 @@ const VendorStore = () => {
                     <div className="flex flex-col items-center flex-1">
                       <div className="flex items-center gap-1">
                         <FiStar className="text-orange-400 fill-orange-400" size={14} />
-                        <span className="font-extrabold text-slate-900 text-base">{vendor.rating || '4.8'}</span>
+                        <span className="font-extrabold text-slate-900 text-base">{vendor.rating || 0}</span>
                       </div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Average Rating</span>
                     </div>
@@ -352,7 +384,7 @@ const VendorStore = () => {
 
                     <div className="w-px h-8 bg-slate-200/60"></div>
                     <div className="flex flex-col items-center flex-1">
-                      <span className="font-extrabold text-slate-900 text-base">{vendor.totalProducts || products.length}</span>
+                      <span className="font-extrabold text-slate-900 text-base">{vendor.totalProducts || products.length || 0}</span>
                       <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Products</span>
                     </div>
                   </div>
@@ -410,7 +442,7 @@ const VendorStore = () => {
             {/* Tabs */}
             <div className="sticky top-[60px] md:top-[70px] z-20 bg-slate-50/80 backdrop-blur-lg py-3 px-4 shadow-sm shadow-slate-200/20 border-b border-slate-100/10">
               <div className="flex bg-slate-200/50 rounded-2xl p-1 items-center relative gap-1">
-                {['Shop', 'About', 'Photos', 'Videos', 'Reviews'].map((tab) => (
+                {['Shop', 'About', 'Photos', ...(vendor.hasReels ? ['Videos'] : []), 'Reviews'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
@@ -615,15 +647,15 @@ const VendorStore = () => {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col">
-                        <span className="text-3xl font-black text-slate-900">{vendor.rating || '4.8'}</span>
+                        <span className="text-3xl font-black text-slate-900">{vendor.rating || 0}</span>
                         <div className="flex items-center text-orange-400 text-xs gap-0.5">
-                          {[1, 2, 3, 4, 5].map(s => <FiStar key={s} fill="currentColor" />)}
+                          {[1, 2, 3, 4, 5].map(s => <FiStar key={s} fill={s <= (vendor.rating || 0) ? "currentColor" : "none"} className={s <= (vendor.rating || 0) ? "" : "text-gray-300"} />)}
                         </div>
                       </div>
                       <div className="h-10 w-px bg-gray-100"></div>
                       <div className="text-sm text-gray-500">
                         <div>Based on</div>
-                        <div className="font-bold text-slate-800">{vendor.reviewCount || 124} Reviews</div>
+                        <div className="font-bold text-slate-800">{vendor.reviewCount || 0} Reviews</div>
                       </div>
                     </div>
                   </div>
@@ -779,9 +811,9 @@ const VendorStore = () => {
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5 mb-1">
                         <FiStar className="text-orange-400 fill-orange-400" size={18} />
-                        <span className="text-2xl font-black text-slate-900 tracking-tight">{vendor.rating || '4.8'}</span>
+                        <span className="text-2xl font-black text-slate-900 tracking-tight">{vendor.rating || 0}</span>
                       </div>
-                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest">{vendor.reviewCount || 124} Reviews</span>
+                      <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest">{vendor.reviewCount || 0} Reviews</span>
                     </div>
 
                     <div className="w-px h-10 bg-slate-200 hidden md:block"></div>
@@ -794,7 +826,7 @@ const VendorStore = () => {
                     <div className="w-px h-10 bg-slate-200 hidden md:block"></div>
 
                     <div className="flex flex-col">
-                      <span className="text-2xl font-black text-slate-900 tracking-tight mb-1">{vendor.totalProducts || products.length}</span>
+                      <span className="text-2xl font-black text-slate-900 tracking-tight mb-1">{vendor.totalProducts || products.length || 0}</span>
                       <span className="text-xs uppercase font-extrabold text-slate-400 tracking-widest">Products Sold</span>
                     </div>
                   </div>

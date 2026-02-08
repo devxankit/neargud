@@ -63,7 +63,9 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     !location.pathname.startsWith('/app/order-confirmation/') &&
     !location.pathname.startsWith('/order-confirmation/') &&
     !location.pathname.startsWith('/app/track-order/') &&
-    !location.pathname.startsWith('/track-order/');
+    !location.pathname.startsWith('/track-order/') &&
+    !location.pathname.startsWith('/app/orders/') &&
+    !location.pathname.startsWith('/orders/');
 
   const shouldShowHeader = showHeader !== undefined ? showHeader : calculatedShouldShowHeader;
 

@@ -203,7 +203,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               <LazyImage
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-contain p-4 mix-blend-multiply"
+                className="w-full h-full object-contain p-2 mix-blend-multiply"
                 loading="lazy"
               />
             </div>

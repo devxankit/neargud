@@ -31,8 +31,14 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
     setSelectedIndex((prev) => (prev - 1 + imageArray.length) % imageArray.length);
   };
 
+  // Open lightbox
   const handleImageClick = () => {
     setIsLightboxOpen(true);
+  };
+
+  // Close lightbox
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
   };
 
   // Swipe gestures for image navigation
@@ -46,19 +52,20 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
     <>
       <div className="w-full">
         {/* Main Image */}
-        <div className="relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl overflow-hidden mb-4" data-gallery>
+        <div className="relative w-full aspect-square bg-white rounded-2xl overflow-hidden mb-4 shadow-sm border border-gray-100" data-gallery>
           <motion.div
             key={selectedIndex}
-            className="w-full h-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full flex items-center justify-center cursor-zoom-in"
             onClick={handleImageClick}
-            onTouchStart={swipeHandlers.onTouchStart}
-            onTouchMove={swipeHandlers.onTouchMove}
-            onTouchEnd={swipeHandlers.onTouchEnd}
+            {...swipeHandlers}
           >
             <LazyImage
               src={imageArray[selectedIndex]}
               alt={`${productName} - Image ${selectedIndex + 1}`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain p-2"
               onError={(e) => {
                 e.target.src = 'https://via.placeholder.com/500x500?text=Product+Image';
               }}
@@ -69,41 +76,50 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
           {imageArray.length > 1 && (
             <>
               <button
-                onClick={handlePrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg transition-all duration-300"
+                onClick={(e) => { e.stopPropagation(); handlePrevious(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all z-10"
               >
-                <FiChevronLeft className="text-gray-800 text-xl" />
+                <FiChevronLeft className="text-gray-800" />
               </button>
               <button
-                onClick={handleNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg transition-all duration-300"
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all z-10"
               >
-                <FiChevronRight className="text-gray-800 text-xl" />
+                <FiChevronRight className="text-gray-800" />
               </button>
             </>
+          )}
+
+          {/* Image Counter Badge */}
+          {imageArray.length > 1 && (
+            <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-xs font-bold">
+              {selectedIndex + 1} / {imageArray.length}
+            </div>
           )}
         </div>
 
         {/* Thumbnails */}
         {imageArray.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 px-1">
             {imageArray.map((image, index) => (
               <button
                 key={index}
                 onClick={() => handleThumbnailClick(index)}
-                className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${selectedIndex === index
-                  ? 'border-primary-600 scale-105'
-                  : 'border-gray-200'
+                className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-300 ${selectedIndex === index
+                  ? 'border-primary-600 ring-2 ring-primary-100'
+                  : 'border-transparent opacity-70 hover:opacity-100'
                   }`}
               >
-                <LazyImage
-                  src={image}
-                  alt={`${productName} thumbnail ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/100x100?text=Thumbnail';
-                  }}
-                />
+                <div className="w-full h-full bg-white">
+                  <LazyImage
+                    src={image}
+                    alt={`${productName} thumbnail ${index + 1}`}
+                    className="w-full h-full object-contain p-1"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/100x100?text=Thumbnail';
+                    }}
+                  />
+                </div>
               </button>
             ))}
           </div>
@@ -117,56 +133,59 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center backdrop-blur-sm"
-            onClick={() => setIsLightboxOpen(false)}
+            className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center backdrop-blur-xl"
+            onClick={closeLightbox}
           >
+            {/* Close Button */}
             <button
-              onClick={() => setIsLightboxOpen(false)}
-              className="absolute top-4 right-4 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white transition-colors z-10"
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors z-50 backdrop-blur-md"
             >
-              <FiX className="text-2xl" />
+              <FiX className="text-xl" />
             </button>
 
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative flex items-center justify-center w-full h-full"
+            {/* Main Image Container */}
+            <div
+              className="relative w-full h-full flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()} // Prevent close when clicking image area
             >
-              <img
+              <motion.img
+                key={selectedIndex}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
                 src={imageArray[selectedIndex]}
                 alt={`${productName} - Full view`}
-                className="w-full h-full object-contain rounded-lg select-none shadow-2xl"
+                className="max-w-full max-h-screen object-contain select-none"
                 draggable={false}
-              style={{paddingTop:"10px" , marginTop:"20px"}}
               />
 
               {/* Navigation in Lightbox */}
               {imageArray.length > 1 && (
                 <>
                   <button
-                    onClick={handlePrevious}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white transition-colors"
+                    onClick={(e) => { e.stopPropagation(); handlePrevious(); }}
+                    className="absolute left-2 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all"
                   >
                     <FiChevronLeft className="text-2xl" />
                   </button>
                   <button
-                    onClick={handleNext}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white transition-colors"
+                    onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                    className="absolute right-2 md:right-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all"
                   >
                     <FiChevronRight className="text-2xl" />
                   </button>
                 </>
               )}
+            </div>
 
-              {/* Image Counter */}
-              {imageArray.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg text-sm">
-                  {selectedIndex + 1} / {imageArray.length}
-                </div>
-              )}
-            </motion.div>
+            {/* Image Counter */}
+            {imageArray.length > 1 && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-medium tracking-wide border border-white/10">
+                {selectedIndex + 1} / {imageArray.length}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

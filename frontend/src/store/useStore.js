@@ -25,7 +25,7 @@ export const useCartStore = create(
           return;
         }
 
-        const existingItem = get().items.find((i) => i.id === (item._id || item.id));
+        const existingItem = get().items.find((i) => String(i.id) === String(item._id || item.id));
         const quantityToAdd = item.quantity || 1;
         const newQuantity = existingItem
           ? existingItem.quantity + quantityToAdd
@@ -44,7 +44,7 @@ export const useCartStore = create(
         // Ensure ID is consistent and include vendor info
         const itemWithConsistentId = {
           ...item,
-          id: item._id || item.id,
+          id: item._id || item.id, // Keep original ID format for now, but use string for comparison
           vendorId: item.vendorId || (productData?.vendorId) || 1,
           vendorName: item.name || (productData?.vendorName) || productData?.name,
         };
@@ -53,7 +53,7 @@ export const useCartStore = create(
           if (existingItem) {
             return {
               items: state.items.map((i) =>
-                i.id === (item._id || item.id)
+                String(i.id) === String(item._id || item.id)
                   ? { ...i, ...itemWithConsistentId, quantity: newQuantity }
                   : i
               ),
@@ -72,10 +72,13 @@ export const useCartStore = create(
         const { triggerCartAnimation } = useUIStore.getState();
         triggerCartAnimation();
       },
-      removeItem: (id) =>
+      removeItem: (id) => {
         set((state) => ({
-          items: state.items.filter((item) => item.id !== id),
-        })),
+          items: state.items.filter((item) => String(item.id) !== String(id)),
+        }));
+        // Trigger update
+        useUIStore.getState().triggerCartAnimation();
+      },
       updateQuantity: (id, quantity) => {
         if (quantity <= 0) {
           get().removeItem(id);
@@ -90,11 +93,17 @@ export const useCartStore = create(
 
         set((state) => ({
           items: state.items.map((item) =>
-            item.id === id ? { ...item, quantity } : item
+            String(item.id) === String(id) ? { ...item, quantity } : item
           ),
         }));
+        // Trigger update
+        useUIStore.getState().triggerCartAnimation();
       },
-      clearCart: () => set({ items: [] }),
+      clearCart: () => {
+        set({ items: [] });
+        // Trigger update
+        useUIStore.getState().triggerCartAnimation();
+      },
       getTotal: () => {
         const state = useCartStore.getState();
         return state.items.reduce(
@@ -108,25 +117,29 @@ export const useCartStore = create(
       },
       // Group items by vendor
       getItemsByVendor: () => {
-        const state = useCartStore.getState();
+        const items = get().items; // Use get() to access current state
         const vendorGroups = {};
 
-        state.items.forEach((item) => {
-          const vendorId = item.vendorId || item.id || item._id;
-          const vendorName = item.vendorName || item.name;
+        items.forEach((item) => {
+          // Robust vendor ID fallback: vendorId -> 'unknown'
+          // Do NOT fall back to item.id, as that splits items into individual groups
+          const vendorId = item.vendorId || 'unknown';
+          const vendorName = item.vendorName || (item.vendorId ? 'Vendor ' + item.vendorId : 'NearGud Store');
 
-          if (!vendorGroups[vendorId]) {
-            vendorGroups[vendorId] = {
-              vendorId,
-              vendorName,
+          const key = String(vendorId);
+
+          if (!vendorGroups[key]) {
+            vendorGroups[key] = {
+              vendorId: vendorId,
+              vendorName: vendorName,
               items: [],
               subtotal: 0,
             };
           }
 
           const itemSubtotal = item.price * item.quantity;
-          vendorGroups[vendorId].items.push(item);
-          vendorGroups[vendorId].subtotal += itemSubtotal;
+          vendorGroups[key].items.push(item);
+          vendorGroups[key].subtotal += itemSubtotal;
         });
 
         return Object.values(vendorGroups);

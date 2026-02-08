@@ -7,7 +7,7 @@ const RECENT_SEARCHES_KEY = "recent-searches";
 const MAX_RECENT_SEARCHES = 5;
 const MAX_SUGGESTIONS = 5;
 
-const popularSearches = ["Fresh Milk", "Organic Veggies", "Daily Bread", "Baby Care", "Summer Fruits"];
+
 
 const placeholderTexts = [
   "Search 'Milk' or 'Bread'...",
@@ -124,7 +124,7 @@ const SearchBar = () => {
   // ============================
   const totalItems = useMemo(() => {
     if (query.trim()) return suggestions.length;
-    return recentSearches.length + popularSearches.length;
+    return recentSearches.length;
   }, [query, suggestions, recentSearches]);
 
   const handleKeyDown = (e) => {
@@ -184,10 +184,6 @@ const SearchBar = () => {
     } else {
       if (index < recentSearches.length) {
         const value = recentSearches[index];
-        saveRecentSearch(value);
-        goToSearch(value);
-      } else {
-        const value = popularSearches[index - recentSearches.length];
         saveRecentSearch(value);
         goToSearch(value);
       }
@@ -350,57 +346,27 @@ const SearchBar = () => {
               </div>
             ) : null}
 
-            {/* Recent & Popular (Shown when empty query) */}
-            {!query.trim() && (
-              <div className="space-y-6 lg:space-y-4">
-                <div className="flex flex-col lg:flex-row lg:divide-x lg:divide-gray-100">
-                  {recentSearches.length > 0 && (
-                    <div className="px-3 flex-1">
-                      <p className="px-4 py-3 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
-                        <FiClock className="text-xs" /> Recent Activity
-                      </p>
-                      <div className="grid grid-cols-1 gap-1">
-                        {recentSearches.map((item, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleSelect(index)}
-                            className={`
-                              w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-left transition-all
-                              ${selectedIndex === index ? "bg-purple-50 text-purple-600 font-bold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
-                            `}
-                          >
-                            <FiClock className={`text-sm ${selectedIndex === index ? "text-purple-500" : "text-gray-300"}`} />
-                            <span className="text-sm truncate">{item}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="px-3 flex-[1.5]">
-                    <p className="px-4 py-3 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
-                      <FiTrendingUp className="text-xs" /> Popular Right Now
-                    </p>
-                    <div className="flex flex-wrap gap-2 px-4 py-2">
-                      {popularSearches.map((item, index) => {
-                        const idx = recentSearches.length + index;
-                        const active = selectedIndex === idx;
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => handleSelect(idx)}
-                            className={`
-                              px-4 py-2 rounded-xl text-[11px] lg:text-[10px] font-bold transition-all border uppercase tracking-wider
-                              ${active
-                                ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-200 scale-105"
-                                : "bg-white border-gray-100 text-gray-600 hover:border-purple-200 hover:text-purple-600 hover:bg-purple-50/50 shadow-sm"}
-                            `}
-                          >
-                            {item}
-                          </button>
-                        );
-                      })}
-                    </div>
+            {/* Recent Searches (Shown when empty query) */}
+            {!query.trim() && recentSearches.length > 0 && (
+              <div className="space-y-2">
+                <div className="px-3">
+                  <p className="px-4 py-3 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+                    <FiClock className="text-xs" /> Recent Activity
+                  </p>
+                  <div className="grid grid-cols-1 gap-1">
+                    {recentSearches.map((item, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelect(index)}
+                        className={`
+                          w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-left transition-all
+                          ${selectedIndex === index ? "bg-purple-50 text-purple-600 font-bold" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
+                        `}
+                      >
+                        <FiClock className={`text-sm ${selectedIndex === index ? "text-purple-500" : "text-gray-300"}`} />
+                        <span className="text-sm truncate">{item}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
