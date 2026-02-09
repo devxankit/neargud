@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiMapPin, FiCreditCard, FiTruck, FiCheck, FiX, FiPlus, FiArrowLeft, FiShoppingBag } from 'react-icons/fi';
+import { FiMapPin, FiCreditCard, FiTruck, FiCheck, FiX, FiPlus, FiArrowLeft, FiShoppingBag, FiCheckCircle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../../../store/useStore';
 import { useAuthStore } from '../../../store/authStore';
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import MobileLayout from '../../../components/Layout/Mobile/MobileLayout';
 import MobileCheckoutSteps from '../components/MobileCheckoutSteps';
 import PageTransition from '../../../components/PageTransition';
+import { promoApi } from '../../../services/promoApi';
 
 
 const MobileCheckout = () => {
@@ -20,7 +21,7 @@ const MobileCheckout = () => {
   const { items, getTotal, clearCart, getItemsByVendor } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { addresses, getDefaultAddress, addAddress, updateAddress, deleteAddress, fetchAddresses } = useAddressStore();
-  const { createOrder } = useOrderStore();
+  const { createOrder, isLoading } = useOrderStore();
   const { wallet, fetchWallet } = useWalletStore();
   const { settings } = useSettingsStore();
 
@@ -35,6 +36,7 @@ const MobileCheckout = () => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [shippingOption, setShippingOption] = useState('standard');
   const [formData, setFormData] = useState({
     name: '',
@@ -148,17 +150,58 @@ const MobileCheckout = () => {
     return null;
   };
 
-  const handleApplyCoupon = () => {
+
+  const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       toast.error('Please enter a coupon code');
       return;
     }
-    const coupon = validateCoupon(couponCode);
-    if (coupon) {
-      setAppliedCoupon(coupon);
-      toast.success(`Coupon "${coupon.name}" applied!`);
-    } else {
-      toast.error('Invalid coupon code');
+
+    try {
+      setIsApplyingCoupon(true);
+      const response = await promoApi.validatePromoCode(
+        couponCode,
+        total,
+        items.map(item => ({
+          productId: item.productId || item.id,
+          id: item.productId || item.id,
+          price: item.price,
+          quantity: item.quantity
+        }))
+      );
+
+      if (response && response.success && response.data) {
+        const couponData = response.data;
+        setAppliedCoupon({
+          code: couponData.code,
+          type: couponData.type,
+          value: couponData.value,
+          discountAmount: couponData.discountAmount,
+          name: couponData.code
+        });
+        toast.success(`Coupon "${couponData.code}" applied!`);
+      } else {
+        // Fallback to local validation if backend returns success=false but no error thrown
+        const localCoupon = validateCoupon(couponCode);
+        if (localCoupon) {
+          setAppliedCoupon(localCoupon);
+          toast.success(`Coupon "${localCoupon.name}" applied!`);
+        } else {
+          toast.error(response?.message || response?.data?.message || 'Invalid coupon code');
+        }
+      }
+    } catch (error) {
+      // If backend fails, check if we have it locally as a backup
+      const localCoupon = validateCoupon(couponCode);
+      if (localCoupon) {
+        setAppliedCoupon(localCoupon);
+        toast.success(`Coupon "${localCoupon.name}" applied!`);
+        return;
+      }
+      console.error('Coupon validation error:', error);
+      toast.error(error.message || 'Invalid coupon code or not applicable');
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -257,8 +300,7 @@ const MobileCheckout = () => {
 
       if (!razorpay || !razorpay.orderId) {
         clearCart();
-        toast.success('Order placed via wallet');
-        navigate(`/app/order-confirmation/${createdOrder.id}`);
+        navigate(`/app/order-confirmation/${createdOrder.id || createdOrder._id}`);
         return;
       }
 
@@ -281,8 +323,7 @@ const MobileCheckout = () => {
             });
 
             clearCart();
-            toast.success('Payment successful! Order placed.');
-            navigate(`/app/order-confirmation/${createdOrder.id}`);
+            navigate(`/app/order-confirmation/${createdOrder.id || createdOrder._id}`);
           } catch (error) {
             console.error('Payment verification failed:', error);
             toast.error('Payment verification failed. Please contact support.');
@@ -377,8 +418,7 @@ const MobileCheckout = () => {
             couponCode: appliedCoupon ? couponCode : null,
           });
           clearCart();
-          toast.success('Order placed successfully!');
-          navigate(`/app/order-confirmation/${response.order.id}`);
+          navigate(`/app/order-confirmation/${response.id || response._id}`);
         } catch (error) {
           toast.error(error.message || 'Failed to place order');
         }
@@ -393,20 +433,22 @@ const MobileCheckout = () => {
     <PageTransition>
       <div className="w-full">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-          {/* Title Bar */}
-          <div className="px-4 py-3 flex items-center gap-3">
+        <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <FiArrowLeft className="text-xl text-gray-700" />
+              className="p-3 rounded-2xl bg-slate-50 text-slate-600 active:scale-95 transition-all">
+              <FiArrowLeft className="text-xl" />
             </button>
-            <h1 className="text-xl font-bold text-gray-800">Checkout</h1>
-          </div>
-          {/* Steps Bar */}
-          <div className="px-4 pb-3">
-            <MobileCheckoutSteps currentStep={step} totalSteps={2} />
+            <div className="flex flex-col items-center">
+              <h1 className="text-sm font-black text-slate-900 uppercase tracking-widest leading-none mb-1">Checkout</h1>
+              <div className="flex gap-1.5">
+                {[1, 2].map((s) => (
+                  <div key={s} className={`h-1 rounded-full transition-all ${step >= s ? "w-8 bg-primary-600" : "w-4 bg-slate-100"}`} />
+                ))}
+              </div>
+            </div>
+            <div className="w-12 h-12" /> {/* Spacer */}
           </div>
         </div>
 
@@ -440,40 +482,48 @@ const MobileCheckout = () => {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="px-4 py-4"
+              className="px-5 py-6 space-y-8"
             >
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <FiTruck className="text-primary-600" />
-                Shipping Information
-              </h2>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <FiTruck className="text-primary-600 text-xl" />
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Shipping Information</h2>
+                </div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Where should we deliver your order?</p>
+              </div>
 
               {isAuthenticated && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Saved Addresses</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Saved Addresses</h3>
+                  <div className="space-y-4">
                     {/* Existing addresses */}
                     {addresses.map((address) => (
-                      <div
+                      <motion.div
                         key={address.id}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleSelectAddress(address)}
-                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedAddressId === address.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                        className={`relative p-5 rounded-[2.5rem] border-2 transition-all cursor-pointer ${selectedAddressId === address.id
+                          ? "border-primary-500 bg-white shadow-xl shadow-primary-100/50"
+                          : "border-slate-100 bg-slate-50 opacity-80"
                           }`}
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-2 flex-1">
-                            <FiMapPin className="text-primary-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex items-start gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${selectedAddressId === address.id ? "bg-primary-50 text-primary-600" : "bg-slate-200 text-slate-400"}`}>
+                              <FiMapPin className="text-xl" />
+                            </div>
                             <div className="flex-1">
-                              <h4 className="font-bold text-gray-800 text-sm">{address.name}</h4>
-                              <p className="text-xs text-gray-600">{address.fullName}</p>
-                              <p className="text-xs text-gray-600">{address.address}</p>
-                              <p className="text-xs text-gray-600">
-                                {address.city}, {address.state} {address.zipCode}
-                              </p>
+                              <h4 className="font-black text-slate-900 text-sm">{address.name}</h4>
+                              <p className="text-xs font-bold text-slate-500 mt-1">{address.fullName}</p>
+                              <p className="text-xs font-medium text-slate-400 leading-relaxed mt-1">{address.address}, {address.city}, {address.state} - {address.zipCode}</p>
                             </div>
                           </div>
-                          {selectedAddressId === address.id && <FiCheck className="text-primary-600 text-xl flex-shrink-0" />}
+                          <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${selectedAddressId === address.id ? "bg-primary-600 border-primary-600" : "border-slate-300"}`}>
+                            {selectedAddressId === address.id && <FiCheck className="text-white text-sm" strokeWidth={4} />}
+                          </div>
                         </div>
-                        <div className="flex gap-2 mt-2">
+
+                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-50">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -481,7 +531,7 @@ const MobileCheckout = () => {
                               setEditingAddress(address);
                               setShowEditForm(true);
                             }}
-                            className="px-3 py-1 text-xs font-semibold text-primary-700 bg-primary-50 rounded-lg"
+                            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
                           >
                             Edit
                           </button>
@@ -500,21 +550,26 @@ const MobileCheckout = () => {
                                 }
                               }
                             }}
-                            className="px-3 py-1 text-xs font-semibold text-red-600 bg-red-50 rounded-lg"
+                            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 bg-rose-50 rounded-xl hover:bg-rose-100 transition-colors"
                           >
                             Delete
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
 
                     {/* Add New Address Card */}
-                    <div
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      type="button"
                       onClick={() => setShowAddressForm(true)}
-                      className="flex items-center justify-center p-3 rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all"
+                      className="w-full h-24 flex items-center justify-center p-3 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-slate-400 hover:border-primary-500 hover:bg-primary-50 hover:text-primary-600 transition-all group"
                     >
-                      <FiPlus className="text-primary-600 text-2xl" />
-                    </div>
+                      <div className="flex items-center gap-3">
+                        <FiPlus className="text-2xl group-hover:scale-110 transition-transform" />
+                        <span className="font-black uppercase text-[10px] tracking-widest">Add New Delivery Address</span>
+                      </div>
+                    </motion.button>
                   </div>
                 </div>
               )}
@@ -626,202 +681,159 @@ const MobileCheckout = () => {
             </motion.div>
           )}
 
-          {/* Step 2: Payment */}
+          {/* Step 2: Payment & Final Review */}
           {step === 2 && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="px-4 py-4"
+              className="px-5 py-6 space-y-8"
             >
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <FiCreditCard className="text-primary-600" />
-                Payment Method
-              </h2>
-              {isAuthenticated && walletBalance > 0 && (
-                <div className="mb-4">
-                  <label
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${useWallet
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200'
+              {/* Payment Method Section */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FiCreditCard className="text-primary-600 text-xl" />
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Payment Method</h2>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Option 1: Use Wallet Balance */}
+                  {isAuthenticated && walletBalance > 0 && (
+                    <motion.div
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setUseWallet(true)}
+                      className={`relative p-5 rounded-[2rem] border-2 transition-all cursor-pointer ${useWallet
+                        ? "border-primary-500 bg-white shadow-xl shadow-primary-100/50"
+                        : "border-slate-100 bg-slate-50 opacity-80"
+                        }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${useWallet ? "bg-primary-50 text-primary-600" : "bg-slate-200 text-slate-400"}`}>
+                            <FiCreditCard className="text-xl" />
+                          </div>
+                          <div>
+                            <span className="block font-black text-slate-900 text-sm">Use Wallet Balance</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 inline-block">
+                              Available: {formatPrice(walletBalance)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${useWallet ? "bg-primary-600 border-primary-600 shadow-lg shadow-primary-200" : "border-slate-300"}`}>
+                          {useWallet && <FiCheck className="text-white text-[10px]" strokeWidth={4} />}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Option 2: Digital Payment (Full or Partial) */}
+                  <motion.div
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setUseWallet(false)}
+                    className={`relative p-5 rounded-[2rem] border-2 transition-all cursor-pointer ${!useWallet
+                      ? "border-primary-500 bg-white shadow-xl shadow-primary-100/50"
+                      : "border-slate-100 bg-slate-50 opacity-80"
                       }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <FiCreditCard className="text-primary-600" />
-                      <div>
-                        <span className="font-semibold text-gray-800">Use Wallet Balance</span>
-                        <p className="text-xs text-gray-500">Available: {formatPrice(walletBalance)}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${!useWallet ? "bg-indigo-50 text-indigo-600" : "bg-slate-200 text-slate-400"}`}>
+                          <FiCreditCard className="text-xl" />
+                        </div>
+                        <div>
+                          <span className="block font-black text-slate-900 text-sm">Razorpay / Online</span>
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 inline-block">
+                            Pay {formatPrice(useWallet ? (remainingAmount > 0 ? remainingAmount : 0) : finalTotal)} total
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${!useWallet ? "bg-primary-600 border-primary-600 shadow-lg shadow-primary-200" : "border-slate-300"}`}>
+                        {!useWallet && <FiCheck className="text-white text-[10px]" strokeWidth={4} />}
                       </div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={useWallet}
-                      onChange={(e) => setUseWallet(e.target.checked)}
-                      className="h-5 w-5 rounded text-primary-600 focus:ring-primary-500 border-gray-300"
-                    />
-                  </label>
-                </div>
-              )}
+                  </motion.div>
 
-              {remainingAmount > 0 && (
-                <div className="glass-card rounded-xl p-4 border-2 border-primary-500 bg-primary-50">
-                  <div className="flex items-center gap-3">
-                    <FiCreditCard className="text-primary-600 text-2xl" />
-                    <div className="flex-1">
-                      <span className="font-semibold text-gray-800 text-base block">
-                        {useWallet ? 'Pay Remaining' : 'Online Payment'}
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {useWallet ? formatPrice(remainingAmount) : 'Card, UPI, Wallets'} via Razorpay
-                      </span>
+                  {/* Wallet Coverage Note */}
+                  {remainingAmount <= 0 && useWallet && (
+                    <div className="px-6 py-3 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex items-center gap-3">
+                      <FiCheckCircle className="text-emerald-500" />
+                      <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Selected: Pay {formatPrice(finalTotal)} via Wallet</span>
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
+              </section>
 
-              {remainingAmount <= 0 && useWallet && (
-                <div className="glass-card rounded-xl p-4 border-2 border-green-500 bg-green-50">
-                  <div className="flex items-center gap-3">
-                    <FiCheck className="text-green-600 text-2xl" />
-                    <div className="flex-1">
-                      <span className="font-semibold text-green-800 text-base block">
-                        Payment Covered by Wallet
-                      </span>
-                      <span className="text-xs text-green-600">
-                        No additional payment needed.
-                      </span>
+              {/* Promo Code Section */}
+              <section className="space-y-4">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Promo Code</h3>
+                <div className="p-1.5 bg-white rounded-[1.5rem] border border-slate-100 shadow-sm flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    placeholder="Enter promo code"
+                    className="flex-1 h-12 px-4 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary-500 outline-none text-sm font-bold transition-all"
+                  />
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    disabled={isApplyingCoupon || !couponCode.trim()}
+                    onClick={handleApplyCoupon}
+                    className="h-12 px-6 rounded-xl bg-primary-600 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isApplyingCoupon ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : 'Apply'}
+                  </motion.button>
+                </div>
+                {appliedCoupon && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <FiCheckCircle className="text-emerald-600 text-sm" />
+                      <span className="text-xs font-bold text-emerald-700">{appliedCoupon.code} Applied</span>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Shipping Options */}
-              {total < 100 && (
-                <div className="mb-6">
-                  <h3 className="text-base font-semibold text-gray-800 mb-3">Shipping Options</h3>
-                  <div className="space-y-3">
-                    <label
-                      className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${shippingOption === 'standard'
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200'
-                        }`}
-                    >
-                      <div>
-                        <input
-                          type="radio"
-                          name="shippingOption"
-                          value="standard"
-                          checked={shippingOption === 'standard'}
-                          onChange={(e) => setShippingOption(e.target.value)}
-                          className="w-5 h-5 text-primary-500 mr-3"
-                        />
-                        <span className="font-semibold text-gray-800 text-base">Standard Shipping</span>
-                        <p className="text-xs text-gray-600">5-7 business days</p>
-                      </div>
-                      <span className="font-bold text-gray-800">{formatPrice(50)}</span>
-                    </label>
-                    <label
-                      className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${shippingOption === 'express'
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200'
-                        }`}
-                    >
-                      <div>
-                        <input
-                          type="radio"
-                          name="shippingOption"
-                          value="express"
-                          checked={shippingOption === 'express'}
-                          onChange={(e) => setShippingOption(e.target.value)}
-                          className="w-5 h-5 text-primary-500 mr-3"
-                        />
-                        <span className="font-semibold text-gray-800 text-base">Express Shipping</span>
-                        <p className="text-xs text-gray-600">2-3 business days</p>
-                      </div>
-                      <span className="font-bold text-gray-800">{formatPrice(100)}</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* Coupon Code - Always Visible */}
-              <div className="mb-6">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">Do you have a promo code?</h3>
-                {!appliedCoupon ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      placeholder="Enter promo code"
-                      className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-base"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleApplyCoupon}
-                      className="px-4 py-2 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-3 bg-green-50/50 border border-green-100 rounded-xl">
-                    <div>
-                      <p className="text-sm font-bold text-green-700">{appliedCoupon.name}</p>
-                      <p className="text-xs text-green-600 font-medium tracking-wide">{appliedCoupon.code}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAppliedCoupon(null);
-                        setCouponCode('');
-                      }}
-                      className="p-2 bg-white rounded-full shadow-sm text-red-500 hover:text-red-600 transition-colors"
-                    >
-                      <FiX size={16} />
+                    <button onClick={() => setAppliedCoupon(null)} className="text-slate-400 hover:text-rose-500">
+                      <FiX />
                     </button>
                   </div>
                 )}
-              </div>
+              </section>
 
-              {/* Order Summary */}
-              <div className="glass-card rounded-xl p-4">
-                <h3 className="text-base font-bold text-gray-800 mb-3">Order Summary</h3>
-                <div className="space-y-3 mb-4">
+              {/* Order Summary Section */}
+              <section className="space-y-4 pb-32">
+                <div className="flex items-center gap-2 mb-2">
+                  <FiShoppingBag className="text-primary-600 text-xl" />
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Order Summary</h2>
+                </div>
+
+                <div className="space-y-4">
                   {itemsByVendor.map((vendorGroup) => (
-                    <div key={vendorGroup.vendorId} className="space-y-2 mb-4">
+                    <div key={vendorGroup.vendorId} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                       {/* Vendor Header */}
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg border border-primary-200/50 shadow-sm">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center flex-shrink-0">
-                          <FiShoppingBag className="text-white text-[10px]" />
+                      <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-primary-600 shadow-sm border border-slate-100">
+                            <FiShoppingBag className="text-xs" />
+                          </div>
+                          <span className="text-sm font-black text-slate-800 tracking-tight">{vendorGroup.vendorName}</span>
                         </div>
-                        <span className="text-sm font-bold text-primary-700 flex-1">
-                          {vendorGroup.vendorName}
-                        </span>
-                        <span className="text-xs font-semibold text-primary-600 bg-white px-2 py-0.5 rounded-md">
-                          {formatPrice(vendorGroup.subtotal)}
+                        <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest">
+                          {vendorGroup.items.length} Items
                         </span>
                       </div>
+
                       {/* Vendor Items */}
-                      <div className="space-y-2 pl-2">
+                      <div className="p-4 space-y-4">
                         {vendorGroup.items.map((item) => (
-                          <div key={item.id} className="flex items-center gap-2 text-xs">
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-10 h-10 rounded-lg object-cover"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-800 truncate text-xs">
-                                {item.name}
-                              </p>
-                              <div className="flex items-center gap-1.5">
-                                <p className="text-gray-600 text-xs">
-                                  {formatPrice(item.price)} × {item.quantity}
-                                </p>
-                                {item.originalPrice && item.originalPrice > item.price && (
-                                  <p className="text-[10px] text-gray-400 line-through">
-                                    {formatPrice(item.originalPrice)}
-                                  </p>
+                          <div key={item.id} className="flex gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex-shrink-0">
+                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 py-1">
+                              <h4 className="text-xs font-black text-slate-900 line-clamp-1">{item.name}</h4>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Qty: {item.quantity}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-sm font-black text-primary-600">{formatPrice(item.price)}</span>
+                                {item.originalPrice > item.price && (
+                                  <span className="text-[10px] text-slate-300 line-through font-bold">{formatPrice(item.originalPrice)}</span>
                                 )}
                               </div>
                             </div>
@@ -831,77 +843,87 @@ const MobileCheckout = () => {
                     </div>
                   ))}
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-600">
+
+                {/* Final Totals Card - CUSTOMER FIX: Changed from Slate-900 to White */}
+                <div className="p-6 bg-white rounded-[2.5rem] border border-slate-200 space-y-4 shadow-xl shadow-slate-200/50">
+                  <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
                     <span>Subtotal</span>
-                    <span>{formatPrice(total)}</span>
+                    <span className="text-slate-900">{formatPrice(total)}</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-green-600">
+                    <div className="flex justify-between items-center text-xs font-bold text-emerald-600 uppercase tracking-widest">
                       <span>Discount</span>
                       <span>-{formatPrice(discount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
                     <span>Shipping</span>
-                    <span>{shipping === 0 ? <span className="text-green-600 font-semibold">FREE</span> : formatPrice(shipping)}</span>
+                    <span className="text-slate-900">{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
-                    <div className="flex flex-col">
-                      <span>{taxSettings?.taxName || 'Tax'}</span>
-                      {taxSettings?.isEnabled && (
-                        <span className="text-[10px] text-gray-400">
-                          ({taxSettings.taxType === 'percentage' ? `${taxSettings.taxValue}%` : 'Fixed Amount'} applied)
-                        </span>
-                      )}
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <span className="text-lg font-black tracking-tight text-slate-900">Total Amount</span>
+                    <span className="text-2xl font-black text-primary-600">{formatPrice(finalTotal)}</span>
+                  </div>
+
+                  {useWallet && amountFromWallet > 0 && (
+                    <div className="flex justify-between items-center p-4 bg-primary-50 rounded-2xl border border-primary-100 mt-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary-700">
+                        <FiCheck className="text-primary-600" />
+                        From Wallet
+                      </div>
+                      <span className="text-xs font-black text-primary-600">-{formatPrice(amountFromWallet)}</span>
                     </div>
-                    <span>{formatPrice(tax)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold text-gray-800 pt-2 border-t border-gray-200">
-                    <span>Total</span>
-                    <span className="text-primary-600">{formatPrice(finalTotal)}</span>
-                  </div>
+                  )}
                 </div>
-              </div>
+              </section>
             </motion.div>
           )}
 
           {/* Navigation Buttons / Order Summary Footer */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.05)] p-4 z-40">
-            {step === 2 && (
-              <div className="mb-3">
-                {useWallet && amountFromWallet > 0 && (
-                  <div className="flex justify-between items-center mb-2 text-sm">
-                    <span className="text-green-600">From Wallet</span>
-                    <span className="text-green-600">-{formatPrice(amountFromWallet)}</span>
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-6 z-40">
+            <div className="max-w-7xl mx-auto flex flex-col gap-4">
+              {step === 2 && (
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Payable</span>
+                    <span className="text-xl font-black text-slate-900 leading-none">
+                      {formatPrice(useWallet ? (remainingAmount > 0 ? remainingAmount : 0) : finalTotal)}
+                    </span>
                   </div>
-                )}
-                <div className="flex justify-between items-center font-bold">
-                  <span className="text-gray-800">
-                    {useWallet && remainingAmount > 0 ? 'Remaining to Pay' : 'Total'}
-                  </span>
-                  <span className="text-xl text-primary-600">
-                    {formatPrice(finalTotal)}
-                  </span>
+                  <div className="flex items-center gap-1.5 opacity-60">
+                    <FiCheckCircle className="text-emerald-500 text-xs" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Secure</span>
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="flex gap-3">
-              {step > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setStep(step - 1)}
-                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-                >
-                  Back
-                </button>
               )}
-              <button
-                type="submit"
-                className="flex-[2] gradient-green text-white py-3 rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
-              >
-                {step === 2 ? (remainingAmount > 0 ? `Pay ${formatPrice(remainingAmount)}` : 'Place Order') : 'Continue'}
-              </button>
+
+              <div className="flex gap-3">
+                {step > 1 && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    onClick={() => setStep(step - 1)}
+                    className="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-100 text-slate-600 transition-colors"
+                  >
+                    <FiArrowLeft className="text-xl" />
+                  </motion.button>
+                )}
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 h-14 bg-primary-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-primary-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Processing...</span>
+                    </div>
+                  ) : (
+                    step === 2 ? (remainingAmount > 0 ? `Pay & Place Order` : 'Place Order Now') : 'Continue to Payment'
+                  )}
+                </motion.button>
+              </div>
             </div>
           </div>
         </form>

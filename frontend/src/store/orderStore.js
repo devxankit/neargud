@@ -21,7 +21,6 @@ export const useOrderStore = create((set, get) => ({
         isLoading: false,
       }));
 
-      toast.success('Order created successfully!');
       return order;
     } catch (error) {
       set({ error: error.message, isLoading: false });
@@ -40,7 +39,6 @@ export const useOrderStore = create((set, get) => ({
       // Refresh orders after payment verification
       await get().fetchOrders();
 
-      toast.success('Payment verified successfully!');
       set({ isLoading: false });
       return result;
     } catch (error) {

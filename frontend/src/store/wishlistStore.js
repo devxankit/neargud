@@ -27,16 +27,16 @@ export const useWishlistStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await wishlistApi.addToWishlist(productId);
-        // Fetch updated wishlist to ensure sync
-        await get().fetchWishlist();
-        set((state) => {
-          const existingItem = state.items.find((i) => (i._id || i.id) === productId);
-          if (existingItem) return { isLoading: false };
-          return {
-            items: [...state.items, product],
-            isLoading: false,
-          };
-        });
+      // Fetch updated wishlist to ensure sync
+      await get().fetchWishlist();
+      set((state) => {
+        const existingItem = state.items.find((i) => String(i._id || i.id) === String(productId));
+        if (existingItem) return { isLoading: false };
+        return {
+          items: [...state.items, product],
+          isLoading: false,
+        };
+      });
     } catch (error) {
       set({ error: error.message, isLoading: false });
       throw error;
@@ -49,7 +49,7 @@ export const useWishlistStore = create((set, get) => ({
     try {
       await wishlistApi.removeFromWishlist(productId);
       set((state) => ({
-        items: state.items.filter((item) => (item._id || item.id) !== productId),
+        items: state.items.filter((item) => String(item._id || item.id) !== String(productId)),
         isLoading: false,
       }));
       // Fetch updated wishlist to ensure sync
@@ -63,7 +63,7 @@ export const useWishlistStore = create((set, get) => ({
   // Check if item is in wishlist
   isInWishlist: (productId) => {
     const state = get();
-    return state.items.some((item) => (item._id || item.id) === productId);
+    return state.items.some((item) => String(item._id || item.id) === String(productId));
   },
 
   // Clear wishlist

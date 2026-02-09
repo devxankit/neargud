@@ -77,6 +77,13 @@ export const createOrder = async (req, res, next) => {
       payableAmount: payable,
     }, io);
 
+    if (!orders || orders.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to create order. No valid vendors found for items.',
+      });
+    }
+
     // Use the first order for Razorpay reference and main response
     const mainOrder = orders[0];
 
@@ -128,17 +135,7 @@ export const createOrder = async (req, res, next) => {
       }
     }
 
-    // Send order placed notifications for each order
-    try {
-      const customer = await User.findById(userId).select('name email');
-      if (customer) {
-        for (const order of orders) {
-          await notificationHelper.sendOrderPlacedNotification(order, customer);
-        }
-      }
-    } catch (notifError) {
-      console.error('Failed to send order notification:', notifError);
-    }
+    // Notifications are already handled by createOrderService with a summary for user and individual for vendors
 
     // Return main order details (or first order) with Razorpay info
     res.status(201).json({
@@ -238,14 +235,13 @@ export const verifyPayment = async (req, res, next) => {
       status: 'completed',
     }, io);
 
-    // Send payment success and order confirmed notifications for each order
+    // Send payment success and order confirmed notifications
     try {
       const customer = await User.findById(updatedOrders[0].customerId).select('name email');
       if (customer) {
-        for (const order of updatedOrders) {
-          await notificationHelper.sendPaymentSuccessNotification(order, customer);
-          await notificationHelper.sendOrderConfirmedNotification(order, customer);
-        }
+        // Just send one notification for the whole payment
+        const orderCodes = updatedOrders.map(o => o.orderCode).join(', ');
+        await notificationHelper.sendOrderConfirmedNotification(updatedOrders[0], customer);
       }
     } catch (notifError) {
       console.error('Failed to send payment notification:', notifError);

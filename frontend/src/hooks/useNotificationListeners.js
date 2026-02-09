@@ -1,7 +1,18 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import socketService from "../utils/socket";
 import { useNotificationStore } from "../store/notificationStore";
-import { useAuthStore } from "../store/authStore"; // Assuming there's an authStore
+import { useAuthStore } from "../store/authStore";
+
+// Pages where notification count should be fetched
+const NOTIFICATION_RELEVANT_PATHS = [
+  '/app/profile',
+  '/app/notifications',
+  '/app/orders',
+  '/profile',
+  '/notifications',
+  '/orders'
+];
 
 export const useNotificationListeners = () => {
   const addNotification = useNotificationStore(
@@ -11,36 +22,51 @@ export const useNotificationListeners = () => {
     (state) => state.fetchUnreadCount,
   );
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const location = useLocation();
 
   useEffect(() => {
-    if (!token) return;
+    // Only proceed if user is logged in
+    if (!token || !user) return;
 
-    // Ensure socket is connected
+    // Check if current path is relevant for notifications
+    const isRelevantPath = NOTIFICATION_RELEVANT_PATHS.some(path =>
+      location.pathname.startsWith(path)
+    );
+
+    // Ensure socket is connected for real-time updates
     const socket = socketService.connect(token);
 
+    const handleNewNotification = (notification) => {
+      console.log("🔔 New real-time notification received:", notification);
+      addNotification(notification);
+    };
+
+    const handleNotificationRead = ({ notificationId }) => {
+      // Only fetch count on relevant pages to avoid unnecessary API calls
+      if (isRelevantPath) {
+        fetchUnreadCount();
+      }
+    };
+
     if (socket) {
-      // Listen for new notifications
-      socketService.onNewNotification((notification) => {
-        console.log("🔔 New real-time notification received:", notification);
-        addNotification(notification);
-      });
+      // Listen for new notifications (always listen when logged in)
+      socketService.onNewNotification(handleNewNotification);
 
       // Listen for notification read status updates
-      socketService.onNotificationRead(({ notificationId }) => {
-        // You could update state here if needed, but usually the person
-        // who reads it already updated their state via API call.
-        // This is useful for multi-device sync.
-        fetchUnreadCount();
-      });
+      socketService.onNotificationRead(handleNotificationRead);
 
-      // Initial fetch of unread count
-      fetchUnreadCount();
+      // Initial fetch of unread count - ONLY on relevant pages
+      if (isRelevantPath) {
+        fetchUnreadCount();
+      }
     }
 
-    // We don't disconnect here because socket is used globally
-    // but we might want to cleanup listeners if this hook unmounts
     return () => {
-      // socketService.offNewNotification(); // If we had an 'off' method
+      if (socket) {
+        socketService.off("new_notification", handleNewNotification);
+        socketService.off("notification_read", handleNotificationRead);
+      }
     };
-  }, [token, addNotification, fetchUnreadCount]);
+  }, [token, user, location.pathname, addNotification, fetchUnreadCount]);
 };

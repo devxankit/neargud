@@ -37,6 +37,8 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/app/addresses',
     '/addresses',
     '/app/policies',
+    '/app/orders',
+    '/orders',
   ];
 
   // Hide header and bottom nav on login, register, and verification pages

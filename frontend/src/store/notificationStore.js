@@ -118,6 +118,7 @@ export const useNotificationStore = create((set, get) => ({
 
   // Handle new notification from socket
   addNotification: (notification) => {
+    let isNew = false;
     set((state) => {
       // Check if notification already exists
       const exists = state.notifications.some(
@@ -125,6 +126,7 @@ export const useNotificationStore = create((set, get) => ({
       );
       if (exists) return state;
 
+      isNew = true;
       return {
         notifications: [notification, ...state.notifications].slice(0, 50),
         unreadCount: state.unreadCount + 1,
@@ -132,9 +134,17 @@ export const useNotificationStore = create((set, get) => ({
     });
 
     // Show toast for new notification
-    toast(notification.title, {
-      icon: "🔔",
-      duration: 4000,
-    });
+    if (isNew) {
+      // Avoid showing order confirmation toast if we're already on the confirmation page
+      const isOrderConfirmationPage = window.location.pathname.includes('/order-confirmation');
+      const isOrderPlacedNotification = notification.title?.toLowerCase().includes('order placed');
+
+      if (!(isOrderConfirmationPage && isOrderPlacedNotification)) {
+        toast(notification.title, {
+          icon: "🔔",
+          duration: 4000,
+        });
+      }
+    }
   },
 }));

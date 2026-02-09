@@ -53,11 +53,10 @@ const MobileProfile = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Fetch notification count and wallet on mount
+  // Fetch wallet on mount (unreadCount is handled by useNotificationListeners)
   useEffect(() => {
-    fetchUnreadCount();
     fetchWallet().catch(() => { });
-  }, [fetchUnreadCount, fetchWallet]);
+  }, [fetchWallet]);
 
   // Forms
   const {
@@ -70,7 +69,7 @@ const MobileProfile = () => {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       email: user?.email || '',
-      phone: user?.phone || '',
+      phone: user?.phone?.startsWith('+91') ? user.phone.slice(3) : (user?.phone || ''),
     },
   });
 
@@ -81,7 +80,7 @@ const MobileProfile = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
-        phone: user.phone || '',
+        phone: user.phone?.startsWith('+91') ? user.phone.slice(3) : (user?.phone || ''),
       });
     }
   }, [user, resetPersonal]);
@@ -98,7 +97,11 @@ const MobileProfile = () => {
 
   const onPersonalSubmit = async (data) => {
     try {
-      await updateProfile(data);
+      const submissionData = { ...data };
+      if (submissionData.phone && !submissionData.phone.startsWith('+91')) {
+        submissionData.phone = `+91${submissionData.phone}`;
+      }
+      await updateProfile(submissionData);
       toast.success('Profile updated successfully!');
       setView('main');
     } catch (error) {

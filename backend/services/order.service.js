@@ -140,6 +140,9 @@ export const createOrder = async (orderData, io = null) => {
     });
 
     const vendorGroups = Object.values(vendorItemsMap);
+    if (vendorGroups.length === 0) {
+      throw new Error('No valid products or vendors found for the items in your cart. Some items may have been removed or updated.');
+    }
     const totalSubtotal = vendorGroups.reduce((sum, v) => sum + v.subtotal, 0);
 
     // Wallet usage
@@ -523,8 +526,18 @@ export const getUserOrders = async (userId, filters = {}) => {
       query.status = status;
     }
 
+    // If specific paymentStatus filter provided, use it
+    // Otherwise, exclude pending/failed payments (except COD orders which have pending payment by default)
     if (paymentStatus) {
       query.paymentStatus = paymentStatus;
+    } else {
+      // Show orders where:
+      // 1. Payment is completed/refunded, OR
+      // 2. Payment method is COD (Cash on Delivery) - these have pending payment until delivered
+      query.$or = [
+        { paymentStatus: { $in: ['completed', 'refunded'] } },
+        { paymentMethod: { $in: ['cod', 'cash'] } }
+      ];
     }
 
     const orders = await Order.find(query)
