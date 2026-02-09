@@ -201,7 +201,7 @@ const VendorStore = () => {
   if (loading && !vendor) {
     return (
       <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false} style={{ paddingTop: 0 }}>
           <div className="w-full bg-slate-50 min-h-screen">
             {/* Banner Skeleton */}
             <div className="relative h-56 bg-slate-200 animate-pulse overflow-hidden">
@@ -285,7 +285,7 @@ const VendorStore = () => {
 
     return (
       <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false} style={{ paddingTop: 0 }}>
           <div className="w-full pb-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 min-h-screen">
             {/* Banner Section */}
             <div className="relative h-56 bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 overflow-hidden">

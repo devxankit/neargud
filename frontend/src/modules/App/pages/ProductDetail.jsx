@@ -570,29 +570,6 @@ const MobileProductDetail = () => {
                   <FiPlus strokeWidth={3} />
                 </button>
               </div>
-              {!cartItem && (
-                <button
-                  onClick={handleAddToCart}
-                  disabled={
-                    product.stock === "out_of_stock" ||
-                    product.isBuy === false
-                  }
-                  className={`flex-1 h-14 rounded-2xl font-bold transition-all active:scale-[0.98] 
-      flex items-center justify-center gap-2 border-2 
-      ${product.stock === "out_of_stock" || product.isBuy === false
-                      ? "bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-white border-primary-600 text-primary-700 hover:bg-primary-50"
-                    }`}>
-                  <FiShoppingBag />
-                  <span>
-                    {product.stock === "out_of_stock"
-                      ? "Out of Stock"
-                      : product.isBuy === false
-                        ? "Ordering Disabled"
-                        : "Add to Cart"}
-                  </span>
-                </button>
-              )}
             </div>
           </div>
 
@@ -812,14 +789,16 @@ const MobileProductDetail = () => {
       </div>
 
       {/* Review Modal */}
-      {isReviewModalOpen && (
-        <ReviewModal
-          isOpen={isReviewModalOpen}
-          onClose={() => setIsReviewModalOpen(false)}
-          product={product}
-          orderId={eligibleOrderId}
-        />
-      )}
+      {
+        isReviewModalOpen && (
+          <ReviewModal
+            isOpen={isReviewModalOpen}
+            onClose={() => setIsReviewModalOpen(false)}
+            product={product}
+            orderId={eligibleOrderId}
+          />
+        )
+      }
 
     </PageTransition >
   );

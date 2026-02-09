@@ -37,7 +37,7 @@ const ScrollToTop = () => {
     const timers = [10, 50, 100, 200].map(delay => setTimeout(resetScroll, delay));
 
     return () => timers.forEach(t => clearTimeout(t));
-  }, [pathname, search]);
+  }, [pathname]);
 
   return null;
 };

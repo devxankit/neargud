@@ -87,7 +87,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
               showCartBar ? 'pb-24 md:pb-8' : ''
           }`}
         style={{
-          paddingTop: isThemedPage ? '0px' : (shouldShowHeader ? `${headerHeight}px` : '10px'),
+          paddingTop: isThemedPage ? '0px' : (shouldShowHeader ? `${headerHeight}px` : '0px'),
           overflowY: isFullScreenPage ? 'hidden' : 'visible',
           WebkitOverflowScrolling: 'touch',
           minHeight: isFullScreenPage ? '100vh' : 'auto',
