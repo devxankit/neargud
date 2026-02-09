@@ -446,9 +446,11 @@ export default function PromoStrip({
         image: undefined
     };
 
-    // Try to find in static products first (legacy), otherwise use currentProduct which has the necessary fields mapped from dynamic data
-    const product = currentProduct?.id ? (
-        products.find(p => p.id.toString() === currentProduct.id) ||
+    // Use currentProduct directly - it already has the image mapped from API data
+    // Only fallback to static products lookup for legacy/demo data with numeric IDs
+    const isNumericId = currentProduct?.id && !isNaN(parseInt(currentProduct.id)) && parseInt(currentProduct.id) < 1000;
+    const product = isNumericId ? (
+        products.find(p => p.id.toString() === currentProduct.id.toString()) ||
         products.find(p => p.id === parseInt(currentProduct.id)) ||
         currentProduct
     ) : currentProduct;

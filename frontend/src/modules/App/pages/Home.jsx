@@ -62,17 +62,15 @@ const MobileHome = () => {
       setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), delay)
     );
     return () => timers.forEach(clearTimeout);
-  }, [initializeSettings, fetchAllContent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [mostPopular, setMostPopular] = useState([]);
-  const [flashSale, setFlashSale] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
-  const [dailyDeals, setDailyDeals] = useState([]);
-  const [trending, setTrending] = useState([]);
+  const [discountedProducts, setDiscountedProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [reels, setReels] = useState([]);
   const [categoryProducts, setCategoryProducts] = useState({});
@@ -81,8 +79,14 @@ const MobileHome = () => {
   const [loadingSecondary, setLoadingSecondary] = useState(true);
   const [loadingTertiary, setLoadingTertiary] = useState(true);
 
+  // Track if data has been fetched to prevent double calls
+  const hasFetchedRef = useRef(false);
+
   // Critical Data: Banners & Categories (Needed for "Above the Fold" content)
   const fetchCriticalData = async () => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     try {
       setLoadingCritical(true);
       const [bannersRes, categoriesRes] = await Promise.all([
@@ -99,7 +103,7 @@ const MobileHome = () => {
       }
 
       // Start fetching Secondary data once Critical is done
-      fetchSecondaryData(validCategories);
+      fetchSecondaryData();
     } catch (error) {
       console.error("Critical Fetch Error:", error);
     } finally {
@@ -107,24 +111,22 @@ const MobileHome = () => {
     }
   };
 
-  // Secondary Data: Daily Deals, Vendors, Trending Reels
-  const fetchSecondaryData = async (catList) => {
+  // Secondary Data: Discounted Products, Vendors, Trending Reels
+  const fetchSecondaryData = async () => {
     try {
       setLoadingSecondary(true);
-      const [dealsRes, vendorsRes, reelsRes] = await Promise.all([
-        fetchPublicProducts({ limit: 4, sort: '-discountPercent' }),
+      const [discountRes, vendorsRes, reelsRes] = await Promise.all([
+        fetchPublicProducts({ limit: 10, hasDiscount: true, sort: '-discount' }),
         fetchPublicVendors({ limit: 6 }),
         fetchPublicReels({ limit: 10 })
       ]);
 
-      if (dealsRes.success) setDailyDeals(dealsRes.data.products || []);
+      if (discountRes.success) setDiscountedProducts(discountRes.data.products || []);
       if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
       if (reelsRes.success) setReels(reelsRes.data.reels || []);
 
       // Start fetching Tertiary data
       fetchTertiaryData();
-      // Also fetch some top products per top categories
-      fetchCategoryProducts(catList.slice(0, 3));
     } catch (error) {
       console.error("Secondary Fetch Error:", error);
     } finally {
@@ -152,28 +154,13 @@ const MobileHome = () => {
     }
   };
 
-  const fetchCategoryProducts = async (catList) => {
-    try {
-      const productPromises = catList.map(cat =>
-        fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 })
-      );
-      const results = await Promise.all(productPromises);
-      const newMap = {};
-      results.forEach((res, index) => {
-        if (res.success) {
-          const catId = catList[index]._id || catList[index].id;
-          newMap[catId] = res.data.products || [];
-        }
-      });
-      setCategoryProducts(prev => ({ ...prev, ...newMap }));
-    } catch (e) { console.error("Category product fetch error", e); }
-  };
-
   useEffect(() => {
     fetchCriticalData();
-  }, [currentCity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount, currentCity change handled via ref reset
 
   const handleRefresh = async () => {
+    hasFetchedRef.current = false; // Reset to allow refetch
     await fetchCriticalData();
   };
 
@@ -217,7 +204,7 @@ const MobileHome = () => {
             activeTab={activeTab}
             categories={categories}
             categoryProducts={categoryProducts}
-            crazyDeals={dailyDeals}
+            crazyDeals={discountedProducts}
             heroBanner={
               <HeroCarousel banners={banners} loading={loadingCritical} />
             }
@@ -226,8 +213,8 @@ const MobileHome = () => {
           {/* Featured Categories Bubbles */}
           {/* <HomeCategoryBubble categories={categories} loading={loading} /> */}
 
-          {/* LowestPricesEver Section */}
-          <LowestPricesEver activeTab={activeTab} />
+          {/* LowestPricesEver Section - Uses products from parent */}
+          <LowestPricesEver activeTab={activeTab} products={discountedProducts} loading={loadingSecondary} />
         </div>
 
         {/* White background area for the rest of the page */}
@@ -278,7 +265,7 @@ const MobileHome = () => {
             </div>
           </motion.div>
 
-          <DailyDealsSection products={dailyDeals} loading={loadingSecondary} theme={theme} />
+          <DailyDealsSection products={discountedProducts} loading={loadingSecondary} theme={theme} />
 
           {/* More promotional content */}
           <div className="px-4 py-4">

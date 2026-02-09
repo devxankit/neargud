@@ -109,7 +109,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
       name: product.name,
       price: product.price,
       originalPrice: product.originalPrice,
-      image: product.image,
+      image: product.images?.[0] || product.image,
       quantity: 1,
       applicableCoupons: product.applicableCoupons,
       isCouponEligible: product.isCouponEligible,
@@ -201,7 +201,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
           <Link to={productLink} className="block w-full">
             <div className="w-full aspect-square bg-neutral-50 flex items-center justify-center overflow-hidden relative">
               <LazyImage
-                src={product.image}
+                src={product.images?.[0] || product.image}
                 alt={product.name}
                 className="w-full h-full object-contain p-2 mix-blend-multiply"
                 loading="lazy"
@@ -276,7 +276,7 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
 
       {showFlyingItem && (
         <FlyingItem
-          image={product.image}
+          image={product.images?.[0] || product.image}
           startPosition={flyingItemPos.start}
           endPosition={flyingItemPos.end}
           onComplete={() => setShowFlyingItem(false)}

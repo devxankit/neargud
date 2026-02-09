@@ -64,7 +64,7 @@ const ProductCard = memo(({
             <div className="bg-white rounded-lg overflow-hidden flex flex-col relative h-full" style={{ boxShadow: '0 1px 1px rgba(0, 0, 0, 0.03)' }}>
                 <div onClick={() => navigate(`/app/product/${productId}`)} className="relative block cursor-pointer">
                     <div className="w-full h-28 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
-                        <img src={product.image || product.imageUrl || 'https://via.placeholder.com/150'} alt={product.name} className="w-full h-full object-contain" />
+                        <img src={product.images?.[0] || product.image || product.imageUrl || 'https://via.placeholder.com/150'} alt={product.name} className="w-full h-full object-contain" />
                         {discount > 0 && <div className="absolute top-1 left-1 z-10 text-white text-[9px] font-bold px-1 py-0.5 rounded" style={{ backgroundColor: theme.accentColor }}>{discount}% OFF</div>}
                         <button
                             onClick={handleFavorite}
@@ -115,7 +115,7 @@ const ProductCard = memo(({
 
 ProductCard.displayName = 'ProductCard';
 
-export default function LowestPricesEver({ activeTab = 'all', categoryId }) {
+export default function LowestPricesEver({ activeTab = 'all', categoryId, products = [], loading = false }) {
     const { content } = useContentStore();
     const lowestPricesTitle = content?.homepage?.lowestPrices?.title || 'LOWEST PRICES EVER';
     const theme = getTheme(activeTab);
@@ -126,47 +126,16 @@ export default function LowestPricesEver({ activeTab = 'all', categoryId }) {
         setTimeout(() => setFontLoaded(true), 300);
     }, []);
 
-    const [discountedProducts, setDiscountedProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchDiscountedProducts = async () => {
-        try {
-            setLoading(true);
-            // @ts-ignore
-            const { fetchPublicProducts } = await import('../services/publicApi');
-            const params = { limit: 10, hasDiscount: true, sort: '-discount' };
-            if (categoryId) {
-                params.categoryId = categoryId;
-            }
-            const res = await fetchPublicProducts(params);
-            if (res.success && res.data.products && res.data.products.length > 0) {
-                setDiscountedProducts(res.data.products);
-            } else {
-                // Fallback mock data if on homepage, otherwise empty
-                if (!categoryId) {
-                    setDiscountedProducts([
-                        { _id: 'lp1', name: 'Super Saver Item', price: 99, originalPrice: 499, image: 'https://via.placeholder.com/300' },
-                        { _id: 'lp2', name: 'Budget Friendly', price: 149, originalPrice: 299, image: 'https://via.placeholder.com/300' },
-                        { _id: 'lp3', name: 'Mega Discount', price: 299, originalPrice: 999, image: 'https://via.placeholder.com/300' },
-                        { _id: 'lp4', name: 'Clearance Sale', price: 499, originalPrice: 1299, image: 'https://via.placeholder.com/300' },
-                        { _id: 'lp5', name: 'Store Special', price: 199, originalPrice: 399, image: 'https://via.placeholder.com/300' },
-                    ]);
-                } else {
-                    setDiscountedProducts([]);
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching discounted products:", error);
-            setDiscountedProducts([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchDiscountedProducts();
-    }, [activeTab, categoryId]);
-
+    // Use products from props, with fallback data only if empty and not loading
+    const discountedProducts = (products && products.length > 0)
+        ? products
+        : (!loading && !categoryId ? [
+            { _id: 'lp1', name: 'Super Saver Item', price: 99, originalPrice: 499, image: 'https://via.placeholder.com/300' },
+            { _id: 'lp2', name: 'Budget Friendly', price: 149, originalPrice: 299, image: 'https://via.placeholder.com/300' },
+            { _id: 'lp3', name: 'Mega Discount', price: 299, originalPrice: 999, image: 'https://via.placeholder.com/300' },
+            { _id: 'lp4', name: 'Clearance Sale', price: 499, originalPrice: 1299, image: 'https://via.placeholder.com/300' },
+            { _id: 'lp5', name: 'Store Special', price: 199, originalPrice: 399, image: 'https://via.placeholder.com/300' },
+        ] : []);
 
     if (discountedProducts.length === 0 && !loading) return null;
 
