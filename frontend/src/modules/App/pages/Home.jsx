@@ -100,6 +100,10 @@ const MobileHome = () => {
       if (categoriesRes.success) {
         validCategories = (categoriesRes.data.categories || []).filter(cat => !cat.parentId);
         setCategories(validCategories);
+        // Fetch product images for top 4 categories (for category cards display)
+        if (validCategories.length > 0) {
+          fetchCategoryProducts(validCategories.slice(0, 4));
+        }
       }
 
       // Start fetching Secondary data once Critical is done
@@ -109,6 +113,24 @@ const MobileHome = () => {
     } finally {
       setLoadingCritical(false);
     }
+  };
+
+  // Fetch products for category cards display
+  const fetchCategoryProducts = async (catList) => {
+    try {
+      const productPromises = catList.map(cat =>
+        fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 })
+      );
+      const results = await Promise.all(productPromises);
+      const newMap = {};
+      results.forEach((res, index) => {
+        if (res.success) {
+          const catId = catList[index]._id || catList[index].id;
+          newMap[catId] = res.data.products || [];
+        }
+      });
+      setCategoryProducts(prev => ({ ...prev, ...newMap }));
+    } catch (e) { console.error("Category product fetch error", e); }
   };
 
   // Secondary Data: Discounted Products, Vendors, Trending Reels
@@ -158,6 +180,34 @@ const MobileHome = () => {
     fetchCriticalData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount, currentCity change handled via ref reset
+
+  // Track last fetched city to refetch banners when city changes
+  const lastFetchedCityRef = useRef(null);
+
+  // Refetch banners when city changes (after initial load)
+  useEffect(() => {
+    const cityName = currentCity?.name || '';
+
+    // Skip if this is the initial load (lastFetchedCityRef is null) or city hasn't changed
+    if (lastFetchedCityRef.current === null) {
+      lastFetchedCityRef.current = cityName;
+      return;
+    }
+
+    if (lastFetchedCityRef.current !== cityName) {
+      lastFetchedCityRef.current = cityName;
+      // Refetch only banners when city changes
+      const refetchBanners = async () => {
+        try {
+          const bannersRes = await fetchActiveBanners({ city: cityName });
+          if (bannersRes.success) setBanners(bannersRes.data.banners || []);
+        } catch (error) {
+          console.error("Error refetching banners:", error);
+        }
+      };
+      refetchBanners();
+    }
+  }, [currentCity]);
 
   const handleRefresh = async () => {
     hasFetchedRef.current = false; // Reset to allow refetch

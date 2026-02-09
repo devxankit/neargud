@@ -210,12 +210,12 @@ export default function PromoStrip({
     const homepageData = content?.homepage || {};
     const promoStripCMS = homepageData?.promoStrip || {};
 
-    // HOUSEFULL / BANNER TEXT
+    // HOUSEFULL / BANNER TEXT - Prioritize CMS content
     const housefullText =
-        (activeBanner?.title?.trim()) ||
         (promoStripCMS?.housefullText?.trim()) ||
         (homepageData?.heroTitle?.trim()) ||
-        'HOUSEFULL\nSALE';
+        (activeBanner?.title?.trim()) ||
+        'HOUSEFULL';
 
     // SALE DATE TEXT
     const saleDateText =
@@ -229,11 +229,14 @@ export default function PromoStrip({
     };
 
     const theme = getTheme(activeTab);
+    // Priority: activeBanner title > CMS housefullText > theme bannerText > categoryName (fallback)
     const bannerText =
-        (activeBanner?.title?.trim()?.toUpperCase()) ||
-        (categoryName?.toUpperCase()) ||
-        (housefullText?.toUpperCase()) ||
-        (theme.bannerText?.toUpperCase());
+       (promoStripCMS?.housefullText?.trim()) ||
+        (homepageData?.heroTitle?.trim()) ||
+        (activeBanner?.title?.trim()) ||
+        'HOUSEFULL';
+
+
     const displaySaleText =
         (promoStripCMS?.saleText?.trim()?.toUpperCase()) ||
         (theme.saleText?.toUpperCase()) ||
@@ -810,14 +813,14 @@ export default function PromoStrip({
                                             </div>
                                         </div>
 
-                                        <div className="px-1 pb-1 flex flex-col flex-1 justify-between" style={{ paddingTop: '2px' }}>
+                                        <div className="px-1.5 pb-1.5 flex flex-col flex-1 justify-between" style={{ paddingTop: '2px' }}>
                                             {/* Category Title */}
                                             <div
                                                 className="font-bold text-center"
                                                 style={{
-                                                    fontSize: '13px',
+                                                    fontSize: '12px',
                                                     lineHeight: '1.2',
-                                                    marginBottom: '6px',
+                                                    marginBottom: '4px',
                                                     color: theme.textColor || '#212121',
                                                     textShadow: '0 1px 2px rgba(255, 255, 255, 0.8)',
                                                 }}
@@ -825,34 +828,56 @@ export default function PromoStrip({
                                                 {card.title}
                                             </div>
 
-                                            {/* Product Icons or Dynamic Image */}
-                                            <div className="flex items-center justify-center gap-1 overflow-hidden" style={{ marginTop: 'auto' }}>
+                                            {/* Product Images Grid or Category Image */}
+                                            <div className="flex-1 flex items-center justify-center" style={{ minHeight: '40px' }}>
                                                 {card.productImages && card.productImages.length > 0 ? (
-                                                    <div className="flex gap-1 justify-center w-full">
+                                                    <div className="grid grid-cols-2 gap-0.5 w-full max-w-[60px]">
                                                         {card.productImages.slice(0, 4).map((img, idx) => (
-                                                            <div key={idx} className="w-7 h-7 rounded bg-white/20 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                                                <img src={img} alt="Product" className="w-full h-full object-cover" />
+                                                            <div
+                                                                key={idx}
+                                                                className="aspect-square rounded-sm bg-white overflow-hidden flex items-center justify-center shadow-sm"
+                                                                style={{ minWidth: '26px', minHeight: '26px' }}
+                                                            >
+                                                                <img
+                                                                    src={img}
+                                                                    alt="Product"
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                                />
                                                             </div>
                                                         ))}
+                                                        {/* Fill empty slots if less than 4 images */}
+                                                        {card.productImages.length < 4 &&
+                                                            Array(4 - card.productImages.length).fill(0).map((_, idx) => (
+                                                                <div
+                                                                    key={`empty-${idx}`}
+                                                                    className="aspect-square rounded-sm bg-white/50 overflow-hidden"
+                                                                    style={{ minWidth: '26px', minHeight: '26px' }}
+                                                                />
+                                                            ))
+                                                        }
                                                     </div>
                                                 ) : card.imageUrl ? (
-                                                    <div className="w-full h-[30px] flex items-center justify-center overflow-hidden rounded bg-white/20">
+                                                    <div className="w-full h-[45px] flex items-center justify-center overflow-hidden rounded bg-white/30">
                                                         <img
                                                             src={card.imageUrl}
                                                             alt={card.title}
-                                                            className="h-full w-auto object-contain mix-blend-multiply"
+                                                            className="h-full w-auto object-contain"
+                                                            onError={(e) => { e.target.style.display = 'none'; }}
                                                         />
                                                     </div>
                                                 ) : (
-                                                    categoryIcons.slice(0, 4).map((icon, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="flex-shrink-0 bg-transparent rounded flex items-center justify-center overflow-hidden"
-                                                            style={{ width: '24px', height: '24px', fontSize: '18px' }}
-                                                        >
-                                                            {icon}
-                                                        </div>
-                                                    ))
+                                                    <div className="grid grid-cols-2 gap-1">
+                                                        {categoryIcons.slice(0, 4).map((icon, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="flex-shrink-0 bg-white/30 rounded flex items-center justify-center overflow-hidden"
+                                                                style={{ width: '24px', height: '24px', fontSize: '16px' }}
+                                                            >
+                                                                {icon}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

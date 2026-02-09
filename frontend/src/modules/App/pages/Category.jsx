@@ -6,6 +6,7 @@ import ProductCard from "../../../components/ProductCard";
 import ProductListItem from "../components/ProductListItem";
 import { fetchPublicCategories, fetchPublicProducts, fetchActiveBanners, fetchPublicVendors } from "../../../services/publicApi";
 import { useCategoryStore } from "../../../store/categoryStore";
+import { useLocationStore } from "../../../store/locationStore";
 import PageTransition from "../../../components/PageTransition";
 import LazyImage from "../../../components/LazyImage";
 import PromoStrip from "../../../components/PromoStrip.jsx";
@@ -18,12 +19,14 @@ import { useTheme } from "../../../context/ThemeContext.jsx";
 import { getTheme } from "../../../utils/themes.js";
 import { useUIStore } from "../../../store/useStore";
 import { useContentStore } from "../../../store/contentStore";
+import HeroCarousel from "../components/HeroCarousel";
 
 const MobileCategory = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const categoryId = id;
   const { categories } = useCategoryStore();
+  const { currentCity } = useLocationStore();
   const headerHeight = useUIStore(state => state.headerHeight);
   const fetchHomepageContent = useContentStore(state => state.fetchHomepageContent);
 
@@ -51,9 +54,10 @@ const MobileCategory = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [catsRes, bannersRes, vendorsRes, arrivalsRes, recommendedRes, dealsRes] = await Promise.all([
+      const cityName = currentCity?.name || '';
+      const [catsRes, categoryBannersRes, vendorsRes, arrivalsRes, recommendedRes, dealsRes] = await Promise.all([
         fetchPublicCategories(),
-        fetchActiveBanners({ categoryId: id }),
+        fetchActiveBanners({ categoryId: id, city: cityName }),
         fetchPublicVendors(),
         fetchPublicProducts({ categoryId: id, limit: 6, sort: '-createdAt' }),
         fetchPublicProducts({ categoryId: id, limit: 10, sort: '-popularity' }),
@@ -67,7 +71,15 @@ const MobileCategory = () => {
         setSubcategories(allCats.filter(c => c.parentId === id));
       }
 
-      if (bannersRes.success) setBanners(bannersRes.data.banners || []);
+      // Use category-specific banners, or fallback to homepage banners (with city filter)
+      let bannersData = categoryBannersRes?.data?.banners || [];
+      if (bannersData.length === 0) {
+        // Fetch homepage banners as fallback with city filter
+        const homeBannersRes = await fetchActiveBanners({ city: cityName });
+        bannersData = homeBannersRes?.data?.banners || [];
+      }
+      setBanners(bannersData);
+
       if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
       if (arrivalsRes.success) setNewArrivals(arrivalsRes.data.products || []);
       if (recommendedRes.success) setRecommended(recommendedRes.data.products || []);
@@ -105,7 +117,7 @@ const MobileCategory = () => {
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [id, currentCity]);
 
   useEffect(() => {
     fetchProducts(1, false);
@@ -184,7 +196,7 @@ const MobileCategory = () => {
           background: `linear-gradient(to bottom, ${theme.primary[0]} 0px, ${theme.primary[1]} ${headerHeight}px, ${theme.primary[2]} 100%)`,
           paddingTop: `${headerHeight + 2}px`
         }}>
-          {/* PromoStrip with banners */}
+          {/* PromoStrip with banners - same as Home page */}
           <PromoStrip
             activeTab={activeTab}
             categoryName={category?.name}
@@ -193,15 +205,7 @@ const MobileCategory = () => {
             crazyDeals={crazyDeals}
             activeBanner={banners[0]}
             heroBanner={
-              <div className="py-2">
-                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4" style={{ scrollSnapType: 'x mandatory' }}>
-                  {banners.map((banner, index) => (
-                    <div key={banner._id || index} className="flex-shrink-0 w-64 h-32 rounded-2xl overflow-hidden shadow-sm" style={{ scrollSnapAlign: 'start' }}>
-                      <LazyImage src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <HeroCarousel banners={banners} loading={loading} />
             }
           />
 
