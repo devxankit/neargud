@@ -25,6 +25,8 @@ export const register = async (req, res, next) => {
       storeName,
       storeDescription,
       address,
+      businessLicenseNumber,
+      panCardNumber,
     } = req.body;
     const documents = req.body.documents ? JSON.parse(req.body.documents) : [];
 
@@ -37,6 +39,8 @@ export const register = async (req, res, next) => {
       storeName,
       storeDescription,
       address: typeof address === "string" ? JSON.parse(address) : address,
+      businessLicenseNumber,
+      panCardNumber,
       documents,
       files: req.files, // Add files from multer
     });

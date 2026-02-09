@@ -48,8 +48,8 @@ const PageTransition = ({ children }) => {
     setPrevPath(location.pathname);
   }, [location.pathname, prevPath]);
 
-  // Memoize the unique key to ensure it updates when location changes
-  const uniqueKey = useMemo(() => location.pathname + location.search, [location.pathname, location.search]);
+  // Memoize the unique key to ensure it updates when location pathname changes (ignoring search params)
+  const uniqueKey = useMemo(() => location.pathname, [location.pathname]);
 
   // Use a regular div with key to ensure proper remounting, then wrap with motion
   // This prevents motion.div from interfering with React Router's remounting mechanism

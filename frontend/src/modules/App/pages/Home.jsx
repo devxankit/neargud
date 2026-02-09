@@ -29,14 +29,14 @@ import { useSettingsStore } from "../../../store/settingsStore";
 import { useLocationStore } from "../../../store/locationStore";
 import { useContentStore } from "../../../store/contentStore";
 import { useUIStore } from "../../../store/useStore";
-import { useTheme } from "../../../context/ThemeContext";
+import { useTheme } from "../../../context/ThemeContext.jsx";
 import ProductSkeleton from "../../../components/Skeletons/ProductCardSkeleton";
 import usePullToRefresh from "../../../hooks/usePullToRefresh";
 import toast from "react-hot-toast";
-import PromoStrip from "../../../components/PromoStrip";
-import LowestPricesEver from "../../../components/LowestPricesEver";
+import PromoStrip from "../../../components/PromoStrip.jsx";
+import LowestPricesEver from "../../../components/LowestPricesEver.jsx";
 import PageTransition from "../../../components/PageTransition";
-import { getTheme } from "../../../utils/themes";
+import { getTheme } from "../../../utils/themes.js";
 
 // Skeletons
 import HeroCarouselSkeleton from "../../../components/Skeletons/HeroCarouselSkeleton";
@@ -62,17 +62,15 @@ const MobileHome = () => {
       setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), delay)
     );
     return () => timers.forEach(clearTimeout);
-  }, [initializeSettings, fetchAllContent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [mostPopular, setMostPopular] = useState([]);
-  const [flashSale, setFlashSale] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
-  const [dailyDeals, setDailyDeals] = useState([]);
-  const [trending, setTrending] = useState([]);
+  const [discountedProducts, setDiscountedProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [reels, setReels] = useState([]);
   const [categoryProducts, setCategoryProducts] = useState({});
@@ -81,8 +79,14 @@ const MobileHome = () => {
   const [loadingSecondary, setLoadingSecondary] = useState(true);
   const [loadingTertiary, setLoadingTertiary] = useState(true);
 
+  // Track if data has been fetched to prevent double calls
+  const hasFetchedRef = useRef(false);
+
   // Critical Data: Banners & Categories (Needed for "Above the Fold" content)
   const fetchCriticalData = async () => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     try {
       setLoadingCritical(true);
       const [bannersRes, categoriesRes] = await Promise.all([
@@ -96,10 +100,14 @@ const MobileHome = () => {
       if (categoriesRes.success) {
         validCategories = (categoriesRes.data.categories || []).filter(cat => !cat.parentId);
         setCategories(validCategories);
+        // Fetch product images for top 4 categories (for category cards display)
+        if (validCategories.length > 0) {
+          fetchCategoryProducts(validCategories.slice(0, 4));
+        }
       }
 
       // Start fetching Secondary data once Critical is done
-      fetchSecondaryData(validCategories);
+      fetchSecondaryData();
     } catch (error) {
       console.error("Critical Fetch Error:", error);
     } finally {
@@ -107,24 +115,40 @@ const MobileHome = () => {
     }
   };
 
-  // Secondary Data: Daily Deals, Vendors, Trending Reels
-  const fetchSecondaryData = async (catList) => {
+  // Fetch products for category cards display
+  const fetchCategoryProducts = async (catList) => {
+    try {
+      const productPromises = catList.map(cat =>
+        fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 })
+      );
+      const results = await Promise.all(productPromises);
+      const newMap = {};
+      results.forEach((res, index) => {
+        if (res.success) {
+          const catId = catList[index]._id || catList[index].id;
+          newMap[catId] = res.data.products || [];
+        }
+      });
+      setCategoryProducts(prev => ({ ...prev, ...newMap }));
+    } catch (e) { console.error("Category product fetch error", e); }
+  };
+
+  // Secondary Data: Discounted Products, Vendors, Trending Reels
+  const fetchSecondaryData = async () => {
     try {
       setLoadingSecondary(true);
-      const [dealsRes, vendorsRes, reelsRes] = await Promise.all([
-        fetchPublicProducts({ limit: 4, sort: '-discountPercent' }),
+      const [discountRes, vendorsRes, reelsRes] = await Promise.all([
+        fetchPublicProducts({ limit: 10, hasDiscount: true, sort: '-discount' }),
         fetchPublicVendors({ limit: 6 }),
         fetchPublicReels({ limit: 10 })
       ]);
 
-      if (dealsRes.success) setDailyDeals(dealsRes.data.products || []);
+      if (discountRes.success) setDiscountedProducts(discountRes.data.products || []);
       if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
       if (reelsRes.success) setReels(reelsRes.data.reels || []);
 
       // Start fetching Tertiary data
       fetchTertiaryData();
-      // Also fetch some top products per top categories
-      fetchCategoryProducts(catList.slice(0, 3));
     } catch (error) {
       console.error("Secondary Fetch Error:", error);
     } finally {
@@ -152,28 +176,41 @@ const MobileHome = () => {
     }
   };
 
-  const fetchCategoryProducts = async (catList) => {
-    try {
-      const productPromises = catList.map(cat =>
-        fetchPublicProducts({ categoryId: cat._id || cat.id, limit: 4 })
-      );
-      const results = await Promise.all(productPromises);
-      const newMap = {};
-      results.forEach((res, index) => {
-        if (res.success) {
-          const catId = catList[index]._id || catList[index].id;
-          newMap[catId] = res.data.products || [];
-        }
-      });
-      setCategoryProducts(prev => ({ ...prev, ...newMap }));
-    } catch (e) { console.error("Category product fetch error", e); }
-  };
-
   useEffect(() => {
     fetchCriticalData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount, currentCity change handled via ref reset
+
+  // Track last fetched city to refetch banners when city changes
+  const lastFetchedCityRef = useRef(null);
+
+  // Refetch banners when city changes (after initial load)
+  useEffect(() => {
+    const cityName = currentCity?.name || '';
+
+    // Skip if this is the initial load (lastFetchedCityRef is null) or city hasn't changed
+    if (lastFetchedCityRef.current === null) {
+      lastFetchedCityRef.current = cityName;
+      return;
+    }
+
+    if (lastFetchedCityRef.current !== cityName) {
+      lastFetchedCityRef.current = cityName;
+      // Refetch only banners when city changes
+      const refetchBanners = async () => {
+        try {
+          const bannersRes = await fetchActiveBanners({ city: cityName });
+          if (bannersRes.success) setBanners(bannersRes.data.banners || []);
+        } catch (error) {
+          console.error("Error refetching banners:", error);
+        }
+      };
+      refetchBanners();
+    }
   }, [currentCity]);
 
   const handleRefresh = async () => {
+    hasFetchedRef.current = false; // Reset to allow refetch
     await fetchCriticalData();
   };
 
@@ -217,7 +254,7 @@ const MobileHome = () => {
             activeTab={activeTab}
             categories={categories}
             categoryProducts={categoryProducts}
-            crazyDeals={dailyDeals}
+            crazyDeals={discountedProducts}
             heroBanner={
               <HeroCarousel banners={banners} loading={loadingCritical} />
             }
@@ -226,8 +263,8 @@ const MobileHome = () => {
           {/* Featured Categories Bubbles */}
           {/* <HomeCategoryBubble categories={categories} loading={loading} /> */}
 
-          {/* LowestPricesEver Section */}
-          <LowestPricesEver activeTab={activeTab} />
+          {/* LowestPricesEver Section - Uses products from parent */}
+          <LowestPricesEver activeTab={activeTab} products={discountedProducts} loading={loadingSecondary} />
         </div>
 
         {/* White background area for the rest of the page */}
@@ -245,7 +282,7 @@ const MobileHome = () => {
           <NewArrivalsSection products={newArrivals} loading={loadingTertiary} theme={theme} />
 
           {/* Optional Promotional Banners */}
-          <div className="px-4 py-4">
+          <div className="px-4 md:px-8 lg:px-12 py-4 max-w-screen-2xl mx-auto">
             <AnimatedBanner
               title="Flash Sale"
               subtitle="Up to 70% Off"
@@ -259,17 +296,17 @@ const MobileHome = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="px-4 py-8"
+            className="px-4 md:px-8 lg:px-12 py-8 max-w-screen-2xl mx-auto"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Most Popular</h2>
-              <Link to="/app/category/all" className="text-sm font-bold" style={{ color: theme.accentColor }}>View All</Link>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight">Most Popular</h2>
+              <Link to="/app/category/all" className="text-sm md:text-base font-bold" style={{ color: theme.accentColor }}>View All</Link>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6">
               {loadingTertiary ? (
-                Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
+                Array(10).fill(0).map((_, i) => <ProductSkeleton key={i} />)
               ) : (
-                recommended.slice(0, 4).map((product) => (
+                recommended.slice(0, 10).map((product) => (
                   <motion.div key={product._id} variants={itemVariants}>
                     <ProductCard product={product} />
                   </motion.div>
@@ -278,11 +315,11 @@ const MobileHome = () => {
             </div>
           </motion.div>
 
-          <DailyDealsSection products={dailyDeals} loading={loadingSecondary} theme={theme} />
+          <DailyDealsSection products={discountedProducts} loading={loadingSecondary} theme={theme} />
 
           {/* More promotional content */}
-          <div className="px-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="px-4 md:px-8 lg:px-12 py-4 max-w-screen-2xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-5 lg:gap-6">
               <AnimatedBanner
                 title="New Season"
                 image="https://images.unsplash.com/photo-1445205170230-053b830c6050?w=800&auto=format&fit=crop"

@@ -112,9 +112,9 @@ export const authenticate = async (req, res, next) => {
 };
 
 // Aliases for compatibility
-export const protect = authenticate;
-export const protectVendor = authenticate;
-export const protectAdmin = authenticate;
+export const protect = (req, res, next) => authenticate(req, res, next);
+export const protectVendor = (req, res, next) => authenticate(req, res, next);
+export const protectAdmin = (req, res, next) => authenticate(req, res, next);
 
 /**
  * Middleware to require authentication - fails if user is not logged in

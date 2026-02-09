@@ -61,8 +61,8 @@ export const createOrder = async (req, res, next) => {
     // Get socket.io instance
     const io = req.app.get('io');
 
-    // Create order in database
-    const order = await createOrderService({
+    // Create orders in database (this now returns an array)
+    const orders = await createOrderService({
       customerId: userId,
       items,
       total,
@@ -77,13 +77,16 @@ export const createOrder = async (req, res, next) => {
       payableAmount: payable,
     }, io);
 
+    // Use the first order for Razorpay reference and main response
+    const mainOrder = orders[0];
+
     let razorpayOrder = null;
     let razorpayKeyId = null;
 
-    // If online payment, create Razorpay order
-    // Recalculate payable from created order to ensure wallet clamp
-    payable = (order?.pricing?.payableAmount ?? payable);
+    // If online payment, create Razorpay order for the total payable amount
+    payable = orders.reduce((sum, o) => sum + (o?.pricing?.payableAmount || 0), 0);
     const requiresRazorpay = payable > 0;
+
     if (requiresRazorpay) {
       try {
         razorpayKeyId = process.env.RAZORPAY_KEY_ID;
@@ -91,12 +94,6 @@ export const createOrder = async (req, res, next) => {
           throw new Error('Razorpay key ID not configured');
         }
 
-        // Validate amount before creating Razorpay order
-        if (!payable || payable <= 0) {
-          throw new Error('Invalid order total amount for payment');
-        }
-
-        // Minimum amount for Razorpay is ₹1 (100 paise)
         if (payable < 1) {
           throw new Error('Order amount must be at least ₹1');
         }
@@ -104,11 +101,12 @@ export const createOrder = async (req, res, next) => {
         razorpayOrder = await razorpayService.createOrder(
           payable,
           'INR',
-          order.orderCode,
+          mainOrder.orderCode,
           {
-            orderId: order._id.toString(),
+            orderId: mainOrder._id.toString(),
             customerId: userId,
             couponCode: couponCode || '',
+            subOrderIds: orders.map(o => o._id.toString()).join(','),
           }
         );
 
@@ -116,57 +114,52 @@ export const createOrder = async (req, res, next) => {
           throw new Error('Failed to create Razorpay order - invalid response');
         }
 
-        // Update order with Razorpay order ID
-        order.razorpayOrderId = razorpayOrder.id;
-        await order.save();
+        // Update ALL orders with the SAME Razorpay order ID
+        for (const order of orders) {
+          order.razorpayOrderId = razorpayOrder.id;
+          await order.save();
+        }
       } catch (razorpayError) {
         console.error('Razorpay order creation failed:', razorpayError);
-
-        // Provide more specific error message
-        let errorMessage = 'Failed to initialize payment gateway. Please try again.';
-        if (razorpayError.message.includes('authentication failed')) {
-          errorMessage = 'Payment gateway configuration error. Please contact support.';
-        } else if (razorpayError.message.includes('not configured')) {
-          errorMessage = 'Payment gateway is not configured. Please contact support.';
-        } else {
-          errorMessage = razorpayError.message || errorMessage;
-        }
-
-        // Order is created but Razorpay failed - user can retry payment
         return res.status(500).json({
           success: false,
-          message: errorMessage,
-          error: razorpayError.message,
+          message: razorpayError.message || 'Failed to initialize payment gateway.',
         });
       }
     }
 
-    // Send order placed notification
+    // Send order placed notifications for each order
     try {
       const customer = await User.findById(userId).select('name email');
       if (customer) {
-        await notificationHelper.sendOrderPlacedNotification(order, customer);
+        for (const order of orders) {
+          await notificationHelper.sendOrderPlacedNotification(order, customer);
+        }
       }
     } catch (notifError) {
       console.error('Failed to send order notification:', notifError);
-      // Don't fail the order if notification fails
     }
 
-    // Return order details with Razorpay info if applicable
+    // Return main order details (or first order) with Razorpay info
     res.status(201).json({
       success: true,
       message: requiresRazorpay
-        ? 'Order created. Please proceed with payment.'
-        : 'Order created successfully.',
+        ? 'Orders created. Please proceed with payment.'
+        : 'Orders created successfully.',
       data: {
         order: {
-          id: order._id,
-          orderCode: order.orderCode,
-          total: order.total,
-          paymentMethod: order.paymentMethod,
-          paymentStatus: order.paymentStatus,
-          status: order.status,
-          createdAt: order.createdAt,
+          id: mainOrder._id,
+          orderCode: mainOrder.orderCode,
+          total: total, // Still return total of all orders
+          paymentMethod: mainOrder.paymentMethod,
+          paymentStatus: mainOrder.paymentStatus,
+          status: mainOrder.status,
+          createdAt: mainOrder.createdAt,
+          subOrders: orders.map(o => ({
+            id: o._id,
+            orderCode: o.orderCode,
+            total: o.total,
+          })),
         },
         razorpay: requiresRazorpay && razorpayOrder
           ? {
@@ -237,36 +230,45 @@ export const verifyPayment = async (req, res, next) => {
     // Get socket.io instance
     const io = req.app.get('io');
 
-    // Update order with payment details
-    const updatedOrder = await updateOrderPayment(orderId, {
+    // Update orders with payment details
+    const updatedOrders = await updateOrderPayment(orderId, {
       razorpayOrderId,
       razorpayPaymentId,
       razorpaySignature,
       status: 'completed',
     }, io);
 
-    // Send payment success and order confirmed notifications
+    // Send payment success and order confirmed notifications for each order
     try {
-      const customer = await User.findById(updatedOrder.customerId).select('name email');
+      const customer = await User.findById(updatedOrders[0].customerId).select('name email');
       if (customer) {
-        await notificationHelper.sendPaymentSuccessNotification(updatedOrder, customer);
-        await notificationHelper.sendOrderConfirmedNotification(updatedOrder, customer);
+        for (const order of updatedOrders) {
+          await notificationHelper.sendPaymentSuccessNotification(order, customer);
+          await notificationHelper.sendOrderConfirmedNotification(order, customer);
+        }
       }
     } catch (notifError) {
       console.error('Failed to send payment notification:', notifError);
-      // Don't fail the payment verification if notification fails
     }
+
+    const mainOrder = updatedOrders.find(o => o._id.toString() === orderId.toString()) || updatedOrders[0];
 
     res.status(200).json({
       success: true,
-      message: 'Payment verified and order confirmed successfully',
+      message: 'Payment verified and orders confirmed successfully',
       data: {
         order: {
-          id: updatedOrder._id,
-          orderCode: updatedOrder.orderCode,
-          total: updatedOrder.total,
-          paymentStatus: updatedOrder.paymentStatus,
-          status: updatedOrder.status,
+          id: mainOrder._id,
+          orderCode: mainOrder.orderCode,
+          total: mainOrder.total,
+          paymentStatus: mainOrder.paymentStatus,
+          status: mainOrder.status,
+          subOrders: updatedOrders.map(o => ({
+            id: o._id,
+            orderCode: o.orderCode,
+            total: o.total,
+            status: o.status,
+          })),
         },
       },
     });

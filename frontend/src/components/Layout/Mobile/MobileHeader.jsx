@@ -15,8 +15,8 @@ import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
 import LocationSelectionModal from "../../LocationSelectionModal";
 import { useLocationStore } from "../../../store/locationStore";
-import { useTheme } from "../../../context/ThemeContext";
-import { getTheme } from "../../../utils/themes";
+import { useTheme } from "../../../context/ThemeContext.jsx";
+import { getTheme } from "../../../utils/themes.js";
 import { useCategoryStore } from "../../../store/categoryStore";
 
 const MobileHeader = () => {
@@ -255,7 +255,7 @@ const MobileHeader = () => {
     <motion.header
       key="mobile-header"
       ref={headerRef} // Added ref here
-      className={`fixed top-0 left-0 right-0 z-[9999] ${currentPage === "home" ? "border-none" : "border-b border-white/30"
+      className={`fixed top-0 left-0 right-0 z-[9999] ${currentPage === "home" ? "border-b-2 border-black/30" : "border-b border-white/30"
         }`}
       style={{
         background: headerBackground,
@@ -267,7 +267,7 @@ const MobileHeader = () => {
       initial={{ y: -120, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 28 }}>
-      <div className="px-3 pb-1 flex flex-col max-w-[640px] mx-auto">
+      <div className="px-3 md:px-8 lg:px-12 pb-1 flex flex-col md:max-w-none mx-auto">
         {/* Top Row - Hides on scroll */}
         <motion.div
           animate={{
@@ -281,7 +281,7 @@ const MobileHeader = () => {
           className="overflow-hidden"
         >
           <div className="flex items-center justify-between pb-1">
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
               <Link to="/app" className="flex items-center">
                 <div ref={logoRef} className="relative">
                   {/* Animation behind logo */}
@@ -303,7 +303,7 @@ const MobileHeader = () => {
                   <img
                     src={appLogo.src}
                     alt={appLogo.alt}
-                    className="h-10 w-auto object-contain"
+                    className="h-9 md:h-10 lg:h-11 w-auto object-contain"
                     style={{
                       transform: "scale(2.4)",
                       transformOrigin: "left center",
@@ -314,16 +314,16 @@ const MobileHeader = () => {
               </Link>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:gap-3">
               {/* Location Selector Button */}
               <button
                 onClick={() => setShowLocationModal(true)}
-                className={`p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative flex items-center justify-center gap-1.5 ${currentCity ? 'pl-2 pr-3' : ''}`}
+                className={`p-1.5 md:p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative flex items-center justify-center gap-1.5 ${currentCity ? 'pl-2 pr-3' : ''}`}
                 aria-label="Select Location"
               >
-                <FiMapPin className="text-gray-800 text-lg" />
+                <FiMapPin className="text-gray-800 text-lg md:text-xl" />
                 {currentCity && (
-                  <span className="text-[11px] font-black text-gray-800 tracking-wide max-w-[80px] truncate leading-none pt-0.5">
+                  <span className="text-[10px] md:text-[11px] font-black text-gray-800 tracking-wide max-w-[80px] md:max-w-[120px] truncate leading-none pt-0.5">
                     {currentCity.name}
                   </span>
                 )}
@@ -332,10 +332,10 @@ const MobileHeader = () => {
               <button
                 ref={cartRef}
                 onClick={toggleCart}
-                className="p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
-                <FiShoppingBag className="text-lg text-gray-800" />
+                className="p-1.5 md:p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
+                <FiShoppingBag className="text-lg md:text-xl text-gray-800" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white shadow">
+                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow">
                     {itemCount > 9 ? "9+" : itemCount}
                   </span>
                 )}
@@ -353,13 +353,11 @@ const MobileHeader = () => {
           className="w-full relative z-10"
           style={{ overflow: 'visible' }}
         >
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60">
-            <SearchBar />
-          </div>
+          <SearchBar />
         </motion.div>
 
         {/* Categories - Always visible, but icons fold via internal logic */}
-        <div className="w-full mt-1 pb-1">
+        <div className="w-full mt-2 pb-2">
           <MobileCategoryIcons
             isTopRowVisible={isTopRowVisible}
             colorScheme={currentHeaderTheme ? (currentHeaderTheme.isDark ? 'white' : 'black') : 'black'}

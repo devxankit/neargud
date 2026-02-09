@@ -18,33 +18,33 @@ const RecommendedSection = ({ products = [], loading = false, theme = null }) =>
         border: `1px solid ${theme.primary[1]}20`
       } : {}}
     >
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-5 md:mb-8">
+        <div className="flex items-center gap-3 md:gap-5">
           <div
-            className={`p-2.5 rounded-xl shadow-lg border border-white/20 ${!theme ? "bg-gradient-to-br from-blue-500 to-purple-500" : ""}`}
+            className={`p-2.5 md:p-4 rounded-xl shadow-lg border border-white/20 ${!theme ? "bg-gradient-to-br from-blue-500 to-purple-500" : ""}`}
             style={theme ? { backgroundColor: theme.accentColor } : {}}
           >
-            <FiThumbsUp className="text-white text-lg" />
+            <FiThumbsUp className="text-white text-lg md:text-2xl" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-black tracking-tight leading-tight" style={{ textShadow: '0 1px 1px rgba(255,255,255,0.4)' }}>
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-black tracking-tight leading-tight" style={{ textShadow: '0 1px 1px rgba(255,255,255,0.4)' }}>
               Recommended for You
             </h2>
-            <p className="text-[10px] text-black/70 font-black uppercase tracking-widest mt-0.5">Curated just for you</p>
+            <p className="text-[10px] md:text-sm text-black/70 font-black uppercase tracking-widest mt-0.5">Curated just for you</p>
           </div>
         </div>
         <Link
           to="/app/search"
-          className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 bg-white/40 backdrop-blur-md rounded-full shadow-sm hover:bg-white/60 transition-all active:scale-95"
+          className="flex items-center gap-1 text-[11px] md:text-sm font-black uppercase tracking-wider px-3 py-1.5 md:px-5 md:py-2.5 bg-white/40 backdrop-blur-md rounded-full shadow-sm hover:bg-white/60 transition-all active:scale-95"
           style={{ color: '#000000' }}>
           <span>See All</span>
-          <FiArrowRight className="text-sm" />
+          <FiArrowRight className="text-sm md:text-lg" />
         </Link>
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 text-xs font-semibold">
+      <div className="flex gap-3 md:gap-6 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 text-xs font-semibold">
         {loading ? (
-          [1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-shrink-0 w-36 aspect-[3/4] bg-gray-200 animate-pulse rounded-xl" />
+          [1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex-shrink-0 w-36 md:w-48 lg:w-56 aspect-[3/4] bg-gray-200 animate-pulse rounded-xl" />
           ))
         ) : (
           products.map((product, index) => (
@@ -53,8 +53,7 @@ const RecommendedSection = ({ products = [], loading = false, theme = null }) =>
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              className="flex-shrink-0 w-36"
-              style={{ minWidth: "144px" }}
+              className="flex-shrink-0 w-36 md:w-48 lg:w-56"
             >
               <ProductCard product={product} />
             </motion.div>

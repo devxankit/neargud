@@ -19,7 +19,7 @@ const VendorStore = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { responsivePadding } = useResponsiveHeaderPadding();
   const [vendor, setVendor] = useState(null);
   const [products, setProducts] = useState([]);
@@ -201,7 +201,7 @@ const VendorStore = () => {
   if (loading && !vendor) {
     return (
       <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false} style={{ paddingTop: 0 }}>
           <div className="w-full bg-slate-50 min-h-screen">
             {/* Banner Skeleton */}
             <div className="relative h-56 bg-slate-200 animate-pulse overflow-hidden">
@@ -285,7 +285,7 @@ const VendorStore = () => {
 
     return (
       <PageTransition>
-        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false}>
+        <MobileLayout showBottomNav={true} showCartBar={true} showHeader={false} style={{ paddingTop: 0 }}>
           <div className="w-full pb-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 min-h-screen">
             {/* Banner Section */}
             <div className="relative h-56 bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 overflow-hidden">
@@ -424,7 +424,9 @@ const VendorStore = () => {
                     </button>
 
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vendor.storeName} ${vendor.address?.city || ''}`)}`}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${vendor.storeName}, ${vendor.address?.street ? vendor.address.street + ', ' : ''}${vendor.address?.city || ''}, ${vendor.address?.state || ''} ${vendor.address?.zipCode || ''}`
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"

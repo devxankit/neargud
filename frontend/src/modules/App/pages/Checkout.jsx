@@ -19,7 +19,7 @@ const MobileCheckout = () => {
   const navigate = useNavigate();
   const { items, getTotal, clearCart, getItemsByVendor } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
-  const { addresses, getDefaultAddress, addAddress, updateAddress, deleteAddress } = useAddressStore();
+  const { addresses, getDefaultAddress, addAddress, updateAddress, deleteAddress, fetchAddresses } = useAddressStore();
   const { createOrder } = useOrderStore();
   const { wallet, fetchWallet } = useWalletStore();
   const { settings } = useSettingsStore();
@@ -56,8 +56,9 @@ const MobileCheckout = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchWallet();
+      fetchAddresses();
     }
-  }, [isAuthenticated, fetchWallet]);
+  }, [isAuthenticated, fetchWallet, fetchAddresses]);
 
   useEffect(() => {
     if (isAuthenticated && user && !isGuest) {
@@ -84,7 +85,7 @@ const MobileCheckout = () => {
         }));
       }
     }
-  }, [isAuthenticated, user, isGuest, getDefaultAddress]);
+  }, [isAuthenticated, user, isGuest, getDefaultAddress, addresses]);
 
   const calculateShipping = () => {
     const total = getTotal();
@@ -234,7 +235,7 @@ const MobileCheckout = () => {
         walletUsed: amountFromWallet,        // ✅ wallet deduction
         payableAmount: remainingAmount,      // ✅ razorpay amount
         paymentMethod: remainingAmount > 0 ? "razorpay" : "wallet",
-        shippingAddress: {
+        shippingAddress: selectedAddressId || {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -359,7 +360,7 @@ const MobileCheckout = () => {
             walletUsed: amountFromWallet,
             payableAmount: 0,
             paymentMethod: 'wallet',
-            shippingAddress: {
+            shippingAddress: selectedAddressId || {
               name: formData.name,
               email: formData.email,
               phone: formData.phone,

@@ -6,29 +6,35 @@ import ProductCard from "../../../components/ProductCard";
 import ProductListItem from "../components/ProductListItem";
 import { fetchPublicCategories, fetchPublicProducts, fetchActiveBanners, fetchPublicVendors } from "../../../services/publicApi";
 import { useCategoryStore } from "../../../store/categoryStore";
+import { useLocationStore } from "../../../store/locationStore";
 import PageTransition from "../../../components/PageTransition";
 import LazyImage from "../../../components/LazyImage";
-import PromoStrip from "../../../components/PromoStrip";
-import LowestPricesEver from "../../../components/LowestPricesEver";
+import PromoStrip from "../../../components/PromoStrip.jsx";
+import LowestPricesEver from "../../../components/LowestPricesEver.jsx";
 import BrandLogosScroll from "../../../components/Home/BrandLogosScroll";
 import FeaturedVendorsSection from "../components/FeaturedVendorsSection";
 import NewArrivalsSection from "../components/NewArrivalsSection";
 import RecommendedSection from "../components/RecommendedSection";
-import { useTheme } from "../../../context/ThemeContext";
-import { getTheme } from "../../../utils/themes";
+import { useTheme } from "../../../context/ThemeContext.jsx";
+import { getTheme } from "../../../utils/themes.js";
 import { useUIStore } from "../../../store/useStore";
+import { useContentStore } from "../../../store/contentStore";
+import HeroCarousel from "../components/HeroCarousel";
 
 const MobileCategory = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const categoryId = id;
   const { categories } = useCategoryStore();
+  const { currentCity } = useLocationStore();
   const headerHeight = useUIStore(state => state.headerHeight);
+  const fetchHomepageContent = useContentStore(state => state.fetchHomepageContent);
 
   const [category, setCategory] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [crazyDeals, setCrazyDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -48,12 +54,15 @@ const MobileCategory = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [catsRes, bannersRes, vendorsRes, arrivalsRes, recommendedRes] = await Promise.all([
+      const cityName = currentCity?.name || '';
+      const [catsRes, categoryBannersRes, vendorsRes, arrivalsRes, recommendedRes, dealsRes] = await Promise.all([
         fetchPublicCategories(),
-        fetchActiveBanners(),
+        fetchActiveBanners({ categoryId: id, city: cityName }),
         fetchPublicVendors(),
         fetchPublicProducts({ categoryId: id, limit: 6, sort: '-createdAt' }),
-        fetchPublicProducts({ categoryId: id, limit: 10, sort: '-popularity' })
+        fetchPublicProducts({ categoryId: id, limit: 10, sort: '-popularity' }),
+        fetchPublicProducts({ categoryId: id, limit: 10, hasDiscount: true, sort: '-discount' }),
+        fetchHomepageContent()
       ]);
       if (catsRes) {
         const allCats = catsRes.data.categories || [];
@@ -62,10 +71,19 @@ const MobileCategory = () => {
         setSubcategories(allCats.filter(c => c.parentId === id));
       }
 
-      if (bannersRes.success) setBanners(bannersRes.data.banners || []);
+      // Use category-specific banners, or fallback to homepage banners (with city filter)
+      let bannersData = categoryBannersRes?.data?.banners || [];
+      if (bannersData.length === 0) {
+        // Fetch homepage banners as fallback with city filter
+        const homeBannersRes = await fetchActiveBanners({ city: cityName });
+        bannersData = homeBannersRes?.data?.banners || [];
+      }
+      setBanners(bannersData);
+
       if (vendorsRes.success) setVendors(vendorsRes.data.vendors || []);
       if (arrivalsRes.success) setNewArrivals(arrivalsRes.data.products || []);
       if (recommendedRes.success) setRecommended(recommendedRes.data.products || []);
+      if (dealsRes?.success) setCrazyDeals(dealsRes.data.products || []);
 
     } catch (error) {
       console.error("Error fetching category page data:", error);
@@ -99,7 +117,7 @@ const MobileCategory = () => {
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [id, currentCity]);
 
   useEffect(() => {
     fetchProducts(1, false);
@@ -178,21 +196,16 @@ const MobileCategory = () => {
           background: `linear-gradient(to bottom, ${theme.primary[0]} 0px, ${theme.primary[1]} ${headerHeight}px, ${theme.primary[2]} 100%)`,
           paddingTop: `${headerHeight + 2}px`
         }}>
-          {/* PromoStrip with banners */}
+          {/* PromoStrip with banners - same as Home page */}
           <PromoStrip
             activeTab={activeTab}
             categoryName={category?.name}
             categoryId={id}
+            categories={subcategories}
+            crazyDeals={crazyDeals}
+            activeBanner={banners[0]}
             heroBanner={
-              <div className="py-2">
-                <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4" style={{ scrollSnapType: 'x mandatory' }}>
-                  {banners.map((banner, index) => (
-                    <div key={banner._id || index} className="flex-shrink-0 w-64 h-32 rounded-2xl overflow-hidden shadow-sm" style={{ scrollSnapAlign: 'start' }}>
-                      <LazyImage src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <HeroCarousel banners={banners} loading={loading} />
             }
           />
 
@@ -227,7 +240,7 @@ const MobileCategory = () => {
           )}
 
           {/* Features Sections */}
-          <LowestPricesEver activeTab={activeTab} />
+          <LowestPricesEver activeTab={activeTab} categoryId={id} />
         </div>
 
         <div className="bg-[#f8fafc]">

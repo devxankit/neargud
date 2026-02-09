@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { ThemeProvider } from "/src/context/ThemeContext";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 import "./utils/animations"; // Initialize GSAP settings early
 import RouteLoadingFallback from "./components/RouteLoadingFallback";
 

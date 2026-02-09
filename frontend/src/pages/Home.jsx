@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiHeart } from 'react-icons/fi';
-import { useTheme } from "/src/context/ThemeContext";
+import { useTheme } from '../context/ThemeContext.jsx';
 import Header from '../components/Layout/Header';
 import Navbar from '../components/Layout/Navbar';
 import Footer from '../components/Layout/Footer';
-import BottomNavigation from '../components/BottomNavigation';
+import BottomNavigation from '../components/BottomNavigation.jsx';
 import HeroBanner from '../components/Home/HeroBanner';
 import BrandLogosScroll from '../components/Home/BrandLogosScroll';
 import CategoriesSection from '../components/Home/CategoriesSection';
@@ -26,8 +26,8 @@ import { getMostPopular, getTrending, getFlashSale, getRecommendedProducts } fro
 import { FiThumbsUp, FiArrowRight } from 'react-icons/fi';
 import PageTransition from '../components/PageTransition';
 import useResponsiveHeaderPadding from '../hooks/useResponsiveHeaderPadding';
-import PromoStrip from '../components/PromoStrip';
-import LowestPricesEver from '../components/LowestPricesEver';
+import PromoStrip from '../components/PromoStrip.jsx';
+import LowestPricesEver from '../components/LowestPricesEver.jsx';
 
 const Home = () => {
   const { responsivePadding, isDesktop } = useResponsiveHeaderPadding();

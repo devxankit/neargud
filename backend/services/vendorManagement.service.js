@@ -28,6 +28,8 @@ export const getAllVendors = async (filters = {}) => {
         { email: { $regex: search, $options: 'i' } },
         { storeName: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } },
+        { businessLicenseNumber: { $regex: search, $options: 'i' } },
+        { panCardNumber: { $regex: search, $options: 'i' } },
       ];
     }
 

@@ -81,13 +81,13 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     <>
       {shouldShowHeader && <MobileHeader />}
       <main
-        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide ${isFullScreenPage ? '' : // No padding for reels page (container is fixed)
-          shouldShowBottomNav && showCartBar ? 'pb-24' :
-            shouldShowBottomNav ? 'pb-20' :
-              showCartBar ? 'pb-24' : ''
+        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide flex flex-col items-center ${isFullScreenPage ? '' : // No padding for reels page (container is fixed)
+          shouldShowBottomNav && showCartBar ? 'pb-24 md:pb-8' :
+            shouldShowBottomNav ? 'pb-20 md:pb-8' :
+              showCartBar ? 'pb-24 md:pb-8' : ''
           }`}
         style={{
-          paddingTop: isThemedPage ? '0px' : (shouldShowHeader ? `${headerHeight}px` : '10px'),
+          paddingTop: isThemedPage ? '0px' : (shouldShowHeader ? `${headerHeight}px` : '0px'),
           overflowY: isFullScreenPage ? 'hidden' : 'visible',
           WebkitOverflowScrolling: 'touch',
           minHeight: isFullScreenPage ? '100vh' : 'auto',
@@ -97,7 +97,9 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
           ...style, // Merge custom styles
         }}
       >
-        {children}
+        <div className={`w-full h-full flex flex-col ${isFullScreenPage ? '' : 'max-w-screen-2xl mx-auto'}`}>
+          {children}
+        </div>
       </main>
       {showCartBar && <MobileCartBar />}
       {shouldShowBottomNav && <MobileBottomNav />}

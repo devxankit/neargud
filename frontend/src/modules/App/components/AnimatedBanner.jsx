@@ -117,8 +117,8 @@ const AnimatedBanner = () => {
   }
 
   return (
-    <div className="px-4 py-3">
-      <div className="relative w-full h-32 rounded-2xl overflow-hidden shadow-xl">
+    <div className="px-4 md:px-0 py-3">
+      <div className="relative w-full h-32 md:h-48 lg:h-64 rounded-2xl overflow-hidden shadow-xl">
         <AnimatePresence mode="wait">
           {banners.map((banner, index) => {
             if (index !== currentBanner) return null;
@@ -135,7 +135,7 @@ const AnimatedBanner = () => {
                   ease: [0.25, 0.1, 0.25, 1],
                 }}
                 style={{ willChange: 'transform, opacity' }}
-                className={`absolute inset-0 bg-gradient-to-br ${banner.gradient} p-4 relative overflow-hidden`}
+                className={`absolute inset-0 bg-gradient-to-br ${banner.gradient} p-4 md:p-8 lg:p-12 relative overflow-hidden`}
               >
                 {/* Background Image if exists */}
                 {banner.image && (
@@ -157,7 +157,7 @@ const AnimatedBanner = () => {
                         height: 0,
                       }}
                       initial={{ width: 0, height: 0, x: '-50%', y: '-50%', opacity: 0.6 }}
-                      animate={{ width: 200, height: 200, opacity: 0 }}
+                      animate={{ width: 400, height: 400, opacity: 0 }}
                       transition={{ duration: 0.6, ease: 'easeOut' }}
                     />
                   ))}
@@ -175,7 +175,7 @@ const AnimatedBanner = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="flex items-center gap-2 mb-1"
+                      className="flex items-center gap-2 mb-1 md:mb-3"
                     >
                       <motion.div
                         animate={{
@@ -188,10 +188,10 @@ const AnimatedBanner = () => {
                           ease: 'easeInOut',
                         }}
                       >
-                        <Icon className="text-white text-lg drop-shadow-lg" />
+                        <Icon className="text-white text-lg md:text-2xl lg:text-3xl drop-shadow-lg" />
                       </motion.div>
                       <motion.span
-                        className="text-white/90 text-xs font-medium"
+                        className="text-white/90 text-xs md:text-sm lg:text-base font-medium"
                         animate={{
                           opacity: [0.9, 1, 0.9],
                         }}
@@ -209,7 +209,7 @@ const AnimatedBanner = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="text-white text-xl font-extrabold mb-1 drop-shadow-lg relative inline-block"
+                      className="text-white text-xl md:text-3xl lg:text-5xl font-extrabold mb-1 md:mb-2 drop-shadow-lg relative inline-block"
                     >
                       {banner.title}
                     </motion.h3>
@@ -218,7 +218,7 @@ const AnimatedBanner = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
-                      className="text-white/90 text-xs mb-2"
+                      className="text-white/90 text-xs md:text-sm lg:text-base mb-2 md:mb-4 max-w-md lg:max-w-xl"
                     >
                       {banner.description}
                     </motion.p>
@@ -228,13 +228,13 @@ const AnimatedBanner = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5, type: 'spring' }}
                       style={{ willChange: 'transform', transform: 'translateZ(0)' }}
-                      className="inline-flex items-center gap-2 bg-white/25 px-3 py-1.5 rounded-full relative overflow-hidden"
+                      className="inline-flex items-center gap-2 bg-white/25 px-3 py-1.5 md:px-5 md:py-2.5 rounded-full relative overflow-hidden"
                       whileTap={{ scale: 0.95 }}
                     >
-                      <span className="text-white font-bold text-sm relative z-10">
+                      <span className="text-white font-bold text-sm md:text-base relative z-10">
                         {banner.discount}
                       </span>
-                      <FiArrowRight className="text-white text-sm relative z-10" />
+                      <FiArrowRight className="text-white text-sm md:text-base relative z-10" />
                     </motion.div>
                   </div>
 
