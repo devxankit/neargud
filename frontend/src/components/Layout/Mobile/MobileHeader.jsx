@@ -10,7 +10,7 @@ import { useSettingsStore } from "../../../store/settingsStore";
 import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Lottie from "lottie-react";
-import shoppingCartAnimation from "../../../../data/animations/shopping cart.json";
+import shoppingCartLottie from "../../../assets/animations/shopping-cart.lottie";
 import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
 import LocationSelectionModal from "../../LocationSelectionModal";
@@ -200,10 +200,11 @@ const MobileHeader = () => {
         const cartRect = cartRef.current.getBoundingClientRect();
 
         const positions = {
-          startX: logoRect.left + logoRect.width / 2,
-          startY: logoRect.top + logoRect.height / 2,
-          endX: cartRect.left + cartRect.width / 2,
-          endY: cartRect.top + cartRect.height / 2,
+          // Centering start position more accurately on the logo icon
+          startX: logoRect.left + 35,
+          startY: logoRect.top + (logoRect.height / 2),
+          endX: cartRect.left + (cartRect.width / 2),
+          endY: cartRect.top + (cartRect.height / 2),
         };
 
         if (positions.startX > 0 && positions.endX > 0 && !hasPlayed) {
@@ -215,31 +216,36 @@ const MobileHeader = () => {
       }
     };
 
-    const timer = setTimeout(calculatePositions, 800);
+    const timer = setTimeout(calculatePositions, 1000); // Shorter but reliable delay
     return () => clearTimeout(timer);
   }, [hasPlayed]);
 
   const animationContent =
     showCartAnimation && positionsReady ? (
       <motion.div
-        className="fixed pointer-events-none z-[10000]"
+        className="fixed top-0 left-0 pointer-events-none z-[10001]"
         initial={{
-          x: animationPositions.startX - 24,
-          y: animationPositions.startY - 24,
-          scale: 0.6,
+          x: animationPositions.startX - 32,
+          y: animationPositions.startY - 32,
+          scale: 0.2,
           opacity: 0,
         }}
         animate={{
-          x: animationPositions.endX - 24,
-          y: animationPositions.endY - 24,
-          scale: [0.6, 1, 0],
-          opacity: [0, 1, 0],
+          x: animationPositions.endX - 32,
+          y: animationPositions.endY - 32,
+          scale: [0.2, 1.3, 1],
+          opacity: [0, 1, 1, 0],
         }}
-        transition={{ duration: 2.5, ease: "easeInOut" }}
+        transition={{
+          duration: 2.0,
+          ease: "easeInOut",
+          times: [0, 0.15, 0.85, 1]
+        }}
         onAnimationComplete={() => setShowCartAnimation(false)}>
-        <div className="w-12 h-12">
+        <div className="w-16 h-16">
           <DotLottieReact
-            src="https://lottie.host/083a2680-e854-4006-a50b-674276be82cd/oQMRcuZUkS.lottie"
+            src={shoppingCartLottie}
+            loop
             autoplay
           />
         </div>
@@ -283,24 +289,10 @@ const MobileHeader = () => {
           <div className="flex items-center justify-between pb-1">
             <div className="flex items-center">
               <Link to="/app" className="flex items-center">
-                <div ref={logoRef} className="relative">
-                  {/* Animation behind logo */}
-                  <div
-                    className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none"
-                    style={{ transform: "scale(3)" }}>
-                    <Lottie
-                      animationData={shoppingCartAnimation}
-                      loop={true}
-                      autoplay={true}
-                      renderer="canvas"
-                      rendererSettings={{
-                        preserveAspectRatio: "xMidYMid slice",
-                        clearCanvas: true,
-                      }}
-                      style={{ width: "30px", height: "30px", opacity: 0.6 }}
-                    />
-                  </div>
+                <div className="relative">
+
                   <img
+                    ref={logoRef}
                     src={appLogo.src}
                     alt={appLogo.alt}
                     className="h-9 md:h-10 lg:h-11 w-auto object-contain"
@@ -315,6 +307,30 @@ const MobileHeader = () => {
             </div>
 
             <div className="flex items-center gap-2 md:gap-3">
+              <motion.button
+                ref={cartRef}
+                onClick={toggleCart}
+                animate={{
+                  y: [0, -2, 0],
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="p-1.5 md:p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
+                <FiShoppingBag className="text-lg md:text-xl text-gray-800" />
+                {itemCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow">
+                    {itemCount > 9 ? "9+" : itemCount}
+                  </motion.span>
+                )}
+              </motion.button>
+
               {/* Location Selector Button */}
               <button
                 onClick={() => setShowLocationModal(true)}
@@ -325,18 +341,6 @@ const MobileHeader = () => {
                 {currentCity && (
                   <span className="text-[10px] md:text-[11px] font-black text-gray-800 tracking-wide max-w-[80px] md:max-w-[120px] truncate leading-none pt-0.5">
                     {currentCity.name}
-                  </span>
-                )}
-              </button>
-
-              <button
-                ref={cartRef}
-                onClick={toggleCart}
-                className="p-1.5 md:p-2 rounded-xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-md active:scale-95 transition-all relative">
-                <FiShoppingBag className="text-lg md:text-xl text-gray-800" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow">
-                    {itemCount > 9 ? "9+" : itemCount}
                   </span>
                 )}
               </button>
