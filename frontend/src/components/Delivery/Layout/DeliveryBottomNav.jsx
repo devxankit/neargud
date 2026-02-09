@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiHome, FiPackage, FiUser } from "react-icons/fi";
+import { FiHome, FiPackage, FiUser, FiCreditCard } from "react-icons/fi";
 import { useDeliveryAuthStore } from "../../../store/deliveryAuthStore";
 
 const DeliveryBottomNav = () => {
@@ -11,6 +11,7 @@ const DeliveryBottomNav = () => {
   const navItems = [
     { path: "/delivery/dashboard", icon: FiHome, label: "Dashboard" },
     { path: "/delivery/orders", icon: FiPackage, label: "Orders" },
+    { path: "/delivery/wallet", icon: FiCreditCard, label: "Wallet" },
     { path: "/delivery/profile", icon: FiUser, label: "Profile" },
   ];
 
@@ -66,9 +67,8 @@ const DeliveryBottomNav = () => {
                 />
               </motion.div>
               <span
-                className={`text-xs font-medium ${
-                  active ? "text-primary-600" : "text-gray-500"
-                }`}
+                className={`text-xs font-medium ${active ? "text-primary-600" : "text-gray-500"
+                  }`}
               >
                 {item.label}
               </span>

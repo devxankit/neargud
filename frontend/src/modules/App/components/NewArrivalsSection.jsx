@@ -19,7 +19,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       whileHover={{ scale: 1.01 }}
-      className={`relative mx-4 my-4 rounded-2xl overflow-hidden shadow-xl border-2 transition-all duration-500 ${!theme ? "border-cyan-200 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500" : ""}`}
+      className={`relative mx-4 my-4 rounded-t-2xl rounded-b-[40px] overflow-hidden shadow-xl border-2 transition-all duration-500 ${!theme ? "border-cyan-200 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500" : ""}`}
       style={theme ? {
         background: `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[1]} 50%, ${theme.primary[2]} 100%)`,
         borderColor: theme.accentColor + '40'
@@ -159,23 +159,10 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
                   className="w-[calc(33.333%-0.5rem)] md:w-0 md:flex-1 md:min-w-0"
                 >
                   <motion.div
-                    animate={{
-                      boxShadow: [
-                        '0 4px 6px rgba(0,0,0,0.1)',
-                        '0 8px 12px rgba(59, 130, 246, 0.3)',
-                        '0 4px 6px rgba(0,0,0,0.1)',
-                      ],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: index * 0.2,
-                    }}
-                    className="rounded-xl overflow-hidden"
+                    className="rounded-t-xl rounded-b-3xl overflow-hidden"
                   >
                     <Link to={productLink} className="group">
-                      <div className="relative rounded-xl overflow-hidden bg-white shadow-md border border-white/50 group-hover:shadow-xl transition-all duration-300">
+                      <div className="relative rounded-t-xl rounded-b-3xl overflow-hidden border border-white/20 transition-all duration-300">
                         <div className="w-full aspect-square bg-neutral-50 flex items-center justify-center overflow-hidden relative">
                           <LazyImage
                             src={product.image}

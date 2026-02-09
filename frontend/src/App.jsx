@@ -180,6 +180,7 @@ const DeliveryDashboard = lazy(() => import("./pages/delivery/Dashboard"));
 const DeliveryOrders = lazy(() => import("./pages/delivery/Orders"));
 const DeliveryOrderDetail = lazy(() => import("./pages/delivery/OrderDetail"));
 const DeliveryProfile = lazy(() => import("./pages/delivery/Profile"));
+const DeliveryWallet = lazy(() => import("./pages/delivery/Wallet"));
 // Vendor Routes - lazy load entire vendor module
 const VendorLogin = lazy(() => import("./modules/vendor/pages/Login"));
 const VendorRegister = lazy(() => import("./modules/vendor/pages/Register"));
@@ -623,6 +624,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<DeliveryDashboard />} />
         <Route path="orders" element={<DeliveryOrders />} />
         <Route path="orders/:id" element={<DeliveryOrderDetail />} />
+        <Route path="wallet" element={<DeliveryWallet />} />
         <Route path="profile" element={<DeliveryProfile />} />
       </Route>
       {/* Vendor Routes */}
