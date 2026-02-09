@@ -46,9 +46,9 @@ const MobileBottomNav = () => {
   };
 
   const navContent = (
-    <nav className={`fixed bottom-0 left-0 right-0 border-t border-l border-r z-[9999] safe-area-bottom ${isReelsPage
-        ? 'bg-black border-gray-800 shadow-[0_-2px_10px_rgba(255,255,255,0.1)]'
-        : 'bg-white border-accent-200/30 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
+    <nav className={`fixed bottom-0 left-0 right-0 border-t border-l border-r z-[9999] safe-area-bottom md:hidden ${isReelsPage
+      ? 'bg-black border-gray-800 shadow-[0_-2px_10px_rgba(255,255,255,0.1)]'
+      : 'bg-white border-accent-200/30 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
       }`}>
       <div className="flex items-center justify-around h-16 px-1">
         {navItems.map((item) => {

@@ -19,7 +19,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       whileHover={{ scale: 1.01 }}
-      className={`relative mx-4 my-4 rounded-2xl overflow-hidden shadow-xl border-2 transition-all duration-500 ${!theme ? "border-cyan-200 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500" : ""}`}
+      className={`relative mx-4 my-4 rounded-2xl overflow-hidden shadow-xl border-2 transition-all duration-500 md:mx-4 lg:mx-8 max-w-screen-2xl xl:mx-auto ${!theme ? "border-cyan-200 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500" : ""}`}
       style={theme ? {
         background: `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[1]} 50%, ${theme.primary[2]} 100%)`,
         borderColor: theme.accentColor + '40'
@@ -78,10 +78,10 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
       {/* Content */}
       <div className="relative px-4 py-3">
         {/* Header with Badge */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between mb-4 md:mb-8">
+          <div className="flex items-center gap-3 md:gap-4">
             <motion.div
-              className="bg-black/10 backdrop-blur-sm rounded-full p-2"
+              className="bg-black/10 backdrop-blur-sm rounded-full p-2 md:p-3"
               animate={{
                 scale: [1, 1.1, 1],
                 rotate: [0, 5, -5, 0],
@@ -103,7 +103,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
                   ease: 'easeInOut',
                 }}
               >
-                <FiTag className="text-black text-lg" />
+                <FiTag className="text-black text-lg md:text-xl lg:text-2xl" />
               </motion.div>
             </motion.div>
             <motion.div
@@ -112,7 +112,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
               transition={{ delay: 0.2 }}
             >
               <motion.h2
-                className="text-xl font-black tracking-tight"
+                className="text-xl md:text-3xl lg:text-4xl font-black tracking-tight"
                 style={{
                   color: '#000',
                   textShadow: '1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff'
@@ -120,7 +120,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
               >
                 New Arrivals
               </motion.h2>
-              <p className="text-[10px] font-black uppercase tracking-wider mt-0.5" style={{ color: '#000', opacity: 0.8, textShadow: '0.5px 0.5px 0px #fff' }}>Fresh products just added</p>
+              <p className="text-[10px] md:text-xs font-black uppercase tracking-wider mt-0.5" style={{ color: '#000', opacity: 0.8, textShadow: '0.5px 0.5px 0px #fff' }}>Fresh products just added</p>
             </motion.div>
           </div>
           <motion.div
@@ -129,7 +129,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
           >
             <Link
               to="/app/search"
-              className="bg-white/30 backdrop-blur-md text-black text-[11px] font-black uppercase tracking-wider px-4 py-2 rounded-full border border-white/20 hover:bg-white/50 transition-all block"
+              className="bg-white/30 backdrop-blur-md text-black text-[11px] md:text-xs font-black uppercase tracking-wider px-4 py-2 md:px-6 md:py-3 rounded-full border border-white/20 hover:bg-white/50 transition-all block"
             >
               See All
             </Link>
@@ -137,10 +137,10 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
         </div>
 
         {/* Products Grid - Image Only */}
-        <div className="flex flex-wrap md:flex-nowrap md:overflow-x-visible gap-2 md:gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3 lg:gap-4">
           {loading ? (
-            [1, 2, 3].map((i) => (
-              <div key={i} className="w-[calc(33.333%-0.5rem)] aspect-square bg-white/20 animate-pulse rounded-xl" />
+            [1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="aspect-square bg-white/20 animate-pulse rounded-xl" />
             ))
           ) : (
             newArrivals.map((product, index) => {
@@ -156,7 +156,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
                     stiffness: 100,
                     damping: 10,
                   }}
-                  className="w-[calc(33.333%-0.5rem)] md:w-0 md:flex-1 md:min-w-0"
+                  className="w-full"
                 >
                   <motion.div
                     animate={{
@@ -172,10 +172,10 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
                       ease: 'easeInOut',
                       delay: index * 0.2,
                     }}
-                    className="rounded-xl overflow-hidden"
+                    className="rounded-xl overflow-hidden h-full"
                   >
-                    <Link to={productLink} className="group">
-                      <div className="relative rounded-xl overflow-hidden bg-white shadow-md border border-white/50 group-hover:shadow-xl transition-all duration-300">
+                    <Link to={productLink} className="group flex flex-col h-full">
+                      <div className="relative rounded-xl overflow-hidden bg-white shadow-md border border-white/50 group-hover:shadow-xl transition-all duration-300 flex-1 flex flex-col">
                         <div className="w-full aspect-square bg-neutral-50 flex items-center justify-center overflow-hidden relative">
                           <LazyImage
                             src={product.image}
@@ -186,21 +186,21 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
                             }}
                           />
                           {/* Top Badge */}
-                          <div className="absolute top-1 right-1 bg-cyan-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                          <div className="absolute top-1 right-1 bg-cyan-500 text-white text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                             NEW
                           </div>
                         </div>
                         {/* Info Overlay at bottom */}
-                        <div className="p-1.5 bg-white/95 backdrop-blur-sm border-t border-gray-100">
-                          <h3 className="text-[9px] font-bold text-gray-800 line-clamp-1 group-hover:text-cyan-600 transition-colors">
+                        <div className="p-1.5 md:p-3 bg-white/95 backdrop-blur-sm border-t border-gray-100 mt-auto">
+                          <h3 className="text-[9px] md:text-xs lg:text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-cyan-600 transition-colors">
                             {product.name}
                           </h3>
                           <div className="flex items-center justify-between mt-0.5">
-                            <span className="text-[10px] font-black text-gray-900">
+                            <span className="text-[10px] md:text-sm font-black text-gray-900">
                               ₹{product.price}
                             </span>
                             {product.originalPrice > product.price && (
-                              <span className="text-[8px] text-green-600 font-bold">
+                              <span className="text-[8px] md:text-xs text-green-600 font-bold">
                                 {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
                               </span>
                             )}

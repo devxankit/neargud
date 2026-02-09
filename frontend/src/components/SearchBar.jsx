@@ -197,7 +197,7 @@ const SearchBar = () => {
   // Render
   // ============================
   return (
-    <div ref={wrapperRef} className={`relative w-full max-w-2xl lg:max-w-3xl mx-auto group transition-all duration-300 ${isFocused ? "z-[1001]" : "z-10"}`}>
+    <div ref={wrapperRef} className={`relative w-full md:max-w-4xl mx-auto group transition-all duration-300 ${isFocused ? "z-[1001]" : "z-10"}`}>
       {/* Animated Glow Backdrop */}
       <AnimatePresence>
         {isFocused && (
@@ -214,11 +214,10 @@ const SearchBar = () => {
         <div className={`
           relative flex items-center bg-white/95 backdrop-blur-xl border transition-all duration-300 rounded-2xl overflow-hidden
           ${isFocused ? "border-purple-500/50 shadow-2xl shadow-purple-200/50 ring-4 ring-purple-500/5" : "border-gray-200 shadow-lg shadow-gray-200/20"}
-          h-14 lg:h-12
+          h-14 md:h-13 lg:h-14
         `}>
-          {/* Search Icon */}
-          <div className="pl-4 lg:pl-5 flex items-center justify-center pointer-events-none">
-            <FiSearch className={`text-xl lg:text-lg transition-colors duration-300 ${isFocused ? "text-purple-600" : "text-gray-400"}`} />
+          <div className="pl-4 md:pl-5 lg:pl-6 flex items-center justify-center pointer-events-none">
+            <FiSearch className={`text-xl transition-colors duration-300 ${isFocused ? "text-purple-600" : "text-gray-400"}`} />
           </div>
 
           <div className="relative flex-1">
@@ -231,7 +230,7 @@ const SearchBar = () => {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -10, opacity: 0 }}
                     transition={{ duration: 0.5, ease: "circOut" }}
-                    className="text-gray-400 text-sm lg:text-xs font-medium whitespace-nowrap"
+                    className="text-gray-400 text-sm md:text-base font-medium whitespace-nowrap"
                   >
                     {placeholderTexts[placeholderIndex]}
                   </motion.span>
@@ -253,7 +252,7 @@ const SearchBar = () => {
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder=""
-              className="w-full pl-4 pr-10 py-3 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 text-base lg:text-sm font-medium placeholder:text-transparent h-full"
+              className="w-full pl-4 pr-10 py-3 bg-transparent border-none focus:ring-0 focus:outline-none text-gray-800 text-base md:text-base font-medium placeholder:text-transparent h-full"
             />
           </div>
 
@@ -275,14 +274,14 @@ const SearchBar = () => {
             <button
               onClick={handleSubmit}
               className={`
-                px-4 lg:px-6 py-2 lg:py-1.5 rounded-xl font-black text-[14px] lg:text-[14px] uppercase tracking-widest transition-all flex items-center gap-2
+                px-4 md:px-6 lg:px-8 py-2 md:py-2 rounded-xl font-black text-[14px] md:text-sm uppercase tracking-widest transition-all flex items-center gap-2
                 ${query.trim()
                   ? "bg-purple-600 text-white shadow-lg shadow-purple-200 hover:bg-purple-700 hover:-translate-y-0.5 active:translate-y-0"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"}
               `}
             >
               <span className="hidden sm:inline">Search</span>
-              <FiSearch className="sm:hidden text-base" />
+              <FiSearch className="sm:hidden text-base md:text-lg" />
             </button>
           </div>
         </div>

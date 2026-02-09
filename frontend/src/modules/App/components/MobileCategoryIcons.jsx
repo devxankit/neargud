@@ -64,7 +64,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
 
       <div
         ref={scrollContainerRef}
-        className="relative flex items-start w-full overflow-x-auto no-scrollbar"
+        className="relative flex items-start w-full overflow-x-auto no-scrollbar md:justify-center md:gap-4 lg:gap-8"
         style={{ scrollSnapType: 'x mandatory' }}
       >
         {/* Active Category Indicator */}
@@ -98,7 +98,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
             <Link
               to="/app"
               ref={homeRef}
-              className="flex-shrink-0 w-[20%] flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
+              className="flex-shrink-0 w-[20%] md:w-24 lg:w-28 flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
             >
               <motion.div
                 initial={false}
@@ -136,7 +136,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
                   key={categoryId}
                   to={`/app/category/${categoryId}`}
                   ref={(el) => (categoryRefs.current[categoryId] = el)}
-                  className="flex-shrink-0 w-[20%] flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
+                  className="flex-shrink-0 w-[20%] md:w-24 lg:w-28 flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
                 >
                   <motion.div
                     initial={false}

@@ -424,7 +424,9 @@ const VendorStore = () => {
                     </button>
 
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${vendor.storeName} ${vendor.address?.city || ''}`)}`}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${vendor.storeName}, ${vendor.address?.street ? vendor.address.street + ', ' : ''}${vendor.address?.city || ''}, ${vendor.address?.state || ''} ${vendor.address?.zipCode || ''}`
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"

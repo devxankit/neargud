@@ -49,7 +49,7 @@ const DailyDealsSection = ({ products = [], loading = false }) => {
 
   return (
     <div
-      className="relative my-4 rounded-2xl overflow-hidden shadow-xl border-2 border-red-200 bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 cursor-pointer transition-transform active:scale-[0.98]"
+      className="relative my-4 rounded-2xl overflow-hidden shadow-xl border-2 border-red-200 bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 cursor-pointer transition-transform active:scale-[0.98] md:mx-4 lg:mx-8 max-w-screen-2xl xl:mx-auto"
       onClick={(e) => {
         // Prevent navigation if clicking on a product card or specific link
         if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.product-card')) return;
@@ -63,7 +63,7 @@ const DailyDealsSection = ({ products = [], loading = false }) => {
       </div>
 
       {/* Content */}
-      <div className="relative px-3 py-5">
+      <div className="relative px-3 md:px-6 lg:px-10 py-5">
         {/* Header with Badge */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -118,10 +118,10 @@ const DailyDealsSection = ({ products = [], loading = false }) => {
         </div>
 
         {/* Products Grid */}
-        <div className="flex flex-wrap md:flex-nowrap md:overflow-x-visible gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
           {loading ? (
-            [1, 2].map((i) => (
-              <div key={i} className="w-[calc(50%-0.75rem)] aspect-[3/4] bg-white/20 animate-pulse rounded-xl" />
+            [1, 2, 3, 4].map((i) => (
+              <div key={i} className="aspect-[3/4] bg-white/20 animate-pulse rounded-xl" />
             ))
           ) : (
             dailyDeals.map((product, index) => (
@@ -130,7 +130,7 @@ const DailyDealsSection = ({ products = [], loading = false }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="w-[calc(50%-0.75rem)] md:w-0 md:flex-1 md:min-w-0 product-card"
+                className="product-card"
               >
                 <div onClick={(e) => e.stopPropagation()}>
                   <ProductCard product={product} />

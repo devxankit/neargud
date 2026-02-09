@@ -19,11 +19,16 @@ const HeroCarousel = ({ banners, loading }) => {
     if (!banners || banners.length === 0) return null;
 
     return (
-        <div className="">
+        <div className="w-full">
             <Swiper
                 modules={[Autoplay]}
                 spaceBetween={16}
-                slidesPerView={1.25}
+                slidesPerView={1.1}
+                breakpoints={{
+                    640: { slidesPerView: 1.5, spaceBetween: 20 },
+                    1024: { slidesPerView: 2.2, spaceBetween: 24 },
+                    1280: { slidesPerView: 3, spaceBetween: 30 }
+                }}
                 centeredSlides={true}
                 loop={banners.length >= 4}
                 autoplay={{
@@ -42,8 +47,8 @@ const HeroCarousel = ({ banners, loading }) => {
                                 }
                             }}
                         >
-                            {/* Vertical Banner Image */}
-                            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] shadow-lg">
+                            {/* Vertical Banner Image - Responsive Aspect Ratio */}
+                            <div className="relative aspect-[3/4] md:aspect-[16/10] lg:aspect-[21/9] w-full overflow-hidden rounded-[1.5rem] md:rounded-[2rem] shadow-lg transition-all duration-300 group-hover:shadow-xl">
                                 <LazyImage
                                     src={banner.image}
                                     alt={banner.title}

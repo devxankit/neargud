@@ -282,7 +282,7 @@ const MobileHome = () => {
           <NewArrivalsSection products={newArrivals} loading={loadingTertiary} theme={theme} />
 
           {/* Optional Promotional Banners */}
-          <div className="px-4 py-4">
+          <div className="px-4 md:px-8 lg:px-12 py-4 max-w-screen-2xl mx-auto">
             <AnimatedBanner
               title="Flash Sale"
               subtitle="Up to 70% Off"
@@ -296,17 +296,17 @@ const MobileHome = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="px-4 py-8"
+            className="px-4 md:px-8 lg:px-12 py-8 max-w-screen-2xl mx-auto"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Most Popular</h2>
-              <Link to="/app/category/all" className="text-sm font-bold" style={{ color: theme.accentColor }}>View All</Link>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight">Most Popular</h2>
+              <Link to="/app/category/all" className="text-sm md:text-base font-bold" style={{ color: theme.accentColor }}>View All</Link>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6">
               {loadingTertiary ? (
-                Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
+                Array(10).fill(0).map((_, i) => <ProductSkeleton key={i} />)
               ) : (
-                recommended.slice(0, 4).map((product) => (
+                recommended.slice(0, 10).map((product) => (
                   <motion.div key={product._id} variants={itemVariants}>
                     <ProductCard product={product} />
                   </motion.div>
@@ -318,8 +318,8 @@ const MobileHome = () => {
           <DailyDealsSection products={discountedProducts} loading={loadingSecondary} theme={theme} />
 
           {/* More promotional content */}
-          <div className="px-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="px-4 md:px-8 lg:px-12 py-4 max-w-screen-2xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-5 lg:gap-6">
               <AnimatedBanner
                 title="New Season"
                 image="https://images.unsplash.com/photo-1445205170230-053b830c6050?w=800&auto=format&fit=crop"

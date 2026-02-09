@@ -182,15 +182,15 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
   return (
     <>
       <div
-        className="product-card rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-md active:scale-98"
+        className="product-card rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer h-full flex flex-col bg-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl active:scale-98"
         {...longPressHandlers}>
         <div className="relative">
-          <div className="absolute top-1.5 right-1.5 z-10">
+          <div className="absolute top-1.5 right-1.5 z-10 md:top-3 md:right-3">
             <button
               onClick={handleFavorite}
-              className="p-1 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
+              className="p-1 md:p-2 glass rounded-full shadow-lg transition-all duration-300 group hover:bg-white">
               <FiHeart
-                className={`text-xs transition-all duration-300 ${isFavorite
+                className={`text-xs md:text-sm transition-all duration-300 ${isFavorite
                   ? "text-primary-700 fill-primary-700 scale-110"
                   : "text-gray-400 group-hover:text-primary-500"
                   }`}
@@ -203,25 +203,25 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
               <LazyImage
                 src={product.images?.[0] || product.image}
                 alt={product.name}
-                className="w-full h-full object-contain p-2 mix-blend-multiply"
+                className="w-full h-full object-contain p-2 md:p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
                 loading="lazy"
               />
             </div>
           </Link>
         </div>
 
-        <div className="p-2.5 flex-1 flex flex-col bg-white">
+        <div className="p-2.5 md:p-4 flex-1 flex flex-col bg-white">
           <Link to={productLink}>
-            <h3 className="font-bold text-gray-800 mb-1 line-clamp-2 text-xs transition-colors leading-tight min-h-[2.5em]">
+            <h3 className="font-bold text-gray-800 mb-1 line-clamp-2 text-xs md:text-sm lg:text-base transition-colors leading-tight min-h-[2.5em] group-hover:text-primary-600">
               {product.name}
             </h3>
           </Link>
-          <p className="text-[10px] text-gray-500 mb-1 font-medium">
+          <p className="text-[10px] md:text-xs text-gray-500 mb-1 font-medium">
             {product.unit}
           </p>
 
           {vendor && (
-            <div className="mb-2">
+            <div className="mb-2 md:mb-3">
               <VendorBadge
                 vendor={vendor}
                 showVerified={true}
@@ -232,30 +232,30 @@ const ProductCard = React.memo(({ product, hideRating = false }) => {
           )}
 
           {!hideRating && product.rating > 0 && product.reviewCount > 0 && (
-            <div className="flex items-center gap-1 mb-1.5">
-              <div className="flex items-center bg-green-50 px-1 py-0.5 rounded border border-green-100">
-                <span className="text-[9px] text-green-700 font-bold mr-0.5">
+            <div className="flex items-center gap-1 mb-1.5 md:mb-2 text-xs md:text-sm">
+              <div className="flex items-center bg-green-50 px-1 py-0.5 md:px-1.5 md:py-1 rounded border border-green-100">
+                <span className="text-[9px] md:text-xs text-green-700 font-bold mr-0.5">
                   {product.rating}
                 </span>
-                <FiStar className="text-[8px] text-green-700 fill-green-700" />
+                <FiStar className="text-[8px] md:text-xs text-green-700 fill-green-700" />
               </div>
-              <span className="text-[9px] text-gray-400">
+              <span className="text-[9px] md:text-xs text-gray-400">
                 ({product.reviewCount})
               </span>
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 mt-auto">
-            <span className="text-sm font-bold text-gray-900">
+          <div className="flex items-center flex-wrap gap-1.5 mt-auto">
+            <span className="text-sm md:text-base lg:text-lg font-bold text-gray-900">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-[10px] text-gray-400 line-through font-medium">
+              <span className="text-[10px] md:text-xs text-gray-400 line-through font-medium">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
             {discount > 0 && (
-              <span className="text-[9px] font-bold text-green-600">
+              <span className="text-[9px] md:text-xs font-bold text-green-600">
                 {discount}% OFF
               </span>
             )}

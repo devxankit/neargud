@@ -571,9 +571,9 @@ export default function PromoStrip({
                 </div>
 
                 <div className="relative z-10">
-                    <div className="flex items-center justify-center gap-3 mb-0 pt-4">
+                    <div className="flex items-center justify-center gap-3 lg:gap-6 mb-0 pt-4 md:pt-6 lg:pt-8">
                         {/* Left Lightning Bolt */}
-                        <svg width="28" height="36" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                        <svg width="28" height="36" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-8 md:h-10 lg:w-10 lg:h-12">
                             <path
                                 d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
                                 fill={isLeatherTheme ? "#D2B48C" : isJewelryTheme ? "#DAA520" : "#FFD700"}
@@ -586,7 +586,7 @@ export default function PromoStrip({
                         {/* HOUSEFULL Text */}
                         <h1
                             ref={housefullRef}
-                            className="text-3xl font-black text-white whitespace-pre-line"
+                            className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-white whitespace-pre-line"
                             style={{
                                 fontFamily: '"Poppins", sans-serif',
                                 letterSpacing: '1.5px',
@@ -616,7 +616,7 @@ export default function PromoStrip({
 
 
                         {/* Right Lightning Bolt */}
-                        <svg width="28" height="36" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0" style={{ transform: 'scaleX(-1)' }}>
+                        <svg width="28" height="36" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-8 md:h-10 lg:w-10 lg:h-12" style={{ transform: 'scaleX(-1)' }}>
                             <path
                                 d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
                                 fill={isLeatherTheme ? "#D2B48C" : isJewelryTheme ? "#DAA520" : "#FFD700"}
@@ -631,7 +631,7 @@ export default function PromoStrip({
                     <div className="flex justify-center mb-0.5" style={{ marginTop: '-3px' }}>
                         <h2
                             ref={saleRef}
-                            className="text-xl font-black text-white"
+                            className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-white"
                             style={{
                                 fontFamily: '"Poppins", sans-serif',
                                 letterSpacing: '1.5px',
@@ -649,7 +649,7 @@ export default function PromoStrip({
                     </div>
 
                     {/* Dates */}
-                    <div ref={dateRef} className="font-bold text-xs text-center mt-1" style={{ color: 'rgba(255, 255, 255, 1)' }}>
+                    <div ref={dateRef} className="font-bold text-xs md:text-sm lg:text-base text-center mt-1 lg:mt-2" style={{ color: 'rgba(255, 255, 255, 1)' }}>
                         {saleDateText}
                     </div>
                 </div>
@@ -663,12 +663,12 @@ export default function PromoStrip({
             )}
 
             {/* Main Content: Crazy Deals + Category Cards */}
-            <div className="px-4 mt-2 w-full overflow-x-hidden">
-                <div className="flex gap-2 w-full">
+            <div className="px-4 md:px-8 lg:px-12 mt-2 w-full overflow-x-hidden max-w-screen-2xl mx-auto">
+                <div className="flex gap-2 md:gap-4 w-full">
                     {/* Crazy Deals Section - Left */}
-                    <div className="flex-shrink-0 w-[95px] promo-card">
+                    <div className="flex-shrink-0 w-[95px] md:w-[130px] lg:w-[160px] promo-card">
                         <div
-                            className="h-full rounded-lg p-1 flex flex-col items-center justify-between relative overflow-hidden"
+                            className="h-full rounded-lg p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden"
                             style={{
                                 background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
                                 minHeight: '85px',
@@ -685,20 +685,20 @@ export default function PromoStrip({
                                         letterSpacing: '0.5px',
                                     }}
                                 >
-                                    <div>{crazyDealsText.line1}</div>
-                                    <div>{crazyDealsText.line2}</div>
+                                    <div className="md:text-lg lg:text-xl">{crazyDealsText.line1}</div>
+                                    <div className="md:text-lg lg:text-xl">{crazyDealsText.line2}</div>
                                 </div>
                             </div>
 
                             {/* Price Banners - Compact */}
                             <div ref={priceContainerRef} className="flex flex-col items-center mb-0.5 relative">
                                 {/* Original Price - Darker Gray, Smaller Banner */}
-                                <div className="bg-neutral-600 rounded px-1.5 inline-block relative z-10" style={{ height: 'fit-content', lineHeight: '1', paddingTop: '2px', paddingBottom: '2px' }}>
-                                    <span className="text-white text-[8px] font-medium line-through leading-none">₹{currentProduct?.originalPrice || 0}</span>
+                                <div className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10" style={{ height: 'fit-content', lineHeight: '1', paddingTop: '2px', paddingBottom: '2px' }}>
+                                    <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none">₹{currentProduct?.originalPrice || 0}</span>
                                 </div>
                                 {/* Discounted Price - Theme colored Banner */}
                                 <div
-                                    className="rounded px-2 inline-block relative -mt-0.5 z-20"
+                                    className="rounded px-2 md:px-3 inline-block relative -mt-0.5 z-20"
                                     style={{
                                         height: 'fit-content',
                                         lineHeight: '1',
@@ -707,18 +707,18 @@ export default function PromoStrip({
                                         backgroundColor: isLeatherTheme ? '#8B6F47' : isJewelryTheme ? '#B8860B' : '#f97316', // Tan brown for leather, rich gold for jewelry, orange for others
                                     }}
                                 >
-                                    <span className="text-white text-[9px] font-bold leading-none">₹{currentProduct?.discountedPrice || 0}</span>
+                                    <span className="text-white text-[9px] md:text-[11px] font-bold leading-none">₹{currentProduct?.discountedPrice || 0}</span>
                                 </div>
                             </div>
 
                             {/* Product Name - Compact */}
-                            <div ref={productNameRef} className="text-neutral-900 font-black text-[9px] text-center mb-0.5">
+                            <div ref={productNameRef} className="text-neutral-900 font-black text-[9px] md:text-[11px] lg:text-[13px] text-center mb-0.5 md:mb-1">
                                 {currentProduct?.name || 'Product'}
                             </div>
 
                             {/* Product Thumbnail - Bottom Center, sized to container */}
-                            <div ref={productImageRef} className="flex-1 flex items-end justify-center w-full" style={{ minHeight: '50px', maxHeight: '65px' }}>
-                                <div className="w-12 h-16 rounded flex items-center justify-center overflow-visible" style={{ background: 'transparent' }}>
+                            <div ref={productImageRef} className="flex-1 flex items-end justify-center w-full" style={{ minHeight: '50px', maxHeight: '100px' }}>
+                                <div className="w-12 h-16 md:w-20 md:h-24 rounded flex items-center justify-center overflow-visible" style={{ background: 'transparent' }}>
                                     {product?.image ? (
                                         <img
                                             src={product.image}
@@ -756,7 +756,7 @@ export default function PromoStrip({
                     </div>
 
                     {/* Category Cards Grid - Right */}
-                    <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div className="flex-1 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                         {categoryCards.map((card, cardIndex) => {
                             // If categoryId is provided, use subcategory icons, otherwise use category icons
                             let categoryIcons;

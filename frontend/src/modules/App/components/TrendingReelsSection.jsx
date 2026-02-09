@@ -23,27 +23,27 @@ const TrendingReelsSection = ({ reels, loading }) => {
 
     return (
         <div className="py-8 bg-black">
-            <div className="flex items-center justify-between px-4 mb-4">
+            <div className="flex items-center justify-between px-4 md:px-8 lg:px-12 mb-4 md:mb-8 max-w-screen-2xl mx-auto">
                 <div>
-                    <h2 className="text-xl font-black text-white flex items-center gap-2">
-                        Trending Reels <FiPlay className="fill-red-500 text-red-500" />
+                    <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-white flex items-center gap-2 md:gap-4">
+                        Trending Reels <FiPlay className="fill-red-500 text-red-500 md:text-2xl lg:text-3xl" />
                     </h2>
-                    <p className="text-xs text-gray-400">Watch the latest trends</p>
+                    <p className="text-xs md:text-sm text-gray-400">Watch the latest trends</p>
                 </div>
                 <Link
                     to="/app/reels"
-                    className="text-xs font-bold bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-colors text-white"
+                    className="text-xs md:text-sm font-bold bg-white/10 px-3 py-1.5 md:px-5 md:py-2.5 rounded-full hover:bg-white/20 transition-colors text-white"
                 >
                     View All
                 </Link>
             </div>
 
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-2">
+            <div className="flex gap-3 md:gap-5 overflow-x-auto scrollbar-hide px-4 md:px-8 lg:px-12 pb-2 max-w-screen-2xl mx-auto">
                 {reels.map((reel) => (
                     <Link
                         key={reel._id || reel.id}
                         to={`/app/reels?reel=${reel._id || reel.id}`}
-                        className="relative flex-shrink-0 w-32 h-56 rounded-xl overflow-hidden bg-gray-900 border border-gray-800 group"
+                        className="relative flex-shrink-0 w-32 h-56 md:w-44 md:h-72 lg:w-56 lg:h-96 rounded-xl overflow-hidden bg-gray-900 border border-gray-800 group"
                     >
                         <div className="w-full h-full bg-gray-900">
                             {/* Use LazyImage or video element if thumbnail is not available */}
@@ -60,17 +60,17 @@ const TrendingReelsSection = ({ reels, loading }) => {
                         </div>
 
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                                <FiPlay className="text-white ml-0.5 text-lg fill-white" />
+                            <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                                <FiPlay className="text-white ml-0.5 text-lg md:text-2xl fill-white" />
                             </div>
                         </div>
 
-                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black via-black/50 to-transparent">
-                            <p className="text-[10px] text-white font-medium line-clamp-2 leading-tight">
+                        <div className="absolute bottom-0 left-0 right-0 p-3 md:p-5 bg-gradient-to-t from-black via-black/50 to-transparent">
+                            <p className="text-[10px] md:text-xs lg:text-sm text-white font-medium line-clamp-2 leading-tight">
                                 {reel.description || 'Watch now'}
                             </p>
                             {reel.vendorId && (
-                                <p className="text-[9px] text-gray-400 mt-1 truncate">
+                                <p className="text-[9px] md:text-[10px] text-gray-400 mt-1 truncate">
                                     @{reel.vendorId.storeName || 'Vendor'}
                                 </p>
                             )}
