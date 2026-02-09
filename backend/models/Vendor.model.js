@@ -45,6 +45,23 @@ const vendorSchema = new mongoose.Schema(
         message: "Please enter a valid phone number",
       },
     },
+    businessLicenseNumber: {
+      type: String,
+      required: [true, "Business License Number is required"],
+      trim: true,
+    },
+    panCardNumber: {
+      type: String,
+      required: [true, "PAN Card Number is required"],
+      trim: true,
+      uppercase: true,
+      validate: {
+        validator: function (v) {
+          return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v);
+        },
+        message: "Please enter a valid PAN card number (Format: ABCDE1234F)",
+      },
+    },
     password: {
       type: String,
       required: [true, "Password is required"],

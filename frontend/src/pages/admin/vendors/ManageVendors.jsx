@@ -109,6 +109,16 @@ const ManageVendors = () => {
       render: (value) => <span className="font-semibold">{value || "N/A"}</span>,
     },
     {
+      key: "documentIds",
+      label: "Document IDs",
+      render: (_, row) => (
+        <div className="text-[10px] leading-tight text-gray-500">
+          <p><span className="font-medium">Lic:</span> {row.businessLicenseNumber || "N/A"}</p>
+          <p><span className="font-medium">PAN:</span> {row.panCardNumber || "N/A"}</p>
+        </div>
+      ),
+    },
+    {
       key: "email",
       label: "Email",
       render: (value) => <span className="text-sm text-gray-600">{value}</span>,
@@ -122,8 +132,8 @@ const ManageVendors = () => {
             value === "approved"
               ? "success"
               : value === "pending"
-              ? "warning"
-              : "error"
+                ? "warning"
+                : "error"
           }
         >
           {value.toUpperCase()}

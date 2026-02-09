@@ -14,11 +14,14 @@ import { uploadBase64ToCloudinary } from '../utils/cloudinary.util.js';
  */
 export const registerVendor = async (vendorData) => {
   try {
-    const { name, email, phone, password, storeName, storeDescription, address, documents, files } = vendorData;
+    const {
+      name, email, phone, password, storeName, storeDescription, address,
+      documents, files, businessLicenseNumber, panCardNumber
+    } = vendorData;
 
     // Validate inputs
-    if (!name || !email || !phone || !password || !storeName) {
-      throw new Error('Name, email, phone, password, and store name are required');
+    if (!name || !email || !phone || !password || !storeName || !businessLicenseNumber || !panCardNumber) {
+      throw new Error('All required fields must be provided, including Business License and PAN numbers');
     }
 
     if (!isValidEmail(email)) {
@@ -32,6 +35,12 @@ export const registerVendor = async (vendorData) => {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
       throw new Error(passwordValidation.message);
+    }
+
+    // Validate PAN format
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!panRegex.test(panCardNumber.toUpperCase())) {
+      throw new Error('Invalid PAN Card format. Expected format: ABCDE1234F');
     }
 
     // Check if vendor already exists in database
@@ -158,6 +167,8 @@ export const registerVendor = async (vendorData) => {
         address: address || {},
         documents: processedDocuments, // Store processed documents
         verificationDocs: verificationDocs, // Store verification docs
+        businessLicenseNumber: businessLicenseNumber.trim(),
+        panCardNumber: panCardNumber.trim().toUpperCase(),
       },
       expiresAt,
       isVerified: false,
@@ -441,6 +452,8 @@ export const verifyVendorEmail = async (email, otp) => {
       address: tempRegistration.registrationData.address || {},
       documents: tempRegistration.registrationData.documents || [],
       verificationDocs: tempRegistration.registrationData.verificationDocs || {},
+      businessLicenseNumber: tempRegistration.registrationData.businessLicenseNumber,
+      panCardNumber: tempRegistration.registrationData.panCardNumber,
       status: 'pending', // Vendors start as pending
       isEmailVerified: true, // Set to true since OTP is verified
       isActive: true,

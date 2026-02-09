@@ -26,6 +26,8 @@ const VendorRegister = () => {
     },
     businessLicense: null,
     panCard: null,
+    businessLicenseNumber: '',
+    panCardNumber: '',
     agreedToPolicies: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +58,7 @@ const VendorRegister = () => {
     } else {
       setFormData({
         ...formData,
-        [name]: value,
+        [name]: name === 'panCardNumber' ? value.toUpperCase() : value,
       });
     }
   };
@@ -65,8 +67,14 @@ const VendorRegister = () => {
     e.preventDefault();
 
     // Validation
-    if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.storeName) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.storeName || !formData.businessLicenseNumber || !formData.panCardNumber) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!panRegex.test(formData.panCardNumber)) {
+      toast.error('Invalid PAN Card format. Expected format: ABCDE1234F');
       return;
     }
 
@@ -94,6 +102,8 @@ const VendorRegister = () => {
       data.append('storeName', formData.storeName);
       data.append('storeDescription', formData.storeDescription);
       data.append('address', JSON.stringify(formData.address));
+      data.append('businessLicenseNumber', formData.businessLicenseNumber);
+      data.append('panCardNumber', formData.panCardNumber);
 
       if (formData.businessLicense) {
         data.append('businessLicense', formData.businessLicense);
@@ -302,10 +312,43 @@ const VendorRegister = () => {
           {/* Business Documents */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Business Documents</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Business License Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="businessLicenseNumber"
+                  value={formData.businessLicenseNumber}
+                  onChange={handleChange}
+                  placeholder="Enter License Number"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800 placeholder:text-gray-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  PAN Card Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="panCardNumber"
+                  value={formData.panCardNumber}
+                  onChange={handleChange}
+                  placeholder="ABCDE1234F"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800 placeholder:text-gray-400"
+                  required
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Format: 5 letters + 4 digits + 1 letter</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Business License (Image/PDF)
+                  Business License (Image/PDF) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="file"
@@ -313,12 +356,13 @@ const VendorRegister = () => {
                   onChange={handleChange}
                   accept="image/*,.pdf"
                   className="w-full px-4 py-2 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  PAN Card (Image/PDF)
+                  PAN Card (Image/PDF) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="file"
@@ -326,6 +370,7 @@ const VendorRegister = () => {
                   onChange={handleChange}
                   accept="image/*,.pdf"
                   className="w-full px-4 py-2 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 text-gray-800"
+                  required
                 />
               </div>
             </div>
