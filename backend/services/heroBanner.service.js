@@ -5,12 +5,12 @@ import { uploadToCloudinary } from '../utils/cloudinary.util.js';
  * Get active banners for rotation
  * Now fetches directly from the Banner model without booking flow
  */
-export const getActiveBanners = async (cityName) => {
+export const getActiveBanners = async (cityName, categoryId = null) => {
   const now = new Date();
 
   // Base conditions for active banners
   const query = {
-    type: 'hero',
+    type: { $in: ['hero', 'promotional'] }, // Allow both hero and promotional in active list
     isActive: true,
     $and: [
       { $or: [{ startDate: null }, { startDate: { $lte: now } }] },
@@ -18,11 +18,32 @@ export const getActiveBanners = async (cityName) => {
     ]
   };
 
+  // If categoryId is provided, we prioritize category banners
+  if (categoryId) {
+    const categoryQuery = {
+      ...query,
+      categoryId: categoryId
+    };
+    const catBanners = await Banner.find(categoryQuery).sort({ order: 1 });
+    if (catBanners.length > 0) {
+      return catBanners.map(banner => ({
+        id: banner._id,
+        image: banner.image,
+        link: banner.link,
+        title: banner.title,
+        subtitle: banner.subtitle
+      }));
+    }
+  }
+
+  // Fallback to normal city/universal logic if no category banners found (or no categoryId provided)
+  const baseQuery = { ...query, categoryId: null };
+
   // 1. First, try to fetch banners specifically for this city
   let banners = [];
   if (cityName) {
     const cityQuery = {
-      ...query,
+      ...baseQuery,
       city: new RegExp(`^${cityName}$`, 'i')
     };
     banners = await Banner.find(cityQuery).sort({ order: 1 });
@@ -31,7 +52,7 @@ export const getActiveBanners = async (cityName) => {
   // 2. If no city-specific banners found (or no city provided), fetch universal banners
   if (banners.length === 0) {
     const universalQuery = {
-      ...query,
+      ...baseQuery,
       $or: [
         { city: '' },
         { city: null }
@@ -113,7 +134,7 @@ export const deleteHeroBanner = async (id) => {
  */
 export const getBannerSettings = async () => {
   return {
-    universalDisplayTime: 3000
+    universalDisplayTime: 0
   };
 };
 

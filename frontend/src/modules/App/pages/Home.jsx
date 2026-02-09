@@ -29,14 +29,14 @@ import { useSettingsStore } from "../../../store/settingsStore";
 import { useLocationStore } from "../../../store/locationStore";
 import { useContentStore } from "../../../store/contentStore";
 import { useUIStore } from "../../../store/useStore";
-import { useTheme } from "../../../context/ThemeContext";
+import { useTheme } from "../../../context/ThemeContext.jsx";
 import ProductSkeleton from "../../../components/Skeletons/ProductCardSkeleton";
 import usePullToRefresh from "../../../hooks/usePullToRefresh";
 import toast from "react-hot-toast";
-import PromoStrip from "../../../components/PromoStrip";
-import LowestPricesEver from "../../../components/LowestPricesEver";
+import PromoStrip from "../../../components/PromoStrip.jsx";
+import LowestPricesEver from "../../../components/LowestPricesEver.jsx";
 import PageTransition from "../../../components/PageTransition";
-import { getTheme } from "../../../utils/themes";
+import { getTheme } from "../../../utils/themes.js";
 
 // Skeletons
 import HeroCarouselSkeleton from "../../../components/Skeletons/HeroCarouselSkeleton";

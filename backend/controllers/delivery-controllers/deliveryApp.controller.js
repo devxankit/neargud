@@ -127,58 +127,50 @@ export const getAssignedOrders = async (req, res, next) => {
 export const getAvailableOrders = async (req, res, next) => {
     try {
         const { lat, lng } = req.query;
-
-        if (!lat || !lng) {
-            // If no location provided, return empty or error.
-            // For now, return empty to avoid erroring if GPS off.
-            return res.status(200).json({ success: true, data: [] });
-        }
-
-        const driverLat = parseFloat(lat);
-        const driverLng = parseFloat(lng);
+        const driverLat = lat ? parseFloat(lat) : null;
+        const driverLng = lng ? parseFloat(lng) : null;
 
         // 1. Find potential orders: Not assigned, Ready to ship
-        // Note: Using 'ready_to_ship' or 'shipped_seller'?
-        // Usually 'ready_to_ship' means packed and ready for pickup.
         const orders = await Order.find({
             deliveryPartnerId: null,
             status: { $in: ['ready_to_ship', 'shipped_seller'] }
         })
             .populate('vendorBreakdown.vendorId', 'storeName address location deliveryRadius deliveryPartnersEnabled')
             .populate('shippingAddress')
-            .select('orderCode total status items vendorBreakdown shippingAddress createdAt');
+            .select('orderCode total status items vendorBreakdown shippingAddress createdAt')
+            .lean();
 
         // 2. Filter by radius and include distance
-        const nearbyOrders = orders.map(order => {
-            if (!order.vendorBreakdown || order.vendorBreakdown.length === 0) return null;
+        const filteredOrders = orders.map(order => {
+            if (!order.vendorBreakdown || order.vendorBreakdown.length === 0) return order;
 
-            const vendor = order.vendorBreakdown[0].vendorId;
+            const vendor = order.vendorBreakdown[0]?.vendorId;
+            // If vendor is not populated or disabled, skip
             if (!vendor || vendor.deliveryPartnersEnabled === false) return null;
 
-            if (!vendor.location || !vendor.location.coordinates) return null;
+            // If no driver location OR no vendor location, show order without distance calculation
+            if (driverLat === null || driverLng === null || !vendor.location?.coordinates) {
+                return { ...order, distance: null };
+            }
 
             const [vendorLng, vendorLat] = vendor.location.coordinates;
 
-            // Strict check: Ignore if vendor location is missing or invalid (0,0)
-            if (!vendorLat || !vendorLng || (vendorLat === 0 && vendorLng === 0)) return null;
+            // If vendor location is placeholder (0,0), show without distance
+            if (!vendorLat || !vendorLng || (vendorLat === 0 && vendorLng === 0)) {
+                return { ...order, distance: null };
+            }
 
-            // Parse driver location safely
-            const dLat = parseFloat(driverLat);
-            const dLng = parseFloat(driverLng);
+            const distance = calculateDistance(driverLat, driverLng, vendorLat, vendorLng);
+            const radius = vendor.deliveryRadius || 50; // Increased default testing radius
 
-            // Strict check: Ignore if driver location is invalid
-            if (isNaN(dLat) || isNaN(dLng) || (dLat === 0 && dLng === 0)) return null;
+            // If within radius, show with distance
+            if (distance <= radius) {
+                return { ...order, distance: Math.round(distance * 10) / 10 };
+            }
 
-            const distance = calculateDistance(dLat, dLng, vendorLat, vendorLng);
-            const radius = vendor.deliveryRadius || 20;
-
-            // Strict distance check: Must be a valid number and within radius
-            if (isNaN(distance) || distance > radius) return null;
-
-            // Return order with calculated distance
-            const orderObj = order.toObject();
-            orderObj.distance = Math.round(distance * 10) / 10; // Round to 1 decimal place
-            return orderObj;
+            // For testing: if distance is valid but outside radius, maybe hide it?
+            // Let's keep the radius filter but make it more generous or allow all if no radius set.
+            return null;
         }).filter(order => order !== null);
 
         // 3. Get delivery fee from settings
@@ -187,7 +179,7 @@ export const getAvailableOrders = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            data: nearbyOrders.map(order => ({
+            data: filteredOrders.map(order => ({
                 ...order,
                 deliveryFee: deliveryPartnerFee
             }))

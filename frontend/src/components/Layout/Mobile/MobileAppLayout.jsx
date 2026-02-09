@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import MobileLayout from "./MobileLayout";
-import { getTheme } from "../../../utils/themes";
+import { getTheme } from "../../../utils/themes.js";
 import { useCategoryStore } from "../../../store/categoryStore";
-import { useTheme } from "../../../context/ThemeContext";
+import { useTheme } from "../../../context/ThemeContext.jsx";
 
 const MobileAppLayout = () => {
     const location = useLocation();

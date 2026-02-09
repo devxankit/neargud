@@ -15,8 +15,8 @@ import SearchBar from "../../SearchBar";
 import MobileCategoryIcons from "../../../modules/App/components/MobileCategoryIcons";
 import LocationSelectionModal from "../../LocationSelectionModal";
 import { useLocationStore } from "../../../store/locationStore";
-import { useTheme } from "../../../context/ThemeContext";
-import { getTheme } from "../../../utils/themes";
+import { useTheme } from "../../../context/ThemeContext.jsx";
+import { getTheme } from "../../../utils/themes.js";
 import { useCategoryStore } from "../../../store/categoryStore";
 
 const MobileHeader = () => {

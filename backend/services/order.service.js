@@ -70,16 +70,6 @@ export const createOrder = async (orderData, io = null) => {
       throw new Error('Missing required order fields');
     }
 
-    // Generate unique order code
-    let orderCode = generateOrderCode();
-    let attempts = 0;
-    while (attempts < 5) {
-      const existing = await Order.findOne({ orderCode }).session(session);
-      if (!existing) break;
-      orderCode = generateOrderCode();
-      attempts++;
-    }
-
     // Get customer info for snapshot
     const customer = await User.findById(customerId).select('name email phone').lean();
     const customerSnapshot = customer ? {
@@ -92,10 +82,8 @@ export const createOrder = async (orderData, io = null) => {
     let addressId = null;
     if (shippingAddress) {
       if (mongoose.Types.ObjectId.isValid(shippingAddress)) {
-        // It's an address ID
         addressId = shippingAddress;
       } else {
-        // It's address data, create new address
         const address = await Address.create(
           [
             {
@@ -117,115 +105,42 @@ export const createOrder = async (orderData, io = null) => {
       }
     }
 
-    // Calculate pricing breakdown
-    const calculatedSubtotal = subtotal || items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const calculatedShipping = shipping || 0;
-
-    // Fetch products for tax calculation and vendor breakdown
+    // Fetch products for vendor identification
     const productIds = items
       .map(item => item.productId || item.id)
       .filter(id => id && mongoose.Types.ObjectId.isValid(id))
       .map(id => new mongoose.Types.ObjectId(id));
 
-    let products = [];
-    if (productIds.length > 0) {
-      try {
-        products = await Product.find({ _id: { $in: productIds } })
-          .populate('vendorId', 'name storeName commissionRate')
-          .select('_id vendorId vendorName taxRate taxIncluded price')
-          .lean();
+    let products = await Product.find({ _id: { $in: productIds } })
+      .populate('vendorId', 'name storeName commissionRate')
+      .select('_id vendorId vendorName taxRate taxIncluded price')
+      .lean();
 
-        if (products.length === 0) {
-          console.warn('No products found for order items:', productIds);
-        }
-      } catch (productError) {
-        console.error('Error fetching products for order:', productError);
-        // Continue with empty products array - tax calculation will use 0
-        products = [];
-      }
-    } else {
-      console.warn('No valid product IDs found in order items');
-    }
-
-    // Calculate tax from products if not provided or validate provided tax
-    let calculatedTax = tax || 0;
-    if (!tax || tax === 0) {
-      // Calculate tax based on product taxRate
-      calculatedTax = items.reduce((sum, item) => {
-        const productId = item.productId || item.id;
-        if (!productId) return sum;
-
-        const product = products.find(p => {
-          const pId = p._id?.toString() || p._id;
-          const itemId = productId?.toString() || productId;
-          return pId === itemId;
-        });
-        if (!product) return sum;
-
-        const itemSubtotal = (item.price || 0) * (item.quantity || 1);
-        const itemTaxRate = product.taxRate || 0;
-        const itemTax = product.taxIncluded ? 0 : (itemSubtotal * itemTaxRate) / 100;
-        return sum + itemTax;
-      }, 0);
-    }
-
-    const calculatedDiscount = discount || 0;
-    const calculatedTotal = total || (calculatedSubtotal + calculatedTax + calculatedShipping - calculatedDiscount);
-
-    // Calculate vendor breakdown
-    const vendorBreakdownMap = {};
-
-    // Group items by vendor and calculate vendor totals
+    // Group items by vendor
+    const vendorItemsMap = {};
     items.forEach((item) => {
       const productId = item.productId || item.id;
-      if (!productId) return;
-
-      const product = products.find(p => {
-        const pId = p._id?.toString() || p._id;
-        const itemId = productId?.toString() || productId;
-        return pId === itemId;
-      });
+      const product = products.find(p => p._id.toString() === productId.toString());
       if (!product || !product.vendorId) return;
 
       const vendorId = product.vendorId._id || product.vendorId;
       const vendorIdStr = vendorId.toString();
 
-      if (!vendorBreakdownMap[vendorIdStr]) {
-        const vendor = product.vendorId;
-        vendorBreakdownMap[vendorIdStr] = {
+      if (!vendorItemsMap[vendorIdStr]) {
+        vendorItemsMap[vendorIdStr] = {
           vendorId: vendorId,
-          vendorName: product.vendorName || vendor.name || vendor.storeName || 'Unknown Vendor',
+          vendorName: product.vendorName || product.vendorId.name || product.vendorId.storeName || 'Unknown Vendor',
+          items: [],
           subtotal: 0,
-          shipping: 0,
-          tax: 0,
-          discount: 0,
-          commission: 0,
+          commissionRate: product.vendorId.commissionRate || 0.1,
         };
       }
-
-      const itemTotal = item.price * item.quantity;
-      vendorBreakdownMap[vendorIdStr].subtotal += itemTotal;
+      vendorItemsMap[vendorIdStr].items.push(item);
+      vendorItemsMap[vendorIdStr].subtotal += (item.price * item.quantity);
     });
 
-    // Calculate shipping, tax, discount per vendor (proportional to subtotal)
-    const totalSubtotal = Object.values(vendorBreakdownMap).reduce((sum, vb) => sum + vb.subtotal, 0);
-    const vendorBreakdown = Object.values(vendorBreakdownMap).map((vb) => {
-      const ratio = totalSubtotal > 0 ? vb.subtotal / totalSubtotal : 0;
-      vb.shipping = calculatedShipping * ratio;
-      vb.tax = calculatedTax * ratio;
-      vb.discount = calculatedDiscount * ratio;
-
-      // Calculate commission (default 10% if not set)
-      const vendor = products.find(p => {
-        if (!p || !p.vendorId) return false;
-        const pid = p.vendorId?._id || p.vendorId;
-        return pid && pid.toString() === vb.vendorId.toString();
-      });
-      const commissionRate = vendor?.vendorId?.commissionRate || 0.1;
-      vb.commission = vb.subtotal * commissionRate;
-
-      return vb;
-    });
+    const vendorGroups = Object.values(vendorItemsMap);
+    const totalSubtotal = vendorGroups.reduce((sum, v) => sum + v.subtotal, 0);
 
     // Wallet usage
     let requestedWalletUsed = Math.max(0, Number(orderData.walletUsed || 0));
@@ -238,75 +153,99 @@ export const createOrder = async (orderData, io = null) => {
         availableWalletBalance = 0;
       }
     }
-    const walletUsedFinal = Math.min(requestedWalletUsed, availableWalletBalance, calculatedTotal);
-    const payableAmountFinal = Math.max(calculatedTotal - walletUsedFinal, 0);
+    const totalWalletUsedFinal = Math.min(requestedWalletUsed, availableWalletBalance, total);
 
-    // Create order with enhanced fields
-    const newOrderData = {
-      orderCode,
-      customerId,
-      items: items.map((item) => ({
-        productId: item.productId || item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        originalPrice: item.originalPrice,
-        image: item.image,
-      })),
-      total: calculatedTotal,
-      paymentMethod: payableAmountFinal === 0 ? 'wallet' : paymentMethod,
-      paymentStatus: payableAmountFinal === 0 ? 'completed' : 'pending',
-      status: payableAmountFinal === 0 ? 'processing' : 'pending',
-      shippingAddress: addressId,
-      pricing: {
-        subtotal: calculatedSubtotal,
-        tax: calculatedTax,
-        discount: calculatedDiscount,
-        shipping: calculatedShipping,
-        total: calculatedTotal,
-        walletUsed: walletUsedFinal,
-        payableAmount: payableAmountFinal,
-        couponCode: couponCode || null,
-      },
-      customerSnapshot,
-      vendorBreakdown,
-      statusHistory: [
-        {
-          status: payableAmountFinal === 0 ? 'processing' : 'pending',
-          changedByRole: 'user',
-          timestamp: new Date(),
-          note: payableAmountFinal === 0 ? 'Payment completed via wallet' : 'Order placed',
+    const createdOrders = [];
+
+    // Create a separate order for each vendor
+    for (const group of vendorGroups) {
+      const ratio = totalSubtotal > 0 ? group.subtotal / totalSubtotal : 0;
+
+      const vSubtotal = group.subtotal;
+      const vShipping = shipping * ratio;
+      const vTax = tax * ratio;
+      const vDiscount = discount * ratio;
+      const vWalletUsed = totalWalletUsedFinal * ratio;
+      const vTotal = vSubtotal + vShipping + vTax - vDiscount;
+      const vPayable = Math.max(vTotal - vWalletUsed, 0);
+
+      // Generate unique order code
+      let orderCode = generateOrderCode();
+      let attempts = 0;
+      while (attempts < 5) {
+        const existing = await Order.findOne({ orderCode }).session(session);
+        if (!existing) break;
+        orderCode = generateOrderCode();
+        attempts++;
+      }
+
+      const orderDataForVendor = {
+        orderCode,
+        customerId,
+        items: group.items.map((item) => ({
+          productId: item.productId || item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          image: item.image,
+        })),
+        total: vTotal,
+        paymentMethod: vPayable === 0 ? 'wallet' : paymentMethod,
+        paymentStatus: vPayable === 0 ? 'completed' : 'pending',
+        status: vPayable === 0 ? 'processing' : 'pending',
+        shippingAddress: addressId,
+        pricing: {
+          subtotal: vSubtotal,
+          tax: vTax,
+          discount: vDiscount,
+          shipping: vShipping,
+          total: vTotal,
+          walletUsed: vWalletUsed,
+          payableAmount: vPayable,
+          couponCode: couponCode || null,
         },
-      ],
-    };
+        customerSnapshot,
+        vendorBreakdown: [{
+          vendorId: group.vendorId,
+          vendorName: group.vendorName,
+          subtotal: vSubtotal,
+          shipping: vShipping,
+          tax: vTax,
+          discount: vDiscount,
+          commission: vSubtotal * group.commissionRate,
+        }],
+        statusHistory: [
+          {
+            status: vPayable === 0 ? 'processing' : 'pending',
+            changedByRole: 'user',
+            timestamp: new Date(),
+            note: vPayable === 0 ? 'Payment completed via wallet' : 'Order placed',
+          },
+        ],
+      };
 
-    const order = await Order.create([newOrderData], { session });
+      const [order] = await Order.create([orderDataForVendor], { session });
+      createdOrders.push(order);
 
-    // Increment promo code usage if applicable
-    if (couponCode) {
-      await incrementPromoCodeUsage(couponCode, session);
-    }
-
-    // If wallet used, create wallet debit transaction and record payment transaction
-    if (walletUsedFinal > 0) {
-      try {
-        const created = await createWalletTransaction(
+      // Handle wallet deduction if wallet used for this order
+      if (vWalletUsed > 0) {
+        await createWalletTransaction(
           customerId.toString(),
           'debit',
-          walletUsedFinal,
+          vWalletUsed,
           `Order Payment - ${orderCode}`,
-          order[0]._id.toString(),
+          order._id.toString(),
           'order'
         );
 
-        const transactionCode = generateTransactionCode();
         await Transaction.create(
           [
             {
-              transactionCode,
-              orderId: order[0]._id,
+              transactionCode: generateTransactionCode(),
+              orderId: order._id,
               customerId: customerId,
-              amount: walletUsedFinal,
+              amount: vWalletUsed,
               type: 'payment',
               status: 'completed',
               method: 'wallet',
@@ -315,60 +254,50 @@ export const createOrder = async (orderData, io = null) => {
           ],
           { session }
         );
-      } catch (walletError) {
-        console.error('Wallet deduction failed:', walletError);
-        throw walletError;
+      }
+
+      // Notifications for vendors
+      try {
+        await notificationService.createBulkNotifications([{
+          recipientId: group.vendorId,
+          recipientType: 'vendor',
+          type: 'new_order',
+          title: 'New Order Received',
+          message: `You have received a new order #${orderCode} from ${customerSnapshot.name || 'Customer'}`,
+          orderId: order._id,
+          actionUrl: `/vendor/orders/${order._id}`,
+        }], io);
+      } catch (notifError) {
+        console.error('Error creating vendor notification:', notifError);
       }
     }
 
-    // Create notifications for user and vendors
+    // Global order notification for user (summary if multiple orders)
     try {
-      const orderDoc = order[0];
-      const notifications = [];
+      const summaryMsg = createdOrders.length > 1
+        ? `Your orders #${createdOrders.map(o => o.orderCode).join(', ')} have been placed. Total: ₹${total.toFixed(2)}`
+        : `Your order #${createdOrders[0].orderCode} has been placed. Total: ₹${total.toFixed(2)}`;
 
-      // Notification for user
-      notifications.push({
+      await notificationService.createBulkNotifications([{
         recipientId: customerId,
         recipientType: 'user',
         type: 'order_placed',
         title: 'Order Placed Successfully',
-        message: `Your order #${orderCode} has been placed successfully. Total: ₹${total.toFixed(2)}`,
-        orderId: orderDoc._id,
-        actionUrl: `/app/orders/${orderDoc._id}`,
-      });
-
-      // Notifications for vendors (one per vendor in the order)
-      const vendorIds = new Set();
-      items.forEach((item) => {
-        const product = item.productId;
-        if (product && product.vendorId) {
-          const vendorId = product.vendorId._id || product.vendorId;
-          if (!vendorIds.has(vendorId.toString())) {
-            vendorIds.add(vendorId.toString());
-            notifications.push({
-              recipientId: vendorId,
-              recipientType: 'vendor',
-              type: 'new_order',
-              title: 'New Order Received',
-              message: `You have received a new order #${orderCode} from ${customerSnapshot.name || 'Customer'}`,
-              orderId: orderDoc._id,
-              actionUrl: `/vendor/orders/${orderDoc._id}`,
-            });
-          }
-        }
-      });
-
-      // Create notifications in bulk
-      if (notifications.length > 0) {
-        await notificationService.createBulkNotifications(notifications, io);
-      }
+        message: summaryMsg,
+        orderId: createdOrders[0]._id, // Use the first order as reference
+        actionUrl: `/app/orders/${createdOrders[0]._id}`,
+      }], io);
     } catch (notifError) {
-      // Log error but don't fail order creation
-      console.error('Error creating notifications:', notifError);
+      console.error('Error creating user notification:', notifError);
+    }
+
+    // Increment promo code usage if applicable
+    if (couponCode) {
+      await incrementPromoCodeUsage(couponCode, session);
     }
 
     await session.commitTransaction();
-    return order[0];
+    return createdOrders;
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -395,65 +324,74 @@ export const updateOrderPayment = async (orderId, paymentData, io = null) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, status } = paymentData;
 
-    // Find order
-    const order = await Order.findById(orderId).session(session);
-    if (!order) {
-      throw new Error('Order not found');
+    // Find all orders sharing this Razorpay Order ID
+    const orders = await Order.find({ razorpayOrderId }).session(session);
+    if (orders.length === 0) {
+      // Fallback: if no razorpayOrderId match, try by orderId
+      const singleOrder = await Order.findById(orderId).session(session);
+      if (!singleOrder) throw new Error('Order not found');
+      orders.push(singleOrder);
     }
 
-    // Update order payment details
-    const updateData = {
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
-      paymentStatus: status === 'completed' ? 'completed' : 'failed',
-      $push: {
-        statusHistory: {
-          status: status === 'completed' ? 'processing' : order.status,
-          changedByRole: 'system',
-          timestamp: new Date(),
-          note: status === 'completed' ? 'Payment completed, order processing' : 'Payment failed',
-        },
-      },
-    };
+    const updatedOrders = [];
 
-    // If payment completed, update order status
-    if (status === 'completed') {
-      updateData.status = 'processing';
-    }
-
-    const updatedOrder = await Order.findByIdAndUpdate(orderId, updateData, {
-      new: true,
-      session,
-    }).populate('shippingAddress');
-
-    // Create transaction record
-    if (status === 'completed') {
-      const transactionCode = generateTransactionCode();
-      const walletPaid = (order.pricing && typeof order.pricing.walletUsed === 'number') ? order.pricing.walletUsed : 0;
-      const payableLeft = Math.max(order.total - walletPaid, 0);
-      await Transaction.create(
-        [
-          {
-            transactionCode,
-            orderId: order._id,
-            customerId: order.customerId,
-            amount: payableLeft,
-            type: 'payment',
-            status: 'completed',
-            method: order.paymentMethod,
-            paymentGateway: 'razorpay',
-            razorpayOrderId,
-            razorpayPaymentId,
-            razorpaySignature,
+    for (const order of orders) {
+      // Update order payment details
+      const updateData = {
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+        paymentStatus: status === 'completed' ? 'completed' : 'failed',
+        $push: {
+          statusHistory: {
+            status: status === 'completed' ? 'processing' : order.status,
+            changedByRole: 'system',
+            timestamp: new Date(),
+            note: status === 'completed' ? 'Payment completed, order processing' : 'Payment failed',
           },
-        ],
-        { session }
-      );
+        },
+      };
+
+      // If payment completed, update order status
+      if (status === 'completed') {
+        updateData.status = 'processing';
+      }
+
+      const updatedOrder = await Order.findByIdAndUpdate(order._id, updateData, {
+        new: true,
+        session,
+      }).populate('shippingAddress');
+
+      updatedOrders.push(updatedOrder);
+
+      // Create transaction record
+      if (status === 'completed') {
+        const transactionCode = generateTransactionCode();
+        const walletPaid = (order.pricing && typeof order.pricing.walletUsed === 'number') ? order.pricing.walletUsed : 0;
+        const payableLeft = Math.max(order.total - walletPaid, 0);
+        await Transaction.create(
+          [
+            {
+              transactionCode,
+              orderId: order._id,
+              customerId: order.customerId,
+              amount: payableLeft,
+              type: 'payment',
+              status: 'completed',
+              method: order.paymentMethod,
+              paymentGateway: 'razorpay',
+              razorpayOrderId,
+              razorpayPaymentId,
+              razorpaySignature,
+            },
+          ],
+          { session }
+        );
+      }
     }
 
     await session.commitTransaction();
-    return updatedOrder;
+    return updatedOrders;
   } catch (error) {
     await session.abortTransaction();
     throw error;
