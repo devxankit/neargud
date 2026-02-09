@@ -820,7 +820,7 @@ const MobileProductDetail = () => {
           orderId={eligibleOrderId}
         />
       )}
-    </div>
+
     </PageTransition >
   );
 };
