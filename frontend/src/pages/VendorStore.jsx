@@ -19,7 +19,7 @@ const VendorStore = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { responsivePadding } = useResponsiveHeaderPadding();
   const [vendor, setVendor] = useState(null);
   const [products, setProducts] = useState([]);
