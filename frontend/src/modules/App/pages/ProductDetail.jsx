@@ -373,7 +373,7 @@ const MobileProductDetail = () => {
     <PageTransition>
       <div className="w-full pb-24 bg-white">
         {/* Back Button */}
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-4 md:pt-6 md:px-8 max-w-7xl mx-auto">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors">
@@ -382,29 +382,31 @@ const MobileProductDetail = () => {
           </button>
         </div>
 
-        {/* Product Image */}
-        <div className="px-4 py-4">
-          <div className="relative rounded-3xl overflow-hidden shadow-sm border border-gray-100 bg-white">
-            <ImageGallery images={productImages} productName={product.name} />
-            {product.flashSale && (
-              <div className="absolute top-4 left-4 z-10">
-                <Badge variant="flash">Flash Sale</Badge>
-              </div>
-            )}
-            {product.isNew && (
-              <div className="absolute top-4 right-4 z-10">
-                <Badge
-                  variant="primary"
-                  className="bg-indigo-600 text-white border-0 shadow-lg shadow-indigo-200">
-                  New
-                </Badge>
-              </div>
-            )}
+        <div className="max-w-7xl mx-auto md:grid md:grid-cols-2 md:gap-12 md:px-8 md:py-8">
+          {/* Left Column: Product Image */}
+          <div className="px-4 py-4 md:p-0">
+            <div className="relative rounded-3xl md:rounded-2xl md:border-none md:shadow-none overflow-hidden md:overflow-visible shadow-sm border border-gray-100 bg-white md:bg-transparent">
+              <ImageGallery images={productImages} productName={product.name} />
+              {product.flashSale && (
+                <div className="absolute top-4 left-4 z-10">
+                  <Badge variant="flash">Flash Sale</Badge>
+                </div>
+              )}
+              {product.isNew && (
+                <div className="absolute top-4 right-4 z-10">
+                  <Badge
+                    variant="primary"
+                    className="bg-indigo-600 text-white border-0 shadow-lg shadow-indigo-200">
+                    New
+                  </Badge>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Product Info */}
-        <div className="px-5 py-2">
+        {/* Right Column: Product Info */}
+        <div className="px-5 py-2 md:p-0">
           <div className="flex items-start justify-between gap-4 mb-3">
             <h1 className="text-2xl font-bold text-gray-900 leading-tight flex-1">
               {product.name}
@@ -703,33 +705,20 @@ const MobileProductDetail = () => {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Sticky Bottom Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 pb-8 z-40 safe-area-bottom">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleShare}
-              className="w-14 h-14 bg-gray-100 text-gray-700 rounded-2xl flex items-center justify-center transition-all active:scale-90">
-              <FiShare2 className="text-xl" />
-            </button>
+          {/* Desktop Action Buttons (Visible only on md+) */}
+          <div className="hidden md:flex flex-col gap-4 mb-8">
             {vendor?.deliveryAvailable !== false ? (
-              <div className="flex-1 flex gap-3">
+              <div className="flex gap-4">
                 <button
                   onClick={handleAddToCart}
-                  disabled={
-                    product.stock === "out_of_stock" || product.isBuy === false
-                  }
-                  className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === "out_of_stock" || product.isBuy === false
-                    ? "bg-gray-50 border-gray-100 text-gray-400"
-                    : "bg-white border-primary-600 text-primary-600"
-                    }`}>
-                  <FiShoppingBag />
-                  {product.isBuy === false
-                    ? "DISABLED"
-                    : cartItem
-                      ? "UPDATE"
-                      : "ADD TO CART"}
+                  disabled={product.stock === "out_of_stock" || product.isBuy === false}
+                  className={`flex-1 h-14 rounded-xl font-bold uppercase text-sm tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === "out_of_stock" || product.isBuy === false
+                    ? "bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white border-primary-600 text-primary-600 hover:bg-primary-50"
+                    }`}
+                >
+                  <FiShoppingBag className="text-lg" />
+                  {product.isBuy === false ? "Ordering Disabled" : cartItem ? "Update Cart" : "Add to Cart"}
                 </button>
                 <button
                   onClick={() => {
@@ -742,37 +731,96 @@ const MobileProductDetail = () => {
                       }
                     }
                   }}
-                  disabled={
-                    product.stock === "out_of_stock" || product.isBuy === false
-                  }
-                  className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg ${product.stock === "out_of_stock" || product.isBuy === false
+                  disabled={product.stock === "out_of_stock" || product.isBuy === false}
+                  className={`flex-1 h-14 rounded-xl font-bold uppercase text-sm tracking-wider transition-all active:scale-95 shadow-lg active:shadow-sm ${product.stock === "out_of_stock" || product.isBuy === false
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                    : "bg-primary-600 text-white shadow-primary-100"
-                    }`}>
-                  {product.isBuy === false ? "DISABLED" : "BUY NOW"}
+                    : "bg-primary-600 text-white shadow-primary-200 hover:bg-primary-700 hover:shadow-primary-300"
+                    }`}
+                >
+                  {product.isBuy === false ? "Disabled" : "Buy Now"}
                 </button>
               </div>
             ) : (
               <Link
                 to={`/app/chat?vendorId=${vendor?._id || vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || "")}&productId=${product?._id || product?.id}&productName=${encodeURIComponent(product?.name || "")}&productImage=${encodeURIComponent(product?.image || "")}&productPrice=${product?.price}`}
-                className="flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 bg-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
+                className="w-full h-14 rounded-xl font-bold uppercase text-sm tracking-wider transition-all active:scale-95 bg-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700"
+              >
                 <FiMessageCircle className="text-xl" />
                 <span>Chat to Buy</span>
               </Link>
             )}
           </div>
         </div>
-
-        {/* Review Modal */}
-        {isReviewModalOpen && (
-          <ReviewModal
-            isOpen={isReviewModalOpen}
-            onClose={() => setIsReviewModalOpen(false)}
-            product={product}
-            orderId={eligibleOrderId}
-          />
-        )}
       </div>
+
+      {/* Sticky Bottom Bar (Mobile Only) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 pb-8 z-40 safe-area-bottom">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleShare}
+            className="w-14 h-14 bg-gray-100 text-gray-700 rounded-2xl flex items-center justify-center transition-all active:scale-90">
+            <FiShare2 className="text-xl" />
+          </button>
+          {vendor?.deliveryAvailable !== false ? (
+            <div className="flex-1 flex gap-3">
+              <button
+                onClick={handleAddToCart}
+                disabled={
+                  product.stock === "out_of_stock" || product.isBuy === false
+                }
+                className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${product.stock === "out_of_stock" || product.isBuy === false
+                  ? "bg-gray-50 border-gray-100 text-gray-400"
+                  : "bg-white border-primary-600 text-primary-600"
+                  }`}>
+                <FiShoppingBag />
+                {product.isBuy === false
+                  ? "DISABLED"
+                  : cartItem
+                    ? "UPDATE"
+                    : "ADD TO CART"}
+              </button>
+              <button
+                onClick={() => {
+                  if (product.isBuy === false) return;
+                  if (cartItem) {
+                    navigate("/app/checkout");
+                  } else {
+                    if (handleAddToCart()) {
+                      navigate("/app/checkout");
+                    }
+                  }
+                }}
+                disabled={
+                  product.stock === "out_of_stock" || product.isBuy === false
+                }
+                className={`flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg ${product.stock === "out_of_stock" || product.isBuy === false
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                  : "bg-primary-600 text-white shadow-primary-100"
+                  }`}>
+                {product.isBuy === false ? "DISABLED" : "BUY NOW"}
+              </button>
+            </div>
+          ) : (
+            <Link
+              to={`/app/chat?vendorId=${vendor?._id || vendor?.id}&vendorName=${encodeURIComponent(vendor?.storeName || "")}&productId=${product?._id || product?.id}&productName=${encodeURIComponent(product?.name || "")}&productImage=${encodeURIComponent(product?.image || "")}&productPrice=${product?.price}`}
+              className="flex-1 h-14 rounded-2xl font-bold uppercase text-xs tracking-widest transition-all active:scale-95 bg-indigo-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-100">
+              <FiMessageCircle className="text-xl" />
+              <span>Chat to Buy</span>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Review Modal */}
+      {isReviewModalOpen && (
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          product={product}
+          orderId={eligibleOrderId}
+        />
+      )}
+    </div>
     </PageTransition >
   );
 };

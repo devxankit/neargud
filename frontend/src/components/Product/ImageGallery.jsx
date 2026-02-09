@@ -50,9 +50,37 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
 
   return (
     <>
-      <div className="w-full">
-        {/* Main Image */}
-        <div className="relative w-full aspect-square bg-white rounded-2xl overflow-hidden mb-4 shadow-sm border border-gray-100" data-gallery>
+      <div className="w-full flex flex-col md:flex-row gap-4">
+        {/* Thumbnails - Order 2 on mobile, Order 1 on desktop */}
+        {imageArray.length > 1 && (
+          <div className="order-2 md:order-1 flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto scrollbar-hide pb-2 md:pb-0 px-1 md:px-0 w-full md:w-20 md:max-h-[500px]">
+            {imageArray.map((image, index) => (
+              <button
+                key={index}
+                onMouseEnter={() => handleThumbnailClick(index)}
+                onClick={() => handleThumbnailClick(index)}
+                className={`flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${selectedIndex === index
+                  ? 'border-primary-600 ring-2 ring-primary-100'
+                  : 'border-transparent opacity-70 hover:opacity-100'
+                  }`}
+              >
+                <div className="w-full h-full bg-white">
+                  <LazyImage
+                    src={image}
+                    alt={`${productName} thumbnail ${index + 1}`}
+                    className="w-full h-full object-contain p-1"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/100x100?text=Thumbnail';
+                    }}
+                  />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Main Image - Order 1 on mobile, Order 2 on desktop */}
+        <div className="order-1 md:order-2 relative flex-1 aspect-square md:aspect-auto md:h-[500px] bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100" data-gallery>
           <motion.div
             key={selectedIndex}
             initial={{ opacity: 0 }}
@@ -97,33 +125,6 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
             </div>
           )}
         </div>
-
-        {/* Thumbnails */}
-        {imageArray.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 px-1">
-            {imageArray.map((image, index) => (
-              <button
-                key={index}
-                onClick={() => handleThumbnailClick(index)}
-                className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-300 ${selectedIndex === index
-                  ? 'border-primary-600 ring-2 ring-primary-100'
-                  : 'border-transparent opacity-70 hover:opacity-100'
-                  }`}
-              >
-                <div className="w-full h-full bg-white">
-                  <LazyImage
-                    src={image}
-                    alt={`${productName} thumbnail ${index + 1}`}
-                    className="w-full h-full object-contain p-1"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/100x100?text=Thumbnail';
-                    }}
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Lightbox Modal */}
