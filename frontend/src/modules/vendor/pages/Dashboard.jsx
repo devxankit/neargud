@@ -35,10 +35,10 @@ const VendorDashboard = () => {
           fetchOrderStats(),
           fetchStockStats()
         ]);
-console.log(performanceRes,"JBJBIJB");
+        console.log(performanceRes, "JBJBIJB");
         // Process Performance Metrics
-        if (performanceRes) {
-          const { metrics, earnings, recentOrders: apiRecentOrders, topProducts: apiTopProducts } = performanceRes;
+        if (performanceRes && performanceRes.success && performanceRes.data) {
+          const { metrics, earnings, recentOrders: apiRecentOrders, topProducts: apiTopProducts } = performanceRes.data;
 
           setStats(prev => ({
             ...prev,
@@ -52,20 +52,22 @@ console.log(performanceRes,"JBJBIJB");
         }
 
         // Process Order Stats
-        if ( orderStatsRes) {
+        if (orderStatsRes && orderStatsRes.success && orderStatsRes.data) {
+          const orderData = orderStatsRes.data;
           setStats(prev => ({
             ...prev,
-            totalOrders: orderStatsRes.total || 0,
-            pendingOrders: (orderStatsRes.pending || 0) + (orderStatsRes.processing || 0), // Pending typically includes processing
+            totalOrders: orderData.total || 0,
+            pendingOrders: (orderData.pending || 0) + (orderData.processing || 0), // Pending typically includes processing
           }));
         }
 
         // Process Stock Stats
-        if (stockStatsRes.success && stockStatsRes && stockStatsRes.stats) {
+        if (stockStatsRes && stockStatsRes.success && stockStatsRes.data) {
+          const stockStats = stockStatsRes.data.stats;
           setStats(prev => ({
             ...prev,
-            totalProducts: stockStatsRes.stats.totalProducts || prev.totalProducts,
-            inStockProducts: stockStatsRes.stats.inStock || 0,
+            totalProducts: stockStats.totalProducts || prev.totalProducts,
+            inStockProducts: stockStats.inStock || 0,
           }));
         }
 
@@ -255,10 +257,10 @@ console.log(performanceRes,"JBJBIJB");
                     <p className="font-semibold text-gray-800 text-sm">{formatPrice(order.total || 0)}</p>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${order.status === 'delivered'
-                          ? 'bg-green-100 text-green-700'
-                          : order.status === 'pending' || order.status === 'processing'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-blue-100 text-blue-700'
+                        ? 'bg-green-100 text-green-700'
+                        : order.status === 'pending' || order.status === 'processing'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-blue-100 text-blue-700'
                         }`}
                     >
                       {(order.status || 'unknown').replace('_', ' ')}

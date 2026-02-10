@@ -528,7 +528,6 @@ const AppRoutes = () => {
           path="vendors/pending-approvals"
           element={<PendingApprovals />}
         />
-        <Route path="vendors/commission-rates" element={<CommissionRates />} />
         <Route
           path="vendors/vendor-analytics"
           element={<AdminVendorAnalytics />}

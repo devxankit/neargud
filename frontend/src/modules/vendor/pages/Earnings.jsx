@@ -49,7 +49,8 @@ const Earnings = () => {
       try {
         // Earnings summary
         const earningsRes = await fetchEarningsStats();
-        const earningsData = earningsRes?.data || earningsRes;
+        const earningsData = earningsRes?.data?.data || earningsRes?.data || earningsRes;
+
         const pending = earningsData?.pendingEarnings || 0;
         const total = earningsData?.totalOrderEarnings || 0;
         const totalOrders = earningsData?.totalOrders || 0;
@@ -58,18 +59,18 @@ const Earnings = () => {
           pendingEarnings: pending,
           paidEarnings: Math.max(total - pending, 0),
           totalOrders: totalOrders,
-          totalCommission: 0,
+          totalCommission: earningsData?.totalCommission || 0,
         };
         setEarningsSummary(mappedSummary);
 
         // Commission history derived from vendor orders
         const ordersRes = await fetchVendorOrdersList({ page: 1, limit: 50 });
         console.log('ordersRes', ordersRes);
-        const ordersPayload = ordersRes?.data?.data || ordersRes?.data || ordersRes || {};
-        const ordersList = ordersPayload?.orders || ordersPayload?.data?.orders || ordersRes?.orders || [];
-        const commissionList = ordersList.map((o) => {
+        const ordersPayload = ordersRes?.data?.data || ordersRes?.data || ordersRes;
+        const ordersList = ordersPayload?.orders || ordersPayload || [];
+        const commissionList = (Array.isArray(ordersList) ? ordersList : []).map((o) => {
           const vendorBreak = Array.isArray(o.vendorItems)
-            ? o.vendorItems.find(v => v.vendorId === vendorId)
+            ? o.vendorItems.find(v => v.vendorId?.toString() === vendorId?.toString())
             : null;
 
           const subtotal = vendorBreak?.subtotal || 0;
@@ -98,8 +99,9 @@ const Earnings = () => {
 
         // Settlements from wallet transactions
         const txRes = await fetchWalletTransactions();
-        const txList = txRes?.data || txRes || [];
-        const settlementsMapped = (Array.isArray(txList?.data) ? txList.data : Array.isArray(txList) ? txList : []).map((t) => ({
+        const txData = txRes.data?.data || txRes.data || txRes;
+        const txList = Array.isArray(txData) ? txData : [];
+        const settlementsMapped = txList.map((t) => ({
           id: t._id || t.referenceId || `TX-${Math.random().toString(36).slice(2)}`,
           commissionId: t.referenceId || null,
           vendorId: vendorId,
@@ -112,13 +114,14 @@ const Earnings = () => {
         setSettlements(settlementsMapped);
 
         const walletRes = await fetchVendorWallet();
-        const walletData = walletRes?.data || walletRes;
+        const walletData = walletRes?.data?.data || walletRes?.data || walletRes;
         setWallet(walletData);
 
         const withdrawalsRes = await fetchVendorWithdrawals();
-        const withdrawalsList = withdrawalsRes?.data || withdrawalsRes || [];
-        setWithdrawals(Array.isArray(withdrawalsList) ? withdrawalsList : []);
-        const pendingWithdrawals = (Array.isArray(withdrawalsList) ? withdrawalsList : []).filter(w => w.status === 'pending');
+        const rawWithdrawals = withdrawalsRes?.data?.data || withdrawalsRes?.data || withdrawalsRes;
+        const withdrawalsList = Array.isArray(rawWithdrawals) ? rawWithdrawals : [];
+        setWithdrawals(withdrawalsList);
+        const pendingWithdrawals = withdrawalsList.filter(w => w.status === 'pending');
         setHasPendingWithdrawal(pendingWithdrawals.length > 0);
       } catch (err) {
         setError(err?.message || 'Failed to load earnings');
@@ -540,10 +543,10 @@ const Earnings = () => {
                       <div
                         key={withdrawal._id}
                         className={`rounded-xl p-6 border transition-all ${withdrawal.status === 'approved'
-                            ? 'bg-green-50 border-green-200'
-                            : withdrawal.status === 'rejected'
-                              ? 'bg-red-50 border-red-200'
-                              : 'bg-yellow-50 border-yellow-200'
+                          ? 'bg-green-50 border-green-200'
+                          : withdrawal.status === 'rejected'
+                            ? 'bg-red-50 border-red-200'
+                            : 'bg-yellow-50 border-yellow-200'
                           }`}
                       >
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">

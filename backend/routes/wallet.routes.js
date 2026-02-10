@@ -3,6 +3,7 @@ import {
   getWallet,
   getTransactions,
   addMoneyController,
+  debitMoneyController,
   createWalletOrder,
   verifyWalletPayment,
 } from '../controllers/user-controllers/wallet.controller.js';
@@ -22,6 +23,9 @@ router.get('/transactions', asyncHandler(getTransactions));
 
 // Add money to wallet
 router.post('/add-money', asyncHandler(addMoneyController));
+
+// Debit money from wallet
+router.post('/debit-money', asyncHandler(debitMoneyController));
 
 // Create Razorpay order for wallet
 router.post('/create-order', asyncHandler(createWalletOrder));

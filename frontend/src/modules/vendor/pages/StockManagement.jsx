@@ -20,7 +20,7 @@ const StockManagement = () => {
     inStock: 0,
     lowStock: 0,
     outOfStock: 0,
-    totalValue: 0 // Note: Backend stats might not return totalValue currently, we should check or accept 0
+    totalValue: 0
   });
 
   // Filters & Pagination
@@ -72,52 +72,17 @@ const StockManagement = () => {
     }
   }, [vendorId]);
 
-  // Debounced search to avoid excessive API calls
-  const debouncedLoadStockData = useCallback(
-    debounce(() => {
-      loadStockData();
-    }, 500),
-    [loadStockData]
-  );
-
-  // Initial load and filter changes
   useEffect(() => {
-    // For search, we use debounce. For other filters, we load immediately (or almost immediately)
-    // But since they are all dependencies of loadStockData, we need to be careful not to create loops or double calls.
-    // The straightforward way is to just call loadStockData in useEffect, 
-    // but for search we want to debounce.
-
-    // We can rely on loadStockData being called when dependencies change.
-    // BUT we want to debounce the search part.
-    // Let's split it? 
-    // Or just use one effect that calls the debounced function if search changed?
-    // Actually, simple usage:
     loadStockData();
-  }, [page, stockFilter, lowStockThreshold]);
-
-  // Separate effect for search to debounce it. 
-  // Note: loadStockData already depends on searchQuery, so the above effect would trigger on search change too.
-  // To avoid double trigger, we should remove searchQuery from the above effect's dependency array if we want separate handling.
-  // OR, we keep it simple: just define debouncedLoadStockData as the ONE way to load.
-  // But updating immediately on pagination is better UI.
-
-  // Let's use a simpler approach:
-  // We'll trust the user isn't typing 1000 characters a second, or accept the API hits, 
-  // OR we implement local state for input and debounced stat update.
-  // Let's implement local search state separate from trigger state.
-
-  // Actually, let's keep it simple for now. 
-  // We will run loadStockData on mount and when pagination/filters (except search) change.
-  // For search, we use a separate useEffect that listens to searchQuery.
+  }, [page, stockFilter, lowStockThreshold, loadStockData]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       loadStockData();
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, loadStockData]);
 
-  // Fetch stats on mount
   useEffect(() => {
     loadStats();
   }, [loadStats]);
@@ -128,8 +93,8 @@ const StockManagement = () => {
       await updateStock(productId, newQuantity);
       toast.success('Stock updated successfully');
       setStockModal({ isOpen: false, product: null });
-      loadStockData(); // Reload table
-      loadStats(); // Reload stats
+      loadStockData();
+      loadStats();
     } catch (error) {
       toast.error('Failed to update stock');
     }
@@ -138,43 +103,61 @@ const StockManagement = () => {
   // Table columns
   const columns = [
     {
-      key: 'code', // changed from 'id' to 'code' or 'orderCode' if available, but products usually have 'name'. Product ID is usually irrelevant to user, 'orderCode' is for orders. 'sku' might be better. API returns product object. Let's use 'name' and 'image' mostly.
+      key: 'name',
       label: 'Details',
       sortable: true,
       render: (_, row) => (
-        <div className="flex items-center gap-3">
-          <img
-            src={row.image}
-            alt={row.name}
-            className="w-10 h-10 object-cover rounded-lg"
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/50x50?text=Product';
-            }}
-          />
-          <div>
-            <p className="font-medium text-gray-900">{row.name}</p>
-            <p className="text-xs text-gray-500">{row.sku || row._id?.substring(0, 6)}</p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 shadow-sm">
+            <img
+              src={row.image}
+              alt={row.name}
+              className="w-full h-full object-cover transition-transform hover:scale-110"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/50x50?text=Product';
+              }}
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="font-black text-gray-900 truncate text-sm">{row.name}</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU: {row.sku || row._id?.substring(18).toUpperCase()}</p>
           </div>
         </div>
       ),
     },
     {
       key: 'price',
-      label: 'Price',
-      sortable: true,
-      render: (value) => formatPrice(value),
-    },
-    {
-      key: 'stockQuantity',
-      label: 'Stock',
+      label: 'Selling Price',
       sortable: true,
       render: (value) => (
-        <span className="font-semibold">{value?.toLocaleString() || 0}</span>
+        <span className="font-bold text-gray-800">{formatPrice(value)}</span>
       ),
     },
     {
-      key: 'status', // API might return computed status or we compute it
-      label: 'Status',
+      key: 'category',
+      label: 'Category',
+      sortable: false,
+      render: (_, row) => (
+        <div className="flex flex-col">
+          <span className="text-xs font-bold text-slate-600">{row.categoryId?.name || 'Uncategorized'}</span>
+          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Dept. ID: {row.categoryId?._id?.substring(18).toUpperCase() || 'N/A'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'stockQuantity',
+      label: 'Units Available',
+      sortable: true,
+      render: (value) => (
+        <div className="flex flex-col">
+          <span className="font-black text-gray-900 text-base">{value?.toLocaleString() || 0}</span>
+          <span className="text-[10px] text-gray-400 font-bold uppercase">Items Left</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Inventory Status',
       sortable: false,
       render: (_, row) => {
         let status = 'in_stock';
@@ -202,8 +185,10 @@ const StockManagement = () => {
       render: (_, row) => (
         <button
           onClick={() => setStockModal({ isOpen: true, product: row })}
-          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-          <FiEdit />
+          className="w-9 h-9 flex items-center justify-center bg-primary-50 text-primary-600 rounded-xl border border-primary-100 hover:bg-primary-600 hover:text-white transition-all shadow-sm"
+          title="Quick Edit Stock"
+        >
+          <FiEdit className="text-sm" />
         </button>
       ),
     },
@@ -211,8 +196,11 @@ const StockManagement = () => {
 
   if (!vendorId) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Please log in to manage stock</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+          <FiPackage className="text-2xl text-gray-300" />
+        </div>
+        <p className="text-gray-500 font-bold">Session required to manage inventory</p>
       </div>
     );
   }
@@ -221,127 +209,143 @@ const StockManagement = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="lg:hidden">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Stock Management</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your product inventory and stock levels</p>
+      className="space-y-8">
+
+      {/* Premium Header */}
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50/50 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+        <div className="relative z-10">
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+            Stock Management
+            <span className="text-xs bg-primary-100 text-primary-700 px-3 py-1 rounded-full uppercase tracking-widest font-black">Live</span>
+          </h1>
+          <p className="text-gray-500 font-medium mt-1">Real-time inventory tracking and rapid stock adjustments</p>
+        </div>
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="h-10 w-px bg-gray-100 hidden md:block mx-2"></div>
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Stock Valuation</p>
+            <p className="text-2xl font-black text-primary-600 leading-none tracking-tight">
+              {formatPrice(stockStats.totalValue || 0)}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Stock Statistics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600">Total Products</p>
-            <FiPackage className="text-blue-500 text-xl" />
+      {/* Enhanced Statistics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Base Products', value: stockStats.totalProducts, icon: FiPackage, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+          { label: 'Healthy Inventory', value: stockStats.inStock, icon: FiPackage, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
+          { label: 'Low Stock Alerts', value: stockStats.lowStock, icon: FiAlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', pulse: stockStats.lowStock > 0 },
+          { label: 'Out of Stock', value: stockStats.outOfStock, icon: FiTrendingDown, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-100', critical: stockStats.outOfStock > 0 }
+        ].map((card, idx) => (
+          <div key={idx} className={`bg-white rounded-2xl p-6 shadow-sm border ${card.border} hover:shadow-md transition-all group overflow-hidden relative`}>
+            <div className="flex items-start justify-between relative z-10">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{card.label}</p>
+                <p className={`text-3xl font-black ${card.color} tracking-tight`}>{card.value || 0}</p>
+              </div>
+              <div className={`${card.bg} ${card.color} p-3 rounded-xl transition-transform group-hover:scale-110 shadow-sm`}>
+                <card.icon className={`${card.pulse ? 'animate-bounce' : ''}`} />
+              </div>
+            </div>
+            {card.critical && <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-500/20"></div>}
           </div>
-          <p className="text-2xl font-bold text-gray-800">{stockStats.totalProducts || 0}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600">In Stock</p>
-            <FiPackage className="text-green-500 text-xl" />
-          </div>
-          <p className="text-2xl font-bold text-green-600">{stockStats.inStock || 0}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600">Low Stock</p>
-            <FiAlertTriangle className="text-orange-500 text-xl" />
-          </div>
-          <p className="text-2xl font-bold text-orange-600">{stockStats.lowStock || 0}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600">Out of Stock</p>
-            <FiTrendingDown className="text-red-500 text-xl" />
-          </div>
-          <p className="text-2xl font-bold text-red-600">{stockStats.outOfStock || 0}</p>
-        </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      {/* Inventory Control Center (Filters) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col md:flex-row gap-6 items-center">
+          <div className="relative flex-1 w-full">
+            <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Filter by SKU or Product Name..."
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 text-sm font-medium shadow-sm transition-all"
             />
           </div>
-          <AnimatedSelect
-            value={stockFilter}
-            onChange={(e) => {
-              setStockFilter(e.target.value);
-              setPage(1); // Reset to page 1 on filter change
-            }}
-            options={[
-              { value: 'all', label: 'All Stock' },
-              { value: 'in_stock', label: 'In Stock' },
-              { value: 'low_stock', label: 'Low Stock' },
-              { value: 'out_of_stock', label: 'Out of Stock' },
-            ]}
-            className="w-full sm:w-auto min-w-[160px]"
-          />
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 whitespace-nowrap">Low Stock Threshold:</label>
-            <input
-              type="number"
-              value={lowStockThreshold}
-              onChange={(e) => setLowStockThreshold(parseInt(e.target.value) || 10)}
-              min="1"
-              className="w-20 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <AnimatedSelect
+              value={stockFilter}
+              onChange={(e) => {
+                setStockFilter(e.target.value);
+                setPage(1);
+              }}
+              options={[
+                { value: 'all', label: 'All Inventory' },
+                { value: 'in_stock', label: 'In Stock' },
+                { value: 'low_stock', label: 'Low Stock' },
+                { value: 'out_of_stock', label: 'Out of Stock' },
+              ]}
+              className="min-w-[180px] bg-white rounded-2xl shadow-sm border-gray-200 text-sm font-bold text-gray-700"
             />
+
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-gray-200 shadow-sm">
+              <span className="text-[10px] font-black text-gray-400 uppercase whitespace-nowrap">Threshold</span>
+              <input
+                type="number"
+                value={lowStockThreshold}
+                onChange={(e) => setLowStockThreshold(parseInt(e.target.value) || 10)}
+                min="1"
+                className="w-12 text-center font-black text-primary-600 focus:outline-none text-sm"
+              />
+            </div>
           </div>
         </div>
 
-        {/* DataTable */}
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-        ) : products.length > 0 ? (
-          <>
-            <div className="mb-4">
-              <ExportButton
-                data={products}
-                headers={[
-                  { label: 'Name', accessor: (row) => row.name },
-                  { label: 'Price', accessor: (row) => formatPrice(row.price) },
-                  { label: 'Stock', accessor: (row) => row.stockQuantity || 0 },
-                  {
-                    label: 'Status', accessor: (row) => {
-                      let status = 'in_stock';
-                      if (row.stockQuantity === 0) status = 'out_of_stock';
-                      else if (row.stockQuantity <= lowStockThreshold) status = 'low_stock';
-                      return status;
-                    }
-                  },
-                ]}
-                filename="vendor-stock"
-              />
+        <div className="p-6">
+          {loading ? (
+            <div className="flex flex-col justify-center items-center py-20 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+              <div className="w-12 h-12 rounded-full border-4 border-primary-50 border-t-primary-600 animate-spin mb-4"></div>
+              <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em]">Synchronizing Records...</p>
             </div>
-            <DataTable
-              data={products}
-              columns={columns}
-              pagination={true}
-              itemsPerPage={limit}
-              currentPage={page}
-              totalItems={totalItems}
-              onPageChange={(p) => setPage(p)}
-              totalPages={totalPages}
-            />
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No products found</p>
-          </div>
-        )}
+          ) : products.length > 0 ? (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <ExportButton
+                  data={products}
+                  headers={[
+                    { label: 'Name', accessor: (row) => row.name },
+                    { label: 'Price', accessor: (row) => formatPrice(row.price) },
+                    { label: 'Stock', accessor: (row) => row.stockQuantity || 0 },
+                    {
+                      label: 'Status', accessor: (row) => {
+                        let status = 'in_stock';
+                        if (row.stockQuantity === 0) status = 'out_of_stock';
+                        else if (row.stockQuantity <= lowStockThreshold) status = 'low_stock';
+                        return status;
+                      }
+                    },
+                  ]}
+                  filename="vendor-stock-report"
+                />
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Showing {products.length} of {totalItems} SKUs</p>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+                <DataTable
+                  data={products}
+                  columns={columns}
+                  pagination={true}
+                  itemsPerPage={limit}
+                  currentPage={page}
+                  totalItems={totalItems}
+                  onPageChange={(p) => setPage(p)}
+                  totalPages={totalPages}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100 italic">
+              <FiPackage className="mx-auto text-4xl text-gray-200 mb-4" />
+              <p className="text-gray-400 font-medium">No matching inventory records found</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stock Update Modal */}
@@ -360,7 +364,7 @@ const StockManagement = () => {
   );
 };
 
-// Stock Update Modal Component (Unchanged mostly, just ensure it uses correct product fields)
+// Premium Stock Update Modal Component
 const StockUpdateModal = ({ isOpen, product, lowStockThreshold, onClose, onUpdate }) => {
   const [stockQuantity, setStockQuantity] = useState(0);
   const [stockAdjustment, setStockAdjustment] = useState('');
@@ -380,16 +384,14 @@ const StockUpdateModal = ({ isOpen, product, lowStockThreshold, onClose, onUpdat
     e.preventDefault();
     let newQuantity = stockQuantity;
 
-    if (adjustmentType === 'set') {
-      newQuantity = stockQuantity;
-    } else if (adjustmentType === 'add') {
+    if (adjustmentType === 'add') {
       newQuantity = (product.stockQuantity || 0) + (parseInt(stockAdjustment) || 0);
     } else if (adjustmentType === 'subtract') {
       newQuantity = Math.max(0, (product.stockQuantity || 0) - (parseInt(stockAdjustment) || 0));
     }
 
     if (newQuantity < 0) {
-      toast.error('Stock quantity cannot be negative');
+      toast.error('Inventory cannot be negative');
       return;
     }
 
@@ -417,96 +419,118 @@ const StockUpdateModal = ({ isOpen, product, lowStockThreshold, onClose, onUpdat
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800">Update Stock</h2>
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
+              {/* Modal Header */}
+              <div className="p-8 pb-6 border-b border-gray-50 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary-50/30 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                  <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Update Inventory</h2>
                   <button
                     onClick={onClose}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <FiX className="text-gray-500" />
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                    <FiX />
                   </button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-16 h-16 object-cover rounded-lg"
-                  />
+                <div className="flex items-center gap-4 relative z-10 bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-white shadow-sm">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">{product.name}</h3>
-                    <p className="text-sm text-gray-600">Current Stock: {product.stockQuantity || 0}</p>
+                    <h3 className="font-black text-gray-800 text-sm leading-tight mb-1">{product.name}</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current: {product.stockQuantity || 0} Units</p>
                   </div>
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-8 space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Adjustment Type
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                    Adjustment Method
                   </label>
-                  <AnimatedSelect
-                    value={adjustmentType}
-                    onChange={(e) => setAdjustmentType(e.target.value)}
-                    options={[
-                      { value: 'set', label: 'Set Quantity' },
-                      { value: 'add', label: 'Add Stock' },
-                      { value: 'subtract', label: 'Subtract Stock' },
-                    ]}
-                  />
+                  <div className="grid grid-cols-3 gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100">
+                    {['set', 'add', 'subtract'].map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => {
+                          setAdjustmentType(type);
+                          if (type === 'set') setStockQuantity(product.stockQuantity || 0);
+                          else setStockAdjustment('');
+                        }}
+                        className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${adjustmentType === type
+                          ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+                          : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {adjustmentType === 'set' ? (
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      New Stock Quantity
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 text-center">
+                      Override Total Quantity
                     </label>
-                    <div className="flex items-center gap-2">
-                      <button
+                    <div className="flex items-center justify-center gap-4">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
                         type="button"
-                        onClick={() => quickAdjust(-10)}
-                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg">
-                        <FiMinus />
-                      </button>
+                        onClick={() => quickAdjust(-5)}
+                        className="w-12 h-12 bg-gray-50 text-gray-400 hover:text-primary-600 rounded-2xl border border-gray-100 flex items-center justify-center transition-colors">
+                        <FiMinus strokeWidth={3} />
+                      </motion.button>
                       <input
                         type="number"
                         value={stockQuantity}
                         onChange={(e) => setStockQuantity(Math.max(0, parseInt(e.target.value) || 0))}
                         min="0"
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-24 text-center font-black text-3xl text-primary-600 focus:outline-none bg-transparent"
                       />
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
                         type="button"
-                        onClick={() => quickAdjust(10)}
-                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg">
-                        <FiPlus />
-                      </button>
+                        onClick={() => quickAdjust(5)}
+                        className="w-12 h-12 bg-gray-50 text-gray-400 hover:text-primary-600 rounded-2xl border border-gray-100 flex items-center justify-center transition-colors">
+                        <FiPlus strokeWidth={3} />
+                      </motion.button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      {adjustmentType === 'add' ? 'Add' : 'Subtract'} Quantity
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                      {adjustmentType === 'add' ? 'Increase' : 'Decrease'} by Units
                     </label>
                     <input
                       type="number"
                       value={stockAdjustment}
-                      onChange={(e) => setStockAdjustment(e.target.value)}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setStockAdjustment(e.target.value);
+                        if (adjustmentType === 'add') setStockQuantity((product.stockQuantity || 0) + val);
+                        else setStockQuantity(Math.max(0, (product.stockQuantity || 0) - val));
+                      }}
+                      placeholder="Enter quantity..."
                       min="0"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 text-sm font-bold transition-all"
                     />
                   </div>
                 )}
 
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">New Stock Status:</p>
+                <div className="p-4 bg-primary-50/30 rounded-2xl border border-primary-100 flex items-center justify-between">
+                  <span className="text-[10px] font-black text-primary-700 uppercase tracking-widest">Projection</span>
                   <Badge
                     variant={
                       newStockStatus === 'in_stock'
@@ -519,18 +543,19 @@ const StockUpdateModal = ({ isOpen, product, lowStockThreshold, onClose, onUpdat
                   </Badge>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-4 pt-2">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
+                    className="flex-1 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600 transition-colors">
                     Cancel
                   </button>
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="flex-1 px-4 py-2 gradient-green text-white rounded-lg hover:shadow-glow-green transition-all font-semibold">
-                    Update Stock
-                  </button>
+                    className="flex-1 py-4 bg-primary-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all">
+                    Commit Changes
+                  </motion.button>
                 </div>
               </form>
             </div>

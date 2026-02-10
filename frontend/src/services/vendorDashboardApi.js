@@ -2,7 +2,7 @@ import api from '../utils/api';
 export const fetchPerformanceMetrics = async (period = 'all') => {
     try {
         const response = await api.get('/vendor/performance/metrics', { params: { period } });
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching performance metrics:', error);
         throw error;
@@ -15,7 +15,7 @@ export const fetchPerformanceMetrics = async (period = 'all') => {
 export const fetchOrderStats = async () => {
     try {
         const response = await api.get('/vendor/orders/stats');
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching order stats:', error);
         throw error;
@@ -25,7 +25,7 @@ export const fetchOrderStats = async () => {
 export const fetchEarningsStats = async () => {
     try {
         const response = await api.get('/vendor/orders/earnings');
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching earnings stats:', error);
         throw error;
@@ -35,7 +35,7 @@ export const fetchEarningsStats = async () => {
 export const fetchWalletTransactions = async () => {
     try {
         const response = await api.get('/vendor/wallet/transactions');
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching wallet transactions:', error);
         throw error;
@@ -45,7 +45,7 @@ export const fetchWalletTransactions = async () => {
 export const fetchVendorWallet = async () => {
     try {
         const response = await api.get('/vendor/wallet');
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching vendor wallet:', error);
         throw error;
@@ -55,7 +55,7 @@ export const fetchVendorWallet = async () => {
 export const requestVendorWithdrawal = async () => {
     try {
         const response = await api.post('/vendor/wallet/withdraw');
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error requesting vendor withdrawal:', error);
         throw error;
@@ -65,7 +65,7 @@ export const requestVendorWithdrawal = async () => {
 export const fetchVendorWithdrawals = async (params = {}) => {
     try {
         const response = await api.get('/vendor/wallet/withdrawals', { params });
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching vendor withdrawals:', error);
         throw error;
@@ -75,7 +75,7 @@ export const fetchVendorWithdrawals = async (params = {}) => {
 export const fetchVendorOrdersList = async (params = {}) => {
     try {
         const response = await api.get('/vendor/orders', { params });
-        return response.data;
+        return response;
     } catch (error) {
         console.error('Error fetching vendor orders list:', error);
         throw error;

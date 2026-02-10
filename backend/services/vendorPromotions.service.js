@@ -17,8 +17,11 @@ export const getVendorPromotions = async (vendorId, filters = {}) => {
     } = filters;
 
     // Build query - only active promotions created by admin
+    const now = new Date();
     const query = {
       status: 'active',
+      startDate: { $lte: now },
+      endDate: { $gte: now }
     };
 
     const andConditions = [];
@@ -37,12 +40,7 @@ export const getVendorPromotions = async (vendorId, filters = {}) => {
       // Already filtered by active
     }
 
-    // Date filter - only show promotions that are currently valid
-    const now = new Date();
-    andConditions.push({
-      startDate: { $lte: now },
-      endDate: { $gte: now },
-    });
+    // Date filter already in base query
 
     // Usage limit check - exclude promotions that have reached their limit
     andConditions.push({

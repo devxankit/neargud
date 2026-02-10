@@ -10,6 +10,7 @@ import Vendor from '../../models/Vendor.model.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
+import Settings from '../../models/Settings.model.js';
 
 const logDebug = (message) => {
   try {
@@ -305,9 +306,11 @@ export const getEarningsStats = async (req, res, next) => {
       vendorId = rawVendorId;
     }
 
-    // Get vendor details for default commission rate
-    const vendor = await Vendor.findById(vendorId);
-    const defaultCommissionRate = vendor?.commissionRate || 0.1;
+    // Get global commission rate from settings
+    const settings = await Settings.findOne();
+    const defaultCommissionRate = settings?.general?.defaultCommissionRate
+      ? settings.general.defaultCommissionRate / 100
+      : 0.1; // Default to 10%
 
     // Get vendor's product IDs (ACTIVE AND INACTIVE) to find relevant orders
     const vendorProducts = await Product.find({ vendorId }).select('_id').lean();
@@ -361,6 +364,9 @@ export const getEarningsStats = async (req, res, next) => {
       let foundInBreakdown = false;
       let hasVendorItems = false;
 
+      // Filter out unsuccessful orders from earnings
+      const isUnsuccessful = ['cancelled', 'returned', 'refunded', 'cancellation_requested', 'return_requested'].includes(order.status);
+
       // Check items to see if this order really belongs to this vendor
       order.items.forEach(item => {
         const pId = item.productId?.toString() || item.productId;
@@ -372,41 +378,45 @@ export const getEarningsStats = async (req, res, next) => {
       if (hasVendorItems) {
         activeOrdersCount++;
 
-        // 1. Try to find in vendorBreakdown first (best accuracy)
-        if (order.vendorBreakdown && order.vendorBreakdown.length > 0) {
-          const vb = order.vendorBreakdown.find(v =>
-            v.vendorId && (v.vendorId.toString() === vendorId.toString())
-          );
-          if (vb) {
-            orderSubtotal = vb.subtotal || 0;
-            orderCommission = vb.commission || 0;
-            foundInBreakdown = true;
-          }
-        }
-
-        // 2. If not in breakdown, calculate manually from items
-        if (!foundInBreakdown && order.items) {
-          order.items.forEach(item => {
-            const pId = item.productId?.toString() || item.productId;
-            if (vendorProductIdStrings.includes(pId)) {
-              orderSubtotal += (item.price || 0) * (item.quantity || 1);
+        // Only calculate earnings for successful orders
+        if (!isUnsuccessful) {
+          // 1. Try to find in vendorBreakdown first (best accuracy)
+          if (order.vendorBreakdown && order.vendorBreakdown.length > 0) {
+            const vb = order.vendorBreakdown.find(v =>
+              v.vendorId && (v.vendorId.toString() === vendorIdStr)
+            );
+            if (vb) {
+              orderSubtotal = vb.subtotal || 0;
+              foundInBreakdown = true;
             }
-          });
-          orderCommission = orderSubtotal * defaultCommissionRate;
-        }
-
-        const earnings = orderSubtotal - orderCommission;
-
-        if (earnings > 0 || orderSubtotal > 0) {
-          totalOrderEarnings += earnings;
-          totalCommission += orderCommission;
-          // Check availability logic (Delivered/Completed = Realized)
-          // If not delivered/completed, it's pending
-          if (order.status !== 'delivered' && order.status !== 'completed') {
-            pendingEarnings += earnings;
           }
-        } else {
-          logDebug(`Order ${order.orderCode} earnings 0. Subtotal: ${orderSubtotal}, Commission: ${orderCommission}`);
+
+          // 2. If not in breakdown, calculate manually from items
+          if (!foundInBreakdown && order.items) {
+            order.items.forEach(item => {
+              const pId = item.productId?.toString() || item.productId;
+              if (vendorProductIdStrings.includes(pId)) {
+                orderSubtotal += (item.price || 0) * (item.quantity || 1);
+              }
+            });
+          }
+
+          // Use current commission rate
+          orderCommission = orderSubtotal * defaultCommissionRate;
+          const earnings = orderSubtotal - orderCommission;
+
+          if (earnings > 0 || orderSubtotal > 0) {
+            totalOrderEarnings += earnings;
+            totalCommission += orderCommission;
+
+            // Settlement rule: Direct release upon delivery
+            const isDelivered = ['delivered', 'completed'].includes(order.status);
+
+            // If not delivered/completed and not specifically released, it's pending
+            if (!order.fundsReleased && !isDelivered) {
+              pendingEarnings += earnings;
+            }
+          }
         }
       }
     });

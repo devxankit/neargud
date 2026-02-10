@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { FiMail, FiLock, FiCheck, FiArrowLeft, FiKey } from 'react-icons/fi';
+import { FiMail, FiLock, FiCheck, FiArrowLeft, FiKey, FiEye, FiEyeOff } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
@@ -13,6 +13,8 @@ const DeliveryForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Forms
     const {
@@ -174,15 +176,22 @@ const DeliveryForgotPassword = () => {
                 <div className="relative">
                     <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
-                        type="password"
+                        type={showNewPassword ? 'text' : 'password'}
                         {...registerPassword('newPassword', {
                             required: 'Password is required',
                             minLength: { value: 6, message: 'Must be at least 6 characters' },
                         })}
-                        className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${passwordErrors.newPassword ? 'border-red-300' : 'border-gray-200'
+                        className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${passwordErrors.newPassword ? 'border-red-300' : 'border-gray-200'
                             } focus:border-primary-500 focus:outline-none transition-colors`}
                         placeholder="Enter new password"
                     />
+                    <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                        {showNewPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                    </button>
                 </div>
                 {passwordErrors.newPassword && (
                     <p className="mt-1 text-sm text-red-600">{passwordErrors.newPassword.message}</p>
@@ -194,7 +203,7 @@ const DeliveryForgotPassword = () => {
                 <div className="relative">
                     <FiCheck className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
-                        type="password"
+                        type={showConfirmPassword ? 'text' : 'password'}
                         {...registerPassword('confirmPassword', {
                             required: 'Confirm Password is required',
                             validate: (val) => {
@@ -203,10 +212,17 @@ const DeliveryForgotPassword = () => {
                                 }
                             },
                         })}
-                        className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${passwordErrors.confirmPassword ? 'border-red-300' : 'border-gray-200'
+                        className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${passwordErrors.confirmPassword ? 'border-red-300' : 'border-gray-200'
                             } focus:border-primary-500 focus:outline-none transition-colors`}
                         placeholder="Confirm new password"
                     />
+                    <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                        {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                    </button>
                 </div>
                 {passwordErrors.confirmPassword && (
                     <p className="mt-1 text-sm text-red-600">{passwordErrors.confirmPassword.message}</p>

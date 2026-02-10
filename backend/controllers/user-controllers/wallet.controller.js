@@ -3,6 +3,7 @@ import {
   getWalletTransactions,
   addMoney,
   calculateStats,
+  createWalletTransaction,
 } from '../../services/wallet.service.js';
 import razorpayService from '../../services/razorpay.service.js';
 
@@ -36,7 +37,7 @@ export const getWallet = async (req, res, next) => {
  */
 export const getTransactions = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId || req.user.id;
     const { page, limit, type } = req.query;
 
     const filters = {
@@ -63,7 +64,7 @@ export const getTransactions = async (req, res, next) => {
  */
 export const addMoneyController = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId || req.user.id;
     const { amount, description } = req.body;
 
     if (!amount || amount <= 0) {
@@ -82,6 +83,51 @@ export const addMoneyController = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Money added to wallet successfully',
+      data: {
+        transaction,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Debit money from wallet
+ * POST /api/user/wallet/debit-money
+ */
+export const debitMoneyController = async (req, res, next) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const { amount, description } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid amount is required',
+      });
+    }
+
+    const balanceData = await getWalletBalance(userId);
+    if (balanceData.balance < amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient wallet balance',
+      });
+    }
+
+    const transaction = await createWalletTransaction(
+      userId,
+      'debit',
+      amount,
+      description || 'Manual wallet debit',
+      null,
+      'manual'
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Money debited from wallet successfully',
       data: {
         transaction,
       },

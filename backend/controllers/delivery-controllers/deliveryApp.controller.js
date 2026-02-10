@@ -3,6 +3,7 @@ import Vendor from '../../models/Vendor.model.js';
 import Settings from '../../models/Settings.model.js';
 import mongoose from 'mongoose';
 import DeliveryPartner from '../../models/DeliveryPartner.model.js';
+import DeliveryWalletTransaction from '../../models/DeliveryWalletTransaction.model.js';
 
 /**
  * Helper: Calculate Haversine Distance in km
@@ -37,7 +38,7 @@ export const getDashboardStats = async (req, res, next) => {
         // Active: Orders assigned but not yet delivered
         const activeStatuses = ['dispatched', 'shipped', 'out_for_delivery', 'ready_to_ship', 'shipped_seller'];
 
-        const [activeOrders, completedToday, totalDelivered, settings, deliveryPartner] = await Promise.all([
+        const [activeOrders, completedToday, totalDelivered, settings, deliveryPartner, lastTransaction] = await Promise.all([
             Order.countDocuments({
                 deliveryPartnerId,
                 status: { $in: activeStatuses }
@@ -52,10 +53,11 @@ export const getDashboardStats = async (req, res, next) => {
                 status: 'delivered'
             }),
             Settings.getSettings(),
-            DeliveryPartner.findById(deliveryPartnerId).select('avgRating totalRatings')
+            DeliveryPartner.findById(deliveryPartnerId).select('avgRating totalRatings'),
+            DeliveryWalletTransaction.findOne({ deliveryPartnerId }).sort({ createdAt: -1 })
         ]);
 
-        const deliveryPartnerFee = settings?.delivery?.deliveryPartnerFee || 50;
+        const earnings = lastTransaction ? lastTransaction.balanceAfter : 0;
 
         res.status(200).json({
             success: true,
@@ -63,7 +65,7 @@ export const getDashboardStats = async (req, res, next) => {
                 activeOrders,
                 completedToday,
                 totalDelivered,
-                earnings: totalDelivered * deliveryPartnerFee,
+                earnings,
                 avgRating: deliveryPartner?.avgRating || 0,
                 totalRatings: deliveryPartner?.totalRatings || 0
             }
@@ -220,19 +222,6 @@ export const claimOrder = async (req, res, next) => {
 
         // Assign
         order.deliveryPartnerId = deliveryPartnerId;
-        // Optionally update status to 'dispatched' or keep 'ready_to_ship' until picked up?
-        // Let's keep it 'ready_to_ship' but assigned. 
-        // Or update to 'dispatched' to indicate "Driver assigned".
-        // Frontend uses 'dispatched' or 'shipped' as active.
-        // Let's set to 'dispatched' (Driver Assigned).
-        // order.status = 'dispatched'; 
-        // Wait, 'dispatched' usually means Vendor dispatched it.
-        // If Vendor marks 'ready_to_ship', then Driver Claims.
-        // If Driver Claims -> 'out_for_delivery'? No, that's when they have it.
-        // Let's just assign it. Status stays 'ready_to_ship'.
-        // BUT `getAssignedOrders` filters for `['shipped', 'out_for_delivery', 'dispatched', 'ready_to_ship']`.
-        // So it will show up.
-
         await order.save();
 
         res.status(200).json({
@@ -245,18 +234,12 @@ export const claimOrder = async (req, res, next) => {
     }
 };
 
-// ... existing getOrderDetails and updateOrderStatus
 /**
  * Get Order Details
  * GET /api/delivery/orders/:id
  */
 export const getOrderDetails = async (req, res, next) => {
     try {
-        // Also allow viewing details if order is available (unassigned) and user is claiming?
-        // Or restrict to assigned?
-        // User might want to see details before claiming.
-        // Let's allow if assigned to me OR (unassigned).
-
         const order = await Order.findById(req.params.id)
             .populate('items.productId', 'name image price')
             .populate('shippingAddress')
@@ -301,13 +284,9 @@ export const updateOrderStatus = async (req, res, next) => {
         const deliveryPartnerId = req.user.deliveryPartnerId;
 
         // Allowed transitions
-        // If 'ready_to_ship' -> 'out_for_delivery' (Pick up)
-        // If 'out_for_delivery' -> 'delivered'
         const allowedStatuses = ['out_for_delivery', 'delivered'];
 
         if (!allowedStatuses.includes(status)) {
-            // Maybe allow 'dispatched'?
-            // Let strict check.
             const error = new Error('Invalid status update');
             error.status = 400;
             throw error;
@@ -328,6 +307,26 @@ export const updateOrderStatus = async (req, res, next) => {
         if (status === 'delivered') {
             order.tracking.deliveredAt = new Date();
             order.paymentStatus = 'completed';
+
+            // Add earnings to wallet
+            const settings = await Settings.getSettings();
+            const deliveryFee = settings?.delivery?.deliveryPartnerFee || 50;
+
+            // Get current balance
+            const lastTransaction = await DeliveryWalletTransaction.findOne({ deliveryPartnerId }).sort({ createdAt: -1 });
+            const currentBalance = lastTransaction ? lastTransaction.balanceAfter : 0;
+
+            await DeliveryWalletTransaction.create({
+                deliveryPartnerId,
+                type: 'earning',
+                amount: deliveryFee,
+                balanceBefore: currentBalance,
+                balanceAfter: currentBalance + deliveryFee,
+                description: `Earning for order #${order.orderCode}`,
+                referenceId: order._id,
+                referenceType: 'Order',
+                status: 'completed'
+            });
         }
 
         order.statusHistory.push({
@@ -344,6 +343,84 @@ export const updateOrderStatus = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: order
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get Wallet Transactions
+ * GET /api/delivery/wallet/transactions
+ */
+export const getWalletTransactions = async (req, res, next) => {
+    try {
+        const deliveryPartnerId = req.user.deliveryPartnerId;
+        const { type } = req.query;
+
+        const query = { deliveryPartnerId };
+        if (type) query.type = type;
+
+        const transactions = await DeliveryWalletTransaction.find(query)
+            .sort({ createdAt: -1 })
+            .limit(50);
+
+        // Calculate balance
+        const lastTransaction = await DeliveryWalletTransaction.findOne({ deliveryPartnerId }).sort({ createdAt: -1 });
+        const balance = lastTransaction ? lastTransaction.balanceAfter : 0;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                transactions,
+                balance
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Request Withdrawal
+ * POST /api/delivery/wallet/withdraw
+ */
+export const requestWithdrawal = async (req, res, next) => {
+    try {
+        const { amount } = req.body;
+        const deliveryPartnerId = req.user.deliveryPartnerId;
+
+        if (!amount || amount < 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Minimum withdrawal amount is ₹100'
+            });
+        }
+
+        // Check balance
+        const lastTransaction = await DeliveryWalletTransaction.findOne({ deliveryPartnerId }).sort({ createdAt: -1 });
+        const currentBalance = lastTransaction ? lastTransaction.balanceAfter : 0;
+
+        if (currentBalance < amount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Insufficient balance'
+            });
+        }
+
+        await DeliveryWalletTransaction.create({
+            deliveryPartnerId,
+            type: 'withdrawal',
+            amount: amount,
+            balanceBefore: currentBalance,
+            balanceAfter: currentBalance - amount,
+            description: 'Withdrawal request',
+            status: 'pending'
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Withdrawal request submitted successfully'
         });
     } catch (error) {
         next(error);
@@ -396,3 +473,4 @@ export const updateLocation = async (req, res, next) => {
         next(error);
     }
 };
+

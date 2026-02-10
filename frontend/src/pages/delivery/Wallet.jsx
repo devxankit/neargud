@@ -9,30 +9,43 @@ import toast from 'react-hot-toast';
 
 const DeliveryWallet = () => {
     const { deliveryBoy } = useDeliveryAuthStore();
-    const { stats, fetchStats } = useDeliveryStore();
+    const {
+        stats,
+        fetchStats,
+        transactions,
+        walletBalance,
+        fetchWalletData,
+        requestWithdrawal,
+        loading
+    } = useDeliveryStore();
+
     const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' or 'withdrawals'
 
     useEffect(() => {
         fetchStats();
+        fetchWalletData();
     }, []);
 
-    const balance = stats?.earnings || 0;
-    const totalEarnings = stats?.earnings || 0; // In a real app, these might be different
+    const balance = walletBalance || 0;
+    const totalEarnings = stats?.earnings || 0;
 
-    // Mock transactions for demonstration
-    const transactions = [
-        { id: '1', type: 'earning', amount: 150, description: 'Order #ORD12345 Delivery', date: '2024-02-09', status: 'completed' },
-        { id: '2', type: 'withdrawal', amount: 500, description: 'Bank Transfer', date: '2024-02-08', status: 'pending' },
-        { id: '3', type: 'earning', amount: 120, description: 'Order #ORD12346 Delivery', date: '2024-02-08', status: 'completed' },
-        { id: '4', type: 'earning', amount: 200, description: 'Bonus - High Performance', date: '2024-02-07', status: 'completed' },
-    ];
+    // Filter transactions based on tab
+    const filteredTransactions = activeTab === 'transactions'
+        ? transactions.filter(t => t.type === 'earning' || (t.type === 'withdrawal' && t.status === 'completed'))
+        : transactions.filter(t => t.type === 'withdrawal');
 
-    const handleWithdraw = () => {
+    const handleWithdraw = async () => {
         if (balance < 100) {
             toast.error('Minimum withdrawal amount is ₹100');
             return;
         }
-        toast.success('Withdrawal request submitted successfully!');
+
+        try {
+            await requestWithdrawal(balance);
+            toast.success('Withdrawal request submitted successfully!');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to submit withdrawal request');
+        }
     };
 
     return (
@@ -54,9 +67,10 @@ const DeliveryWallet = () => {
 
                         <button
                             onClick={handleWithdraw}
-                            className="bg-white text-primary-600 px-8 py-3 rounded-full font-bold shadow-lg hover:bg-primary-50 active:scale-95 transition-all"
+                            disabled={loading || balance < 100}
+                            className="bg-white text-primary-600 px-8 py-3 rounded-full font-bold shadow-lg hover:bg-primary-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Withdraw Cash
+                            {loading ? 'Processing...' : 'Withdraw Cash'}
                         </button>
                     </div>
                 </motion.div>
@@ -84,7 +98,9 @@ const DeliveryWallet = () => {
                             <FiClock className="text-blue-600 text-xl" />
                         </div>
                         <p className="text-gray-500 text-xs font-semibold uppercase tracking-tight mb-1">Processing</p>
-                        <p className="text-xl font-black text-gray-800">{formatPrice(0)}</p>
+                        <p className="text-xl font-black text-gray-800">
+                            {formatPrice(transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending').reduce((acc, curr) => acc + curr.amount, 0))}
+                        </p>
                     </motion.div>
                 </div>
 
@@ -94,8 +110,8 @@ const DeliveryWallet = () => {
                         <button
                             onClick={() => setActiveTab('transactions')}
                             className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === 'transactions'
-                                    ? 'bg-primary-600 text-white shadow-md'
-                                    : 'bg-white text-gray-500 hover:bg-gray-100'
+                                ? 'bg-primary-600 text-white shadow-md'
+                                : 'bg-white text-gray-500 hover:bg-gray-100'
                                 }`}
                         >
                             Transactions
@@ -103,8 +119,8 @@ const DeliveryWallet = () => {
                         <button
                             onClick={() => setActiveTab('withdrawals')}
                             className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === 'withdrawals'
-                                    ? 'bg-primary-600 text-white shadow-md'
-                                    : 'bg-white text-gray-500 hover:bg-gray-100'
+                                ? 'bg-primary-600 text-white shadow-md'
+                                : 'bg-white text-gray-500 hover:bg-gray-100'
                                 }`}
                         >
                             Withdrawals
@@ -112,13 +128,13 @@ const DeliveryWallet = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {activeTab === 'transactions' ? (
-                            transactions.map((tx, index) => (
+                        {filteredTransactions.length > 0 ? (
+                            filteredTransactions.map((tx, index) => (
                                 <motion.div
-                                    key={tx.id}
+                                    key={tx._id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
+                                    transition={{ delay: index * 0.05 }}
                                     className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4"
                                 >
                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tx.type === 'earning' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
@@ -126,8 +142,14 @@ const DeliveryWallet = () => {
                                         {tx.type === 'earning' ? <FiArrowDownLeft size={24} /> : <FiArrowUpRight size={24} />}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="font-bold text-gray-800 text-sm">{tx.description}</p>
-                                        <p className="text-gray-400 text-xs mt-1">{tx.date}</p>
+                                        <p className="font-bold text-gray-800 text-sm line-clamp-1">{tx.description}</p>
+                                        <p className="text-gray-400 text-xs mt-1">
+                                            {new Date(tx.createdAt).toLocaleDateString('en-IN', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric'
+                                            })}
+                                        </p>
                                     </div>
                                     <div className="text-right">
                                         <p className={`font-black ${tx.type === 'earning' ? 'text-green-600' : 'text-red-600'
@@ -135,8 +157,10 @@ const DeliveryWallet = () => {
                                             {tx.type === 'earning' ? '+' : '-'} {formatPrice(tx.amount)}
                                         </p>
                                         <div className="flex items-center justify-end gap-1 mt-1">
-                                            <FiCheckCircle size={10} className="text-green-500" />
-                                            <span className="text-[10px] text-green-600 font-bold uppercase">{tx.status}</span>
+                                            <FiCheckCircle size={10} className={tx.status === 'completed' ? "text-green-500" : "text-yellow-500"} />
+                                            <span className={`text-[10px] font-bold uppercase ${tx.status === 'completed' ? "text-green-600" : "text-yellow-600"}`}>
+                                                {tx.status}
+                                            </span>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -146,7 +170,7 @@ const DeliveryWallet = () => {
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <FiClock className="text-gray-300 text-2xl" />
                                 </div>
-                                <p className="text-gray-500 font-medium">No withdrawal history found</p>
+                                <p className="text-gray-500 font-medium">No {activeTab} found</p>
                             </div>
                         )}
                     </div>

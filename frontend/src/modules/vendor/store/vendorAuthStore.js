@@ -9,6 +9,10 @@ export const useVendorAuthStore = create(
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      registrationDraft: null,
+
+      setRegistrationDraft: (data) => set({ registrationDraft: { ...get().registrationDraft, ...data } }),
+      clearRegistrationDraft: () => set({ registrationDraft: null }),
 
       // Vendor login action
       login: async (email, password, rememberMe = false) => {
@@ -180,7 +184,8 @@ export const useVendorAuthStore = create(
       partialize: (state) => ({
         vendor: state.vendor,
         token: state.token,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
+        registrationDraft: state.registrationDraft
       }), // Only persist these fields
     }
   )

@@ -6,6 +6,8 @@ export const useDeliveryStore = create((set, get) => ({
     assignedOrders: [],
     availableOrders: [],
     currentOrder: null,
+    transactions: [],
+    walletBalance: 0,
     loading: false,
     error: null,
 
@@ -109,6 +111,38 @@ export const useDeliveryStore = create((set, get) => ({
             await api.post('/delivery/location', { lat, lng });
         } catch (error) {
             console.error('Update Location Error:', error);
+        }
+    },
+
+    fetchWalletData: async () => {
+        set({ loading: true, error: null });
+        try {
+            const response = await api.get('/delivery/wallet/transactions');
+            if (response.success) {
+                set({
+                    transactions: response.data.transactions,
+                    walletBalance: response.data.balance,
+                    loading: false
+                });
+            }
+        } catch (error) {
+            set({ error: error.message || 'Failed to fetch wallet data', loading: false });
+            console.error('Fetch Wallet Data Error:', error);
+        }
+    },
+
+    requestWithdrawal: async (amount) => {
+        set({ loading: true, error: null });
+        try {
+            const response = await api.post('/delivery/wallet/withdraw', { amount });
+            if (response.success) {
+                // Refresh wallet data after withdrawal
+                await get().fetchWalletData();
+                return response;
+            }
+        } catch (error) {
+            set({ loading: false });
+            throw error;
         }
     }
 }));

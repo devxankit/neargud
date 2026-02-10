@@ -517,11 +517,11 @@ const MobileProductDetail = () => {
                     </div>
                   </Link>
                   <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-50">
-                    <button className="flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-50 text-primary-600 text-[10px] font-black uppercase tracking-widest hover:bg-primary-100 transition-colors">
+                    <button className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
                       <FiMessageCircle className="text-sm" />
                       Chat Seller
                     </button>
-                    <button className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors">
+                    <button className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
                       <FiShare2 className="text-sm" />
                       Share Product
                     </button>
@@ -546,41 +546,45 @@ const MobileProductDetail = () => {
                 </div>
               )}
 
-              {/* Quantity & Shortcut Action */}
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Quantity</h4>
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center bg-slate-100 rounded-2xl p-1.5 gap-2">
+              {/* Quantity & Action Section */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Quantity</h4>
+                  <div className="flex flex-col gap-4">
+                    {/* Centered Quantity Selector */}
+                    <div className="flex items-center justify-between bg-white border border-slate-100 shadow-sm rounded-2xl p-2 w-36">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleQuantityChange(-1)}
+                        className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 disabled:opacity-50"
+                        disabled={quantity <= 1}>
+                        <FiMinus strokeWidth={3} />
+                      </motion.button>
+                      <span className="flex-1 text-center font-black text-slate-900 text-lg">
+                        {cartItem?.quantity || quantity}
+                      </span>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleQuantityChange(1)}
+                        className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 disabled:opacity-50"
+                        disabled={(cartItem?.quantity || quantity) >= (product.stockQuantity || 10)}>
+                        <FiPlus strokeWidth={3} />
+                      </motion.button>
+                    </div>
+
+                    {/* Full Width Add to Bag */}
                     <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleQuantityChange(-1)}
-                      className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-800 disabled:opacity-50"
-                      disabled={quantity <= 1}>
-                      <FiMinus strokeWidth={3} />
-                    </motion.button>
-                    <span className="w-12 text-center font-black text-slate-900 text-lg">
-                      {cartItem?.quantity || quantity}
-                    </span>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleQuantityChange(1)}
-                      className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-800 disabled:opacity-50"
-                      disabled={(cartItem?.quantity || quantity) >= (product.stockQuantity || 10)}>
-                      <FiPlus strokeWidth={3} />
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleAddToCart}
+                      disabled={product.stock === "out_of_stock" || product.isBuy === false}
+                      className="w-full h-14 bg-[#EEEFFF] text-[#6366F1] rounded-2xl font-black uppercase text-[10px] tracking-wider flex items-center justify-center gap-3 border border-indigo-50 shadow-sm shadow-indigo-100/50">
+                      <FiShoppingBag className="text-base" strokeWidth={2.5} />
+                      {cartItem ? "Update Quantity" : "Add to Bag"}
                     </motion.button>
                   </div>
-
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleAddToCart}
-                    disabled={product.stock === "out_of_stock" || product.isBuy === false}
-                    className="flex-1 min-w-[160px] h-14 bg-indigo-50 text-indigo-700 rounded-2xl font-black uppercase text-[9px] tracking-wider flex items-center justify-center gap-2 border border-indigo-100 whitespace-nowrap">
-                    <FiShoppingBag className="text-sm shrink-0" />
-                    {cartItem ? "Update Quantity" : "Add to Bag"}
-                  </motion.button>
                 </div>
-                <div className="px-1 text-[10px] font-bold text-slate-400">
-                  {product.stockQuantity || 10} Units Available in Store
+                <div className="px-1 text-[10px] font-bold text-slate-400 italic">
+                  {product.stockQuantity || 0} Units Available in Store
                 </div>
               </div>
 
@@ -650,7 +654,7 @@ const MobileProductDetail = () => {
                       }
                       setIsReviewModalOpen(true);
                     }}
-                    className="px-4 py-2 rounded-xl bg-primary-50 text-primary-600 text-[10px] font-black uppercase tracking-wider">
+                    className="px-4 py-2 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[10px] font-black uppercase tracking-wider">
                     Add Review
                   </motion.button>
                 </div>
@@ -727,7 +731,7 @@ const MobileProductDetail = () => {
               disabled={product.stock === "out_of_stock" || product.isBuy === false}
               className={`flex-1 h-14 rounded-2xl font-black uppercase text-[9px] tracking-wider transition-all flex items-center justify-center gap-2 border-2 whitespace-nowrap ${product.stock === "out_of_stock" || product.isBuy === false
                 ? "bg-slate-50 border-slate-100 text-slate-300"
-                : "bg-white border-primary-200 text-primary-600"
+                : "bg-[#EEEFFF] border-indigo-50 text-[#6366F1]"
                 }`}>
               <FiShoppingBag className="text-base shrink-0" />
               {cartItem ? "Update Quantity" : "Add to Bag"}

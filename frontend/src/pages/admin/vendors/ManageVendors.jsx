@@ -46,7 +46,6 @@ const ManageVendors = () => {
     vendorName: null,
   });
 
-  const [commissionRate, setCommissionRate] = useState("");
 
   // ================= LOAD VENDORS =================
   const loadVendors = async () => {
@@ -141,13 +140,6 @@ const ManageVendors = () => {
       ),
     },
     {
-      key: "commissionRate",
-      label: "Commission",
-      render: (value) => (
-        <span className="font-semibold">{(value * 100).toFixed(1)}%</span>
-      ),
-    },
-    {
       key: "isActive",
       label: "Profile Status",
       render: (value, row) => (
@@ -197,21 +189,6 @@ const ManageVendors = () => {
           >
             <FiEye />
           </button>
-          <button
-            onClick={() => {
-              setCommissionRate((row.commissionRate * 100).toFixed(1));
-              setActionModal({
-                isOpen: true,
-                type: "commission",
-                vendorId: row.id,
-                vendorName: row.storeName,
-              });
-            }}
-            className="p-2 text-purple-600 hover:bg-purple-50 rounded"
-            title="Update Commission"
-          >
-            <FiDollarSign />
-          </button>
         </div>
       ),
     },
@@ -232,19 +209,6 @@ const ManageVendors = () => {
     closeModal();
   };
 
-  const handleCommissionUpdate = async () => {
-    const rate = parseFloat(commissionRate) / 100;
-
-    if (isNaN(rate) || rate < 0 || rate > 1) {
-      toast.error("Invalid commission rate");
-      return;
-    }
-
-    await updateVendorCommissionApi(actionModal.vendorId, rate);
-    toast.success("Commission updated");
-    loadVendors();
-    closeModal();
-  };
 
   const handleToggleActive = async () => {
     const isActive = actionModal.type === "activate";
@@ -306,29 +270,6 @@ const ManageVendors = () => {
       };
     }
 
-    if (actionModal.type === "commission") {
-      return {
-        title: "Update Commission",
-        message: `Update commission for ${actionModal.vendorName}`,
-        confirmText: "Update",
-        onConfirm: handleCommissionUpdate,
-        type: "info",
-        customContent: (
-          <div className="mt-4">
-            <label className="text-sm font-semibold">Commission (%)</label>
-            <input
-              type="number"
-              value={commissionRate}
-              onChange={(e) => setCommissionRate(e.target.value)}
-              className="w-full mt-2 p-2 border rounded"
-              min="0"
-              max="100"
-              step="0.1"
-            />
-          </div>
-        ),
-      };
-    }
 
     return null;
   };

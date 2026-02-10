@@ -29,7 +29,15 @@ const Promotions = () => {
       });
 
       if (data.success && data.data?.promotions) {
-        setPromotions(data.data.promotions);
+        const now = new Date();
+        const activePromotions = data.data.promotions.filter(promo => {
+          const isStatusActive = promo.status === 'active';
+          const isNotExpired = new Date(promo.endDate) > now;
+          const isStarted = new Date(promo.startDate) <= now;
+          const hasUsageLeft = promo.usageLimit === -1 || (promo.usedCount || 0) < promo.usageLimit;
+          return isStatusActive && isNotExpired && isStarted && hasUsageLeft;
+        });
+        setPromotions(activePromotions);
         setTotalPages(data.pagination?.pages || 1);
       }
     } catch (error) {

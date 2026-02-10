@@ -40,7 +40,7 @@ export const registerDeliveryPartner = async (partnerData) => {
         registrationData: {
             ...partnerData,
             email: email.toLowerCase(),
-            password: hashedPassword
+            password: password // Model will hash this on create
         },
         expiresAt
     });
@@ -225,7 +225,7 @@ export const resetPassword = async (email, otp, newPassword) => {
         throw new Error('Delivery partner not found');
     }
 
-    partner.password = await bcrypt.hash(newPassword, 12);
+    partner.password = newPassword; // Pre-save hook will hash this
     await partner.save();
 
     return { message: 'Password reset successfully' };

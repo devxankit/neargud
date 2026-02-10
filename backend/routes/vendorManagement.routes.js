@@ -30,7 +30,7 @@ router.get('/:id', asyncHandler(getVendor));
 router.get('/:id/orders', asyncHandler(getOrders));
 router.put('/:id/status', asyncHandler(updateStatus));
 router.put('/:id/active', asyncHandler(toggleActiveStatus));
-router.put('/:id/commission', asyncHandler(updateCommission));
+// router.put('/:id/commission', asyncHandler(updateCommission));
 
 export default router;
 

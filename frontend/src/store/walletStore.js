@@ -116,4 +116,23 @@ export const useWalletStore = create((set, get) => ({
         const state = get();
         return state.wallet?.balance || 0;
     },
+
+    // Debit money from wallet
+    debitMoney: async (amount, description) => {
+        set({ isLoading: true, error: null });
+        try {
+            if (!amount || Number(amount) <= 0) {
+                throw new Error('Please enter a valid amount');
+            }
+            await walletApi.debitMoney(Number(amount), description);
+            await get().fetchWallet();
+            await get().fetchTransactions();
+            toast.success('Funds debited successfully');
+            set({ isLoading: false });
+        } catch (error) {
+            set({ error: error.message, isLoading: false });
+            toast.error(error.response?.data?.message || 'Failed to debit money');
+            throw error;
+        }
+    },
 }));

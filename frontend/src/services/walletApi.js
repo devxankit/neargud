@@ -15,4 +15,7 @@ export const walletApi = {
 
     // Verify Razorpay payment and credit wallet
     verifyPayment: (data) => api.post('/user/wallet/verify-payment', data),
+
+    // Debit money from wallet
+    debitMoney: (amount, description) => api.post('/user/wallet/debit-money', { amount, description }),
 };

@@ -81,8 +81,8 @@ const PerformanceMetrics = () => {
       label: 'Status',
       render: (v) => (
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${v === 'delivered' ? 'bg-green-100 text-green-700' :
-            v === 'cancelled' ? 'bg-red-100 text-red-700' :
-              'bg-blue-100 text-blue-700'
+          v === 'cancelled' ? 'bg-red-100 text-red-700' :
+            'bg-blue-100 text-blue-700'
           }`}>
           {v}
         </span>
@@ -101,7 +101,7 @@ const PerformanceMetrics = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FiTrendingUp className="text-primary-600" />
-            Performance Insights
+            Performance-metrics
           </h1>
           <p className="text-sm text-gray-500">Analytics tracking for your store performance</p>
         </div>
@@ -170,7 +170,7 @@ const PerformanceMetrics = () => {
 
             <div className="pt-4 border-t border-gray-100">
               <p className="text-xs text-center text-gray-400">
-                Earnings are released 7 days after order delivery.
+                Earnings are released immediately after order delivery.
               </p>
             </div>
           </div>

@@ -7,28 +7,28 @@ import toast from 'react-hot-toast';
 
 const VendorRegister = () => {
   const navigate = useNavigate();
-  const { register: registerVendor, isLoading } = useVendorAuthStore();
+  const { register: registerVendor, isLoading, registrationDraft, setRegistrationDraft, clearRegistrationDraft } = useVendorAuthStore();
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    storeName: '',
-    storeDescription: '',
+    name: registrationDraft?.name || '',
+    email: registrationDraft?.email || '',
+    phone: registrationDraft?.phone || '',
+    password: registrationDraft?.password || '',
+    confirmPassword: registrationDraft?.confirmPassword || '',
+    storeName: registrationDraft?.storeName || '',
+    storeDescription: registrationDraft?.storeDescription || '',
     address: {
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: 'USA',
+      street: registrationDraft?.address?.street || '',
+      city: registrationDraft?.address?.city || '',
+      state: registrationDraft?.address?.state || '',
+      zipCode: registrationDraft?.address?.zipCode || '',
+      country: registrationDraft?.address?.country || 'USA',
     },
     businessLicense: null,
     panCard: null,
-    businessLicenseNumber: '',
-    panCardNumber: '',
-    agreedToPolicies: false,
+    businessLicenseNumber: registrationDraft?.businessLicenseNumber || '',
+    panCardNumber: registrationDraft?.panCardNumber || '',
+    agreedToPolicies: registrationDraft?.agreedToPolicies || false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -36,31 +36,36 @@ const VendorRegister = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
+    let updatedData = {};
+
     if (name.startsWith('address.')) {
       const addressField = name.split('.')[1];
-      setFormData({
-        ...formData,
+      updatedData = {
         address: {
           ...formData.address,
           [addressField]: value,
         },
-      });
+      };
     } else if (type === 'file') {
       setFormData({
         ...formData,
         [name]: e.target.files[0],
       });
+      return; // Files not saved to draft
     } else if (type === 'checkbox') {
-      setFormData({
-        ...formData,
-        [name]: checked,
-      });
+      updatedData = { [name]: checked };
     } else {
-      setFormData({
-        ...formData,
-        [name]: name === 'panCardNumber' ? value.toUpperCase() : value,
-      });
+      updatedData = { [name]: name === 'panCardNumber' ? value.toUpperCase() : value };
     }
+
+    const newFormData = { ...formData, ...updatedData };
+    setFormData(newFormData);
+
+    // Update draft in store (excluding files)
+    const draftData = { ...newFormData };
+    delete draftData.businessLicense;
+    delete draftData.panCard;
+    setRegistrationDraft(draftData);
   };
 
   const handleSubmit = async (e) => {
@@ -115,6 +120,8 @@ const VendorRegister = () => {
       const result = await registerVendor(data);
 
       toast.success(result.message || 'Registration successful!');
+      // Clear draft on success
+      clearRegistrationDraft();
       // Navigate to verification page
       navigate('/vendor/verification', { state: { email: formData.email } });
     } catch (error) {

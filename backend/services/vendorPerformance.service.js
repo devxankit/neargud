@@ -2,6 +2,7 @@ import Product from '../models/Product.model.js';
 import Order from '../models/Order.model.js';
 import mongoose from 'mongoose';
 import { getAllVendorOrdersTransformed } from './vendorOrders.service.js';
+import Settings from '../models/Settings.model.js';
 
 /**
  * Get vendor performance metrics
@@ -46,9 +47,11 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
       vendorId: vendorId,
     });
 
-    // Get vendor for commission rate
-    const vendor = await mongoose.model('Vendor').findById(vendorId).lean();
-    const defaultCommissionRate = vendor?.commissionRate || 0.1;
+    // Get global commission rate from settings
+    const settings = await Settings.findOne();
+    const defaultCommissionRate = settings?.general?.defaultCommissionRate
+      ? settings.general.defaultCommissionRate / 100
+      : 0.1; // Default to 10%
 
     // Get vendor product IDs for fallback calculation
     const vendorProductIds = await Product.find({ vendorId }).distinct('_id');
@@ -59,52 +62,75 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
     let totalEarnings = 0;
     let pendingEarnings = 0;
     let paidEarnings = 0;
+    let successfulOrdersCount = 0;
     const customerIds = new Set();
 
     orders.forEach((order) => {
       let orderSubtotal = 0;
       let orderEarnings = 0;
-      let foundInBreakdown = false;
+      let itemsFound = false;
 
-      // Try to get data from vendorBreakdown first
-      if (order.vendorBreakdown && order.vendorBreakdown.length > 0) {
+      // Filter out unsuccessful orders from metrics (but they remain in recentOrders)
+      const isUnsuccessful = ['cancelled', 'returned', 'refunded', 'cancellation_requested', 'return_requested'].includes(order.status);
+
+      // 1. First, check if there's data in vendorBreakdown
+      if (order.vendorBreakdown && Array.isArray(order.vendorBreakdown)) {
         const vendorItem = order.vendorBreakdown.find(
           (vi) => vi.vendorId?.toString() === vendorId.toString()
         );
 
         if (vendorItem) {
           orderSubtotal = vendorItem.subtotal || 0;
-          orderEarnings = vendorItem.vendorEarnings || (orderSubtotal - (vendorItem.commission || 0));
-          foundInBreakdown = true;
+          // Use current commission rate for calculations to reflect admin changes immediately
+          const commission = orderSubtotal * defaultCommissionRate;
+          orderEarnings = orderSubtotal - commission;
+          itemsFound = true;
         }
       }
 
-      // Fallback: Calculate from items if not found in breakdown
-      if (!foundInBreakdown && order.items) {
-        order.items.forEach(item => {
-          const pId = item.productId?.toString() || item.productId;
-          if (vendorProductIdStrings.includes(pId)) {
-            const itemSubtotal = (item.price || 0) * (item.quantity || 1);
-            orderSubtotal += itemSubtotal;
-          }
-        });
-        const commission = orderSubtotal * defaultCommissionRate;
-        orderEarnings = orderSubtotal - commission;
+      // 2. If not found in breakdown or subtotal is 0, calculate from items
+      if (!itemsFound || orderSubtotal === 0) {
+        let calculatedSubtotal = 0;
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach(item => {
+            const productVendorId = item.productId?.vendorId?.toString();
+            const pId = item.productId?._id?.toString() || item.productId?.toString();
+
+            if (productVendorId === vendorId.toString() || vendorProductIdStrings.includes(pId)) {
+              calculatedSubtotal += (item.price || 0) * (item.quantity || 1);
+            }
+          });
+        }
+
+        if (calculatedSubtotal > 0) {
+          orderSubtotal = calculatedSubtotal;
+          const commission = orderSubtotal * defaultCommissionRate;
+          orderEarnings = orderSubtotal - commission;
+          itemsFound = true;
+        }
       }
 
-      if (orderSubtotal > 0) {
+      // Only add to metrics if items were found and order is NOT unsuccessful
+      if (itemsFound && orderSubtotal > 0 && !isUnsuccessful) {
         totalRevenue += orderSubtotal;
         totalEarnings += orderEarnings;
+        successfulOrdersCount++;
 
         // Track customer
-        if (order.customerId || order.userId) {
-          customerIds.add((order.customerId || order.userId).toString());
+        const customerId = order.customerId?._id || order.customerId || order.userId?._id || order.userId;
+        if (customerId) {
+          customerIds.add(customerId.toString());
         }
 
         // Categorize earnings by order status
-        if (order.status === 'delivered' || order.status === 'completed') {
+        // Settlement rule: Direct release upon delivery
+        const isDelivered = ['delivered', 'completed'].includes(order.status);
+
+        if (order.fundsReleased || isDelivered) {
+          // Funds are officially paid/released
           paidEarnings += orderEarnings;
-        } else if (order.status !== 'cancelled' && order.status !== 'returned' && order.status !== 'refunded') {
+        } else {
+          // Everything else that is NOT unsuccessful is "Pending" (e.g. processing, shipped)
           pendingEarnings += orderEarnings;
         }
       }
@@ -179,7 +205,7 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
                 in: {
                   $cond: [
                     { $eq: ['$$this.vendorId', new mongoose.Types.ObjectId(vendorId)] },
-                    { $add: ['$$value', '$$this.subtotal'] },
+                    { $add: ['$$value', { $ifNull: ['$$this.subtotal', 0] }] },
                     '$$value',
                   ],
                 },
@@ -233,13 +259,32 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
     }));
 
     // Recent orders (already sorted by date desc)
-    const recentOrders = orders.slice(0, 5).map(order => ({
-      id: order.orderCode || order._id,
-      customerName: order.shippingAddress?.name || 'Guest',
-      date: order.orderDate,
-      total: order.vendorBreakdown?.find(v => v.vendorId.toString() === vendorId.toString())?.subtotal || 0,
-      status: order.status
-    }));
+    const recentOrders = orders.slice(0, 5).map(order => {
+      // Find this specific vendor's subtotal from the breakdown
+      let vendorSubtotal = 0;
+      if (order.vendorBreakdown && Array.isArray(order.vendorBreakdown)) {
+        const breakdown = order.vendorBreakdown.find(v => v.vendorId?.toString() === vendorId.toString());
+        vendorSubtotal = breakdown?.subtotal || 0;
+      }
+
+      // If breakdown is empty or missing subtotal, calculate from items
+      if (vendorSubtotal === 0 && order.items) {
+        order.items.forEach(item => {
+          const pId = item.productId?._id?.toString() || item.productId?.toString();
+          if (vendorProductIdStrings.includes(pId)) {
+            vendorSubtotal += (item.price || 0) * (item.quantity || 1);
+          }
+        });
+      }
+
+      return {
+        id: order.orderCode || order._id,
+        customerName: order.shippingAddress?.name || order.customerSnapshot?.name || 'Guest',
+        date: order.orderDate,
+        total: vendorSubtotal,
+        status: order.status
+      };
+    });
 
     return {
       metrics,

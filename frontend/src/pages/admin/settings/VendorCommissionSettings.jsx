@@ -69,8 +69,8 @@ const VendorCommissionSettings = () => {
                                 placeholder="Enter commission percentage (e.g. 10)"
                             />
                         </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            This commission rate will be applied to all vendor orders by default.
+                        <p className="mt-2 text-xs text-gray-500 italic">
+                            This commission rate applies to <b>all vendors</b> globally. Individual vendor rates are no longer supported.
                         </p>
                     </div>
 

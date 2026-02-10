@@ -272,7 +272,7 @@ const OrderDetail = () => {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Cancellation Request Information */}
-          {(order.status === 'cancellation_requested' || order.cancellationRequest) && (
+          {(order.status === 'cancellation_requested' || (order.cancellationRequest && order.cancellationRequest.requestedAt)) && (
             <div className={`bg-white rounded-xl p-6 shadow-sm border-l-4 ${order.status === 'cancellation_requested' ? 'border-red-500' : 'border-gray-300'} border border-gray-200 mb-4`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-widest">
@@ -327,7 +327,7 @@ const OrderDetail = () => {
             </div>
           )}
 
-          {order.returnRequest && (
+          {order.returnRequest && order.returnRequest.requestedAt && (
             <div className={`bg-white rounded-xl p-6 shadow-sm border-l-4 ${order.returnRequest.status === 'pending' ? 'border-orange-500' : 'border-gray-200'} border border-gray-200 mb-4`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-widest">

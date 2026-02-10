@@ -17,12 +17,12 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { 
-  fetchVendorById, 
-  fetchVendorOrders, 
+import {
+  fetchVendorById,
+  fetchVendorOrders,
   fetchVendorAnalytics,
   updateVendorStatusApi,
-  updateVendorCommissionApi 
+  updateVendorCommissionApi
 } from '../../../services/vendorApi';
 import Badge from '../../../components/Badge';
 import DataTable from '../../../components/Admin/DataTable';
@@ -45,8 +45,6 @@ const VendorDetail = () => {
   });
   const [earningsSummary, setEarningsSummary] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [isEditingCommission, setIsEditingCommission] = useState(false);
-  const [commissionRate, setCommissionRate] = useState('');
 
   const loadVendorData = async () => {
     setLoading(true);
@@ -58,10 +56,10 @@ const VendorDetail = () => {
 
       if (vendorRes?.vendor) {
         const v = vendorRes.vendor;
-        setVendor({ 
-          ...v, 
+        setVendor({
+          ...v,
           id: v._id,
-          joinDate: v.createdAt 
+          joinDate: v.createdAt
         });
         setCommissionRate(((v.commissionRate || 0) * 100).toFixed(1));
       }
@@ -93,7 +91,7 @@ const VendorDetail = () => {
           date: o.createdAt
         }));
         setVendorOrders(formattedOrders);
-        
+
         // Derive commissions from orders
         const commissionList = formattedOrders.map(o => {
           const vb = o.vendorBreakdown?.find(vb => vb.vendorId === id || vb.vendorId?._id === id);
@@ -140,22 +138,6 @@ const VendorDetail = () => {
     }
   };
 
-  const handleCommissionUpdate = async () => {
-    const rate = parseFloat(commissionRate) / 100;
-    if (isNaN(rate) || rate < 0 || rate > 1) {
-      toast.error('Please enter a valid commission rate (0-100%)');
-      return;
-    }
-
-    try {
-      await updateVendorCommissionApi(id, rate);
-      toast.success('Commission rate updated successfully');
-      setIsEditingCommission(false);
-      loadVendorData();
-    } catch (error) {
-      toast.error('Failed to update commission rate');
-    }
-  };
 
   if (loading) {
     return (
@@ -332,13 +314,13 @@ const VendorDetail = () => {
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex border-b border-gray-200">
-          {['overview', 'documents', 'orders', 'commissions', 'settings'].map((tab) => (
+          {['overview', 'documents', 'orders', 'commissions'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-3 font-semibold text-sm transition-colors ${activeTab === tab
-                  ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}>
               {tab === 'documents' ? 'Verification' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -421,12 +403,6 @@ const VendorDetail = () => {
                         {earningsSummary ? formatPrice(earningsSummary.pendingEarnings) : formatPrice(0)}
                       </p>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-4">
-                      <p className="text-xs text-purple-600 mb-1">Commission Rate</p>
-                      <p className="text-2xl font-bold text-purple-800">
-                        {((vendor.commissionRate || 0) * 100).toFixed(1)}%
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -451,9 +427,9 @@ const VendorDetail = () => {
                       </div>
                     </div>
                     {vendor.verificationDocs?.businessLicense?.url && (
-                      <a 
-                        href={vendor.verificationDocs.businessLicense.url} 
-                        target="_blank" 
+                      <a
+                        href={vendor.verificationDocs.businessLicense.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-bold transition-all shadow-sm"
                       >
@@ -463,9 +439,9 @@ const VendorDetail = () => {
                   </div>
                   {vendor.verificationDocs?.businessLicense?.url ? (
                     <div className="aspect-video w-full overflow-hidden rounded-xl bg-white border shadow-inner group relative">
-                      <img 
-                        src={vendor.verificationDocs.businessLicense.url} 
-                        alt="Business License" 
+                      <img
+                        src={vendor.verificationDocs.businessLicense.url}
+                        alt="Business License"
                         className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
@@ -491,9 +467,9 @@ const VendorDetail = () => {
                       </div>
                     </div>
                     {vendor.verificationDocs?.panCard?.url && (
-                      <a 
-                        href={vendor.verificationDocs.panCard.url} 
-                        target="_blank" 
+                      <a
+                        href={vendor.verificationDocs.panCard.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg text-sm font-bold transition-all shadow-sm"
                       >
@@ -503,9 +479,9 @@ const VendorDetail = () => {
                   </div>
                   {vendor.verificationDocs?.panCard?.url ? (
                     <div className="aspect-video w-full overflow-hidden rounded-xl bg-white border shadow-inner group relative">
-                      <img 
-                        src={vendor.verificationDocs.panCard.url} 
-                        alt="PAN Card" 
+                      <img
+                        src={vendor.verificationDocs.panCard.url}
+                        alt="PAN Card"
                         className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
@@ -558,55 +534,6 @@ const VendorDetail = () => {
             </div>
           )}
 
-          {/* Settings Tab */}
-          {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-4">Commission Rate</h2>
-                <div className="flex items-center gap-4">
-                  {isEditingCommission ? (
-                    <>
-                      <input
-                        type="number"
-                        value={commissionRate}
-                        onChange={(e) => setCommissionRate(e.target.value)}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-32"
-                        placeholder="10.0"
-                      />
-                      <button
-                        onClick={handleCommissionUpdate}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                        Save
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsEditingCommission(false);
-                          setCommissionRate(((vendor.commissionRate || 0) * 100).toFixed(1));
-                        }}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-2xl font-bold text-gray-800">
-                        {((vendor.commissionRate || 0) * 100).toFixed(1)}%
-                      </p>
-                      <button
-                        onClick={() => setIsEditingCommission(true)}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
-                        <FiEdit />
-                        Edit
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </motion.div>

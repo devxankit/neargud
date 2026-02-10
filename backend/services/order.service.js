@@ -137,15 +137,8 @@ export const createOrder = async (orderData, io = null) => {
       const vendorIdStr = vendorId.toString();
 
       if (!vendorItemsMap[vendorIdStr]) {
-        // Use vendor specific commission if it differs from default 0.1 (10%),
-        // otherwise use the global setting
-        let commissionRate = product.vendorId.commissionRate;
-
-        // If vendor has standard 10% (0.1) and global setting is different, use global
-        // This assumes 0.1 in vendor model implies "use default" since we don't have a specific "useDefault" flag
-        if (commissionRate === 0.1 && globalCommissionRate !== 0.1) {
-          commissionRate = globalCommissionRate;
-        }
+        // ALWAYS use the global setting for commission rate as per requirement
+        let commissionRate = globalCommissionRate;
 
         vendorItemsMap[vendorIdStr] = {
           vendorId: vendorId,
@@ -254,11 +247,14 @@ export const createOrder = async (orderData, io = null) => {
 
       // Handle wallet deduction if wallet used for this order
       if (vWalletUsed > 0) {
+        const itemNames = group.items.map(i => i.name).join(', ');
+        const displayNames = itemNames.length > 40 ? itemNames.substring(0, 40) + '...' : itemNames;
+
         await createWalletTransaction(
           customerId.toString(),
           'debit',
           vWalletUsed,
-          `Order Payment - ${orderCode}`,
+          `Payment for ${displayNames} (${orderCode})`,
           order._id.toString(),
           'order'
         );
@@ -801,14 +797,11 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
       const deliveredAt = new Date();
       updateData.tracking = { ...order.tracking, deliveredAt };
 
-      // Set return window (7 days from delivery)
-      const returnWindowDays = 7;
-      const returnWindowExpiresAt = new Date(deliveredAt);
-      returnWindowExpiresAt.setDate(returnWindowExpiresAt.getDate() + returnWindowDays);
-      updateData.returnWindowExpiresAt = returnWindowExpiresAt;
-      updateData.fundsReleased = false;
+      // Direct settlement (no 7-day wait window as per user request)
+      updateData.returnWindowExpiresAt = new Date(deliveredAt);
+      updateData.fundsReleased = true;
 
-      // Credit vendor wallets (to pending balance)
+      // Credit vendor wallets (direct to available balance)
       if (order.vendorBreakdown && order.vendorBreakdown.length > 0) {
         try {
           for (const vb of order.vendorBreakdown) {
@@ -817,18 +810,18 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
               const earnings = (vb.subtotal || 0) - (vb.commission || 0);
 
               if (earnings > 0) {
-                // Use creditPendingWallet instead of creditWallet
-                await vendorWalletService.creditPendingWallet(
+                // Use creditWallet for direct availability
+                await vendorWalletService.creditWallet(
                   vb.vendorId,
                   earnings,
-                  `Order #${order.orderCode} settlement (Pending)`,
+                  `Order #${order.orderCode} settlement`,
                   order._id
                 );
               }
             }
           }
         } catch (walletError) {
-          console.error('Error crediting vendor pending wallet:', walletError);
+          console.error('Error crediting vendor wallet:', walletError);
           throw walletError;
         }
       }

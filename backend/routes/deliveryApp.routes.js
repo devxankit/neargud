@@ -6,7 +6,9 @@ import {
     getOrderDetails,
     updateOrderStatus,
     claimOrder,
-    updateLocation
+    updateLocation,
+    getWalletTransactions,
+    requestWithdrawal
 } from '../controllers/delivery-controllers/deliveryApp.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { asyncHandler } from '../middleware/errorHandler.middleware.js';
@@ -37,5 +39,9 @@ router.get('/orders/:id', asyncHandler(getOrderDetails));
 router.post('/orders/:id/claim', asyncHandler(claimOrder));
 router.patch('/orders/:id/status', asyncHandler(updateOrderStatus));
 router.post('/location', asyncHandler(updateLocation));
+
+// Wallet Routes
+router.get('/wallet/transactions', asyncHandler(getWalletTransactions));
+router.post('/wallet/withdraw', asyncHandler(requestWithdrawal));
 
 export default router;
