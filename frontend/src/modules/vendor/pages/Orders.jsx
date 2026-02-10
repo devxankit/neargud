@@ -23,6 +23,7 @@ const Orders = () => {
     fetchStats,
     isLoading
   } = useVendorOrderStore();
+  const { vendor } = useVendorAuthStore();
 
   const vendorId = vendor?.id || vendor?._id;
 

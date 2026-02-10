@@ -122,11 +122,10 @@ class ReturnService {
             throw new Error('No valid items to return');
         }
 
-        // 3. Auto-Approval (Always True)
+        // 3. No Auto-Approval for new logic - allow review
         const config = await this.getPolicyConfig();
-        // Force auto-approve regardless of config/amount
-        let initialStatus = 'approved';
-        let refundStatus = 'processing';
+        let initialStatus = 'pending'; // Changed from 'approved' to 'pending'
+        let refundStatus = 'pending';
 
         // Determine Vendor
         let vendorId = null;
@@ -151,6 +150,7 @@ class ReturnService {
             images,
             refundAmount: totalRefundAmount,
             status: initialStatus,
+            originalStatus: order.status, // Save current status (likely 'delivered')
             refundStatus,
             refundMethod: config.refundMethod === 'customer_choice' ? (returnData.refundMethod || 'wallet') : config.refundMethod,
             statusHistory: [{
@@ -161,10 +161,35 @@ class ReturnService {
             }]
         });
 
-        // 5. Notifications
+        // 5. Update Order Status
+        await Order.findByIdAndUpdate(orderId, {
+            status: 'return_requested',
+            returnRequest: {
+                requestId: returnRequest._id,
+                returnCode,
+                reason,
+                status: initialStatus,
+                refundAmount: totalRefundAmount,
+                images,
+                requestedAt: new Date(),
+                note: description
+            },
+            $push: {
+                statusHistory: {
+                    status: 'return_requested',
+                    changedBy: userId,
+                    changedByModel: 'User',
+                    changedByRole: 'user',
+                    timestamp: new Date(),
+                    note: 'Return request submitted'
+                }
+            }
+        });
+
+        // 6. Notifications
         await notificationService.createNotification({
             recipientId: userId,
-            recipientType: 'user', // Corrected from recipientModel
+            recipientType: 'user',
             title: 'Return Request Submitted',
             message: `Your return request ${returnCode} has been submitted.`,
             type: 'return_request',
@@ -176,26 +201,15 @@ class ReturnService {
             await notificationService.createNotification({
                 recipientId: vendorId,
                 recipientType: 'vendor',
-                title: 'New Return (Auto-Approved)',
-                message: `Return ${returnCode} for Order ${order.orderCode} has been auto-approved.`,
-                type: 'return_request', // Enum valid
+                title: 'New Return Request',
+                message: `Return ${returnCode} for Order ${order.orderCode} has been submitted.`,
+                type: 'return_request',
                 relatedId: returnRequest._id,
                 onModel: 'ReturnRequest'
             });
         }
 
-        // 6. Trigger Immediate Refund
-        try {
-            // Use 'System' as the processor since it's automatic
-            await this.processRefund(returnRequest._id, null, 'System');
-            // Refresh with latest status if needed, though processRefund updates it
-        } catch (err) {
-            console.error('Auto-refund failed:', err);
-            // Don't fail the request creation, but log it. Admin can retry.
-            returnRequest.refundStatus = 'failed';
-            await returnRequest.save();
-        }
-
+        // Return here, removing automatic refund trigger for now to allow vendor approval
         return returnRequest;
     }
 
@@ -224,12 +238,50 @@ class ReturnService {
 
         await returnRequest.save();
 
+        // Sync with Order
+        // Sync with Order
+        let orderStatus = status === 'approved' ? 'return_approved' :
+            status === 'completed' ? 'returned' : 'return_requested';
+
+        if (status === 'rejected') {
+            // User requested to move back to 'delivered' on rejection
+            orderStatus = 'delivered';
+        }
+
+        await Order.findByIdAndUpdate(returnRequest.orderId, {
+            status: orderStatus,
+            'returnRequest.status': status,
+            'returnRequest.processedAt': new Date(),
+            'returnRequest.rejectionReason': status === 'rejected' ? rejectionReason : undefined,
+            $push: {
+                statusHistory: {
+                    status: orderStatus,
+                    changedBy: actorId,
+                    changedByModel: actorModel,
+                    changedByRole: actorModel === 'Vendor' ? 'vendor' : 'admin',
+                    timestamp: new Date(),
+                    note: note || rejectionReason || `Return request ${status} - Reverted to ${orderStatus}`
+                }
+            }
+        });
+
+        // Trigger Auto Refund on Approval
+        if (status === 'approved') {
+            try {
+                await this.processRefund(returnRequest._id, null, 'System');
+            } catch (error) {
+                console.error('Auto-refund failed on approval:', error);
+            }
+        }
+
         await notificationService.createNotification({
             recipientId: returnRequest.customerId,
             recipientType: 'user',
             title: `Return Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-            message: `Your return request ${returnRequest.returnCode} has been ${status}.`,
-            type: 'return_request', // Enum valid
+            message: status === 'rejected'
+                ? `Your return request for order ${returnRequest.returnCode} was rejected. Reason: ${rejectionReason}`
+                : `Your return request ${returnRequest.returnCode} has been ${status}.`,
+            type: 'return_request',
             relatedId: returnRequest._id,
             onModel: 'ReturnRequest'
         });

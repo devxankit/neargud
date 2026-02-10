@@ -8,6 +8,6 @@ export const vendorReturnApi = {
     getReturn: (requestId) => api.get(`/vendor/returns/${requestId}`),
 
     // Update return status
-    updateStatus: (requestId, status, note = '') =>
-        api.put(`/vendor/returns/${requestId}/status`, { status, note }),
+    updateStatus: (requestId, status, note = '', rejectionReason = '') =>
+        api.put(`/vendor/returns/${requestId}/status`, { status, note, rejectionReason }),
 };

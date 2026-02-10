@@ -38,7 +38,7 @@ const OrderDetail = () => {
       if (response?.success) {
         const orderData = response.data.order;
         setOrder(orderData);
-        setStatus(orderData.status);
+        setStatus(orderData.status || '');
       }
     } catch (error) {
       console.error('Error fetching order details:', error);
@@ -183,7 +183,7 @@ const OrderDetail = () => {
               </>
             ) : (
               <>
-                <Badge variant={order.status}>{order.status.replace(/_/g, ' ')}</Badge>
+                <Badge variant={order.status || 'unknown'}>{(order.status || 'unknown').replace(/_/g, ' ')}</Badge>
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
@@ -262,7 +262,7 @@ const OrderDetail = () => {
                 </div>
                 <div>
                   <p className="text-gray-500">Reason</p>
-                  <p className="font-semibold capitalize">{order.returnRequest.reason.replace(/_/g, ' ')}</p>
+                  <p className="font-semibold capitalize">{(order.returnRequest.reason || 'unknown').replace(/_/g, ' ')}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Refund Amount</p>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiCheckCircle, FiClock, FiPackage, FiTruck, FiMapPin, FiArrowLeft } from 'react-icons/fi';
+import { FiCheckCircle, FiClock, FiPackage, FiTruck, FiMapPin, FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useOrderStore } from '../store/orderStore';
 import { formatPrice } from '../utils/helpers';
@@ -60,44 +60,70 @@ const TrackOrder = () => {
     );
   }
 
+  const getStatusTimestamp = (targetStatuses) => {
+    if (!order.statusHistory || !Array.isArray(order.statusHistory)) return null;
+    const history = [...order.statusHistory].reverse().find(h => targetStatuses.includes(h.status));
+    return history ? history.timestamp : null;
+  };
+
   const getTrackingSteps = () => {
     const steps = [
       {
         label: 'Order Placed',
+        icon: FiCheckCircle,
         completed: true,
         date: order.date || order.createdAt,
         description: 'Your order has been confirmed',
       },
       {
-        label: 'Processing',
-        completed: ['processing', 'shipped', 'delivered'].includes(order.status),
-        date: (order.date || order.createdAt) && order.status !== 'pending'
-          ? new Date(new Date(order.date || order.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
-          : null,
-        description: 'We are preparing your order',
+        label: order.status === 'ready_to_ship' ? 'Ready to Ship' : 'Processing',
+        icon: FiPackage,
+        // Completed when ready to ship or later
+        completed: ['processing', 'ready_to_ship', 'dispatched', 'shipped_seller', 'shipped', 'out_for_delivery', 'delivered'].includes(order.status),
+        // Use ready_to_ship date if available, otherwise processing date
+        date: getStatusTimestamp(['ready_to_ship', 'processing']),
+        description: order.status === 'ready_to_ship' ? 'Your order is packed and ready for pickup' : 'We are preparing your order',
       },
       {
         label: 'Shipped',
-        completed: ['shipped', 'delivered'].includes(order.status),
-        date: (order.date || order.createdAt) && (order.status === 'shipped' || order.status === 'delivered')
-          ? new Date(new Date(order.date || order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
-          : null,
+        icon: FiTruck,
+        // Completed when actually shipped
+        completed: ['shipped', 'shipped_seller', 'dispatched', 'out_for_delivery', 'delivered'].includes(order.status),
+        date: getStatusTimestamp(['shipped', 'shipped_seller', 'dispatched', 'out_for_delivery']),
         description: 'Your order is on the way',
       },
       {
         label: 'Delivered',
-        completed: order.status === 'delivered',
-        date: order.status === 'delivered' ? order.estimatedDelivery : null,
+        icon: FiCheckCircle,
+        completed: order.status === 'delivered' || ['return_requested', 'return_approved', 'return_rejected', 'returned'].includes(order.status),
+        date: order.status === 'delivered' ? (getStatusTimestamp(['delivered']) || order.estimatedDelivery) : getStatusTimestamp(['delivered']),
         description: 'Your order has been delivered',
       },
     ];
+
+    if (order.returnRequest || ['return_requested', 'return_approved', 'return_rejected', 'returned'].includes(order.status)) {
+      const returnStatus = order.returnRequest?.status || order.status;
+      steps.push({
+        label: (returnStatus === 'approved' || order.status === 'return_approved') ? 'Return Approved' :
+          (returnStatus === 'rejected' || order.status === 'return_rejected') ? 'Return Rejected' :
+            (returnStatus === 'completed' || order.status === 'returned') ? 'Returned' : 'Return Requested',
+        icon: FiRefreshCw,
+        completed: ['approved', 'completed', 'returned', 'return_approved'].includes(returnStatus) || ['return_approved', 'returned'].includes(order.status),
+        date: getStatusTimestamp(['return_requested', 'return_approved', 'return_rejected', 'returned']),
+        description: (returnStatus === 'rejected' || order.status === 'return_rejected') ? `Your return request was rejected. Reason: ${order.returnRequest?.rejectionReason || 'N/A'}` :
+          (returnStatus === 'approved' || order.status === 'return_approved') ? 'Return approved, pickup scheduled' :
+            (returnStatus === 'completed' || order.status === 'returned') ? 'Return process completed' :
+              'Return request submitted',
+      });
+    }
+
     return steps;
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -169,59 +195,56 @@ const TrackOrder = () => {
                 >
                   <h2 className="text-xl font-bold text-gray-800 mb-6">Order Status</h2>
                   <div className="relative">
-                    {trackingSteps.map((step, index) => (
-                      <div key={index} className="relative pb-8 last:pb-0">
-                        {/* Timeline Line */}
-                        {index < trackingSteps.length - 1 && (
-                          <div
-                            className={`absolute left-6 top-12 w-0.5 h-full ${step.completed ? 'bg-primary-600' : 'bg-gray-200'
-                              }`}
-                          />
-                        )}
+                    {trackingSteps.map((step, index) => {
+                      const Icon = step.icon;
+                      return (
+                        <div key={index} className="relative pb-8 last:pb-0">
+                          {/* Timeline Line */}
+                          {index < trackingSteps.length - 1 && (
+                            <div
+                              className={`absolute left-6 top-12 w-0.5 h-full ${step.completed ? 'bg-primary-600' : 'bg-gray-200'
+                                }`}
+                            />
+                          )}
 
-                        {/* Step Content */}
-                        <div className="flex items-start gap-4">
-                          {/* Icon */}
-                          <div
-                            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${step.completed
-                              ? 'bg-primary-600 text-white'
-                              : 'bg-gray-200 text-gray-400'
-                              }`}
-                          >
-                            {step.completed ? (
-                              <FiCheckCircle className="text-xl" />
-                            ) : index === trackingSteps.findIndex(s => !s.completed) ? (
-                              <FiClock className="text-xl" />
-                            ) : (
-                              <div className="w-3 h-3 rounded-full bg-current" />
-                            )}
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 pt-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3
-                                className={`font-bold ${step.completed ? 'text-gray-800' : 'text-gray-400'
-                                  }`}
-                              >
-                                {step.label}
-                              </h3>
-                              {step.date && (
-                                <span className="text-sm text-gray-500">
-                                  {formatDate(step.date)}
-                                </span>
-                              )}
-                            </div>
-                            <p
-                              className={`text-sm ${step.completed ? 'text-gray-600' : 'text-gray-400'
+                          {/* Step Content */}
+                          <div className="flex items-start gap-4">
+                            {/* Icon */}
+                            <div
+                              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${step.completed
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-gray-200 text-gray-400'
                                 }`}
                             >
-                              {step.description}
-                            </p>
+                              <Icon className="text-xl" />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 pt-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <h3
+                                  className={`font-bold ${step.completed ? 'text-gray-800' : 'text-gray-400'
+                                    }`}
+                                >
+                                  {step.label}
+                                </h3>
+                                {step.date && (
+                                  <span className="text-sm text-gray-500">
+                                    {formatDate(step.date)}
+                                  </span>
+                                )}
+                              </div>
+                              <p
+                                className={`text-sm ${step.completed ? 'text-gray-600' : 'text-gray-400'
+                                  }`}
+                              >
+                                {step.description}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </motion.div>
 

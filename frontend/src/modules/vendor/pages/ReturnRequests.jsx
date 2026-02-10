@@ -241,8 +241,6 @@ const ReturnRequests = () => {
       all: returnRequests.length,
       pending: returnRequests.filter((r) => r.status === 'pending').length,
       approved: returnRequests.filter((r) => r.status === 'approved').length,
-      processing: returnRequests.filter((r) => r.status === 'processing').length,
-      completed: returnRequests.filter((r) => r.status === 'completed').length,
       rejected: returnRequests.filter((r) => r.status === 'rejected').length,
     };
   }, [returnRequests]);
@@ -268,7 +266,7 @@ const ReturnRequests = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
           <p className="text-xs sm:text-sm text-gray-600 mb-1">Total</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-800">{statusCounts.all}</p>
@@ -278,20 +276,12 @@ const ReturnRequests = () => {
           <p className="text-lg sm:text-2xl font-bold text-yellow-600">{statusCounts.pending}</p>
         </div>
         <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
-          <p className="text-xs sm:text-sm text-gray-600 mb-1">Approved</p>
-          <p className="text-lg sm:text-2xl font-bold text-green-600">{statusCounts.approved}</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
-          <p className="text-xs sm:text-sm text-gray-600 mb-1">Processing</p>
-          <p className="text-lg sm:text-2xl font-bold text-blue-600">{statusCounts.processing}</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
-          <p className="text-xs sm:text-sm text-gray-600 mb-1">Completed</p>
-          <p className="text-lg sm:text-2xl font-bold text-green-600">{statusCounts.completed}</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
           <p className="text-xs sm:text-sm text-gray-600 mb-1">Rejected</p>
           <p className="text-lg sm:text-2xl font-bold text-red-600">{statusCounts.rejected}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1">Approved</p>
+          <p className="text-lg sm:text-2xl font-bold text-green-600">{statusCounts.approved}</p>
         </div>
       </div>
 
@@ -315,10 +305,8 @@ const ReturnRequests = () => {
             options={[
               { value: 'all', label: 'All Status' },
               { value: 'pending', label: 'Pending' },
-              { value: 'approved', label: 'Approved' },
-              { value: 'processing', label: 'Processing' },
-              { value: 'completed', label: 'Completed' },
               { value: 'rejected', label: 'Rejected' },
+              { value: 'approved', label: 'Approved' },
             ]}
             className="w-full sm:w-auto min-w-[140px]"
           />

@@ -12,6 +12,7 @@ const returnRequestSchema = new mongoose.Schema(
             ref: 'Order',
             required: true,
         },
+        originalStatus: String, // To revert to if rejected
         customerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',

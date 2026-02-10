@@ -55,8 +55,18 @@ const ReturnRequestDetail = () => {
   }, [id, navigate]);
 
   const handleStatusUpdate = async (newStatus) => {
+    let rejectionReason = '';
+    if (newStatus === 'rejected') {
+      rejectionReason = window.prompt('Please provide a reason for rejection:');
+      if (rejectionReason === null) return; // Cancelled prompt
+      if (!rejectionReason.trim()) {
+        toast.error('Rejection reason is required');
+        return;
+      }
+    }
+
     try {
-      await adminReturnApi.updateStatus(id, newStatus);
+      await adminReturnApi.updateStatus(id, newStatus, '', rejectionReason);
       toast.success('Status updated successfully');
       fetchReturn();
       setIsEditing(false);

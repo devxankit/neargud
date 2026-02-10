@@ -10,6 +10,7 @@ import { getVendorOrdersTransformed } from './vendorOrders.service.js';
 import vendorWalletService from './vendorWallet.service.js';
 import notificationService from './notification.service.js';
 import { incrementPromoCodeUsage, decrementPromoCodeUsage } from './promoCode.service.js';
+import Settings from '../models/Settings.model.js';
 
 /**
  * Generate unique order code
@@ -116,8 +117,17 @@ export const createOrder = async (orderData, io = null) => {
       .select('_id vendorId vendorName taxRate taxIncluded price')
       .lean();
 
+
+
     // Group items by vendor
     const vendorItemsMap = {};
+
+    // Fetch global settings for commission rate
+    const settings = await Settings.findOne();
+    const globalCommissionRate = settings?.general?.defaultCommissionRate
+      ? settings.general.defaultCommissionRate / 100
+      : 0.1; // Default to 10% if settings not found
+
     items.forEach((item) => {
       const productId = item.productId || item.id;
       const product = products.find(p => p._id.toString() === productId.toString());
@@ -127,12 +137,22 @@ export const createOrder = async (orderData, io = null) => {
       const vendorIdStr = vendorId.toString();
 
       if (!vendorItemsMap[vendorIdStr]) {
+        // Use vendor specific commission if it differs from default 0.1 (10%),
+        // otherwise use the global setting
+        let commissionRate = product.vendorId.commissionRate;
+
+        // If vendor has standard 10% (0.1) and global setting is different, use global
+        // This assumes 0.1 in vendor model implies "use default" since we don't have a specific "useDefault" flag
+        if (commissionRate === 0.1 && globalCommissionRate !== 0.1) {
+          commissionRate = globalCommissionRate;
+        }
+
         vendorItemsMap[vendorIdStr] = {
           vendorId: vendorId,
           vendorName: product.vendorName || product.vendorId.name || product.vendorId.storeName || 'Unknown Vendor',
           items: [],
           subtotal: 0,
-          commissionRate: product.vendorId.commissionRate || 0.1,
+          commissionRate: commissionRate || globalCommissionRate,
         };
       }
       vendorItemsMap[vendorIdStr].items.push(item);
@@ -196,7 +216,8 @@ export const createOrder = async (orderData, io = null) => {
         total: vTotal,
         paymentMethod: vPayable === 0 ? 'wallet' : paymentMethod,
         paymentStatus: vPayable === 0 ? 'completed' : 'pending',
-        status: vPayable === 0 ? 'processing' : 'pending',
+        // status: vPayable === 0 ? 'processing' : 'pending', // Removed auto-processing
+        status: 'pending',
         shippingAddress: addressId,
         pricing: {
           subtotal: vSubtotal,
@@ -220,7 +241,7 @@ export const createOrder = async (orderData, io = null) => {
         }],
         statusHistory: [
           {
-            status: vPayable === 0 ? 'processing' : 'pending',
+            status: 'pending',
             changedByRole: 'user',
             timestamp: new Date(),
             note: vPayable === 0 ? 'Payment completed via wallet' : 'Order placed',
@@ -355,9 +376,11 @@ export const updateOrderPayment = async (orderId, paymentData, io = null) => {
         },
       };
 
-      // If payment completed, update order status
+      // If payment completed, update payment status but keep order status as pending
+      // Vendor will manually move it to processing
       if (status === 'completed') {
-        updateData.status = 'processing';
+        // updateData.status = 'processing'; // User requested manual transition
+        updateData.status = 'pending';
       }
 
       const updatedOrder = await Order.findByIdAndUpdate(order._id, updateData, {
@@ -617,83 +640,37 @@ export const cancelOrder = async (orderId, userId) => {
       throw new Error('Order not found');
     }
 
-    // Only allow cancellation if order is pending or processing
+    // Only allow cancellation request if order is pending or processing
     if (order.status !== 'pending' && order.status !== 'processing') {
       throw new Error('Order cannot be cancelled at this stage');
     }
 
-    // Prepare cancellation data
-    const cancellationData = {
-      cancelledAt: new Date(),
-      cancelledBy: userId,
-      cancelledByRole: 'user',
-      refundStatus: order.paymentStatus === 'completed' ? 'pending' : undefined,
-      refundAmount: order.paymentStatus === 'completed' ? order.total : undefined,
-    };
-
-    // Update order status with cancellation info and status history
+    // New Flow: Update order status to cancellation_requested
     const updatedOrder = await Order.findByIdAndUpdate(
       order._id,
       {
-        status: 'cancelled',
-        cancellation: cancellationData,
+        status: 'cancellation_requested',
+        cancellationRequest: {
+          reason: 'Order cancellation requested by user',
+          status: 'pending',
+          originalStatus: order.status, // Save current status to revert to if rejected
+          requestedAt: new Date(),
+          note: 'Order cancellation requested'
+        },
         $push: {
           statusHistory: {
-            status: 'cancelled',
+            status: 'cancellation_requested',
             changedBy: userId,
             changedByRole: 'user',
             timestamp: new Date(),
-            note: 'Order cancelled by user',
+            note: 'Cancellation requested by user',
           },
         },
       },
       { new: true, session }
     );
 
-    // If payment was completed, create refund transaction
-    if (order.paymentStatus === 'completed') {
-      const transactionCode = generateTransactionCode();
-      await Transaction.create(
-        [
-          {
-            transactionCode,
-            orderId: order._id,
-            customerId: order.customerId,
-            amount: order.total,
-            type: 'refund',
-            status: 'pending', // Refund will be processed separately
-            method: order.paymentMethod,
-            paymentGateway: order.razorpayPaymentId ? 'razorpay' : 'manual',
-            razorpayOrderId: order.razorpayOrderId,
-            razorpayPaymentId: order.razorpayPaymentId,
-          },
-        ],
-        { session }
-      );
-
-      // Create wallet transaction for refund (credit)
-      if (order.paymentMethod === 'wallet') {
-        try {
-          await createWalletTransaction(
-            order.customerId.toString(),
-            'credit',
-            order.total,
-            `Order Refund - ${order.orderCode}`,
-            order._id.toString(),
-            'refund'
-          );
-        } catch (walletError) {
-          console.error('Error creating wallet refund transaction:', walletError);
-          // Don't fail the order cancellation if wallet transaction fails
-        }
-      }
-    }
-
-    // Decrement promo code usage if applicable
-    const couponCode = updatedOrder.pricing?.couponCode;
-    if (couponCode) {
-      await decrementPromoCodeUsage(couponCode, session);
-    }
+    // NOTE: Refund logic is now moved to 'processCancellationRequest' or 'updateOrderStatus' (when status becomes 'cancelled')
 
     await session.commitTransaction();
     return updatedOrder;
@@ -711,16 +688,18 @@ export const cancelOrder = async (orderId, userId) => {
 export const validateStatusTransition = (currentStatus, newStatus, role) => {
   const validTransitions = {
     user: {
-      pending: ['cancelled'],
-      processing: ['cancelled'],
+      pending: ['cancellation_requested'],
+      processing: ['cancellation_requested'],
     },
     vendor: {
-      pending: ['processing', 'cancelled', 'on_hold'],
-      processing: ['ready_to_ship', 'on_hold', 'dispatched', 'cancelled'],
+      pending: ['processing', 'cancelled', 'on_hold', 'cancellation_requested'],
+      processing: ['ready_to_ship', 'on_hold', 'dispatched', 'cancelled', 'cancellation_requested'],
       ready_to_ship: ['dispatched', 'shipped_seller'],
       dispatched: ['shipped_seller', 'delivered'],
       shipped_seller: ['delivered'],
       on_hold: ['processing', 'ready_to_ship'],
+      cancellation_requested: ['cancelled', 'cancellation_rejected', 'processing'],
+      cancellation_rejected: ['processing', 'cancelled'],
     },
     admin: { '*': '*' },
   };
@@ -772,22 +751,51 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
       },
     };
 
-    if (newStatus === 'cancelled' && !order.cancellation) {
-      updateData.cancellation = {
-        cancelledAt: new Date(),
-        cancelledBy: changedBy,
-        cancelledByRole,
-        reason: note || 'Order cancelled',
-        refundStatus: order.paymentStatus === 'completed' ? 'pending' : undefined,
-        refundAmount: order.paymentStatus === 'completed' ? order.total : undefined,
-      };
+    if (newStatus === 'cancelled') {
+      // If not already cancelled in DB
+      if (!order.cancellation) {
+        updateData.cancellation = {
+          cancelledAt: new Date(),
+          cancelledBy: changedBy,
+          cancelledByRole,
+          reason: note || (order.cancellationRequest ? order.cancellationRequest.reason : 'Order cancelled'),
+          refundStatus: order.paymentStatus === 'completed' ? 'pending' : undefined,
+          refundAmount: order.paymentStatus === 'completed' ? order.total : undefined,
+        };
 
-      // Decrement promo code usage if applicable
-      const couponCode = order.pricing?.couponCode;
-      if (couponCode) {
-        await decrementPromoCodeUsage(couponCode, session);
+        // Decrement promo code usage if applicable
+        const couponCode = order.pricing?.couponCode;
+        if (couponCode) {
+          await decrementPromoCodeUsage(couponCode, session);
+        }
+      }
+
+      // Mark request as approved if existing
+      if (order.cancellationRequest && order.cancellationRequest.status === 'pending') {
+        updateData['cancellationRequest.status'] = 'approved';
+        updateData['cancellationRequest.processedAt'] = new Date();
       }
     }
+
+    if (newStatus === 'cancellation_rejected') {
+      updateData.status = order.cancellationRequest?.originalStatus || 'processing'; // Revert to original status
+      updateData['cancellationRequest.status'] = 'rejected';
+      updateData['cancellationRequest.processedAt'] = new Date();
+      updateData['cancellationRequest.rejectionReason'] = note;
+
+      // Add specific history entry for rejection
+      updateData.$push.statusHistory = {
+        status: updateData.status,
+        changedBy,
+        changedByRole,
+        timestamp: new Date(),
+        note: `Cancellation rejected. Reason: ${note}. Order status reverted to ${updateData.status}.`
+      };
+    }
+
+
+
+    // Check for delivery logic... (continuing with existing code)
 
     if (newStatus === 'delivered' && !order.tracking?.deliveredAt) {
       const deliveredAt = new Date();
@@ -834,6 +842,42 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
       .populate('items.productId', 'name images slug')
       .populate('vendorBreakdown.vendorId', 'name storeName');
 
+    // Trigger Refund if Cancelled & Payment Completed
+    if (newStatus === 'cancelled' && order.status !== 'cancelled' && order.paymentStatus === 'completed') {
+      try {
+        const transactionCode = generateTransactionCode();
+        await Transaction.create(
+          [
+            {
+              transactionCode,
+              orderId: order._id,
+              customerId: order.customerId,
+              amount: order.total,
+              type: 'refund',
+              status: 'completed', // Refund completed via wallet
+              method: 'wallet', // Refunded to wallet
+              paymentGateway: 'wallet',
+              razorpayOrderId: order.razorpayOrderId,
+              razorpayPaymentId: order.razorpayPaymentId,
+            },
+          ],
+          { session }
+        );
+
+        // Create wallet transaction for refund (credit) - ALWAYS credit wallet
+        await createWalletTransaction(
+          order.customerId.toString(),
+          'credit',
+          order.total,
+          `Order Refund - ${order.orderCode} (Cancellation Approved)`,
+          order._id.toString(),
+          'order' // Using 'order' as refModel similar to other places, or 'Order'
+        );
+      } catch (err) {
+        console.error('Error initiating refund during status update:', err);
+      }
+    }
+
     // Create notifications for status change
     try {
       const notifications = [];
@@ -846,6 +890,8 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
         delivered: 'Your order has been delivered',
         cancelled: 'Your order has been cancelled',
         on_hold: 'Your order is on hold',
+        cancellation_requested: 'Order cancellation requested',
+        cancellation_rejected: 'Order cancellation request rejected',
       };
 
       const statusTitle = {
@@ -857,6 +903,8 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
         delivered: 'Order Delivered',
         cancelled: 'Order Cancelled',
         on_hold: 'Order On Hold',
+        cancellation_requested: 'Cancellation Requested',
+        cancellation_rejected: 'Cancellation Rejected',
       };
 
       const notificationType = {
@@ -868,6 +916,8 @@ export const updateOrderStatus = async (orderId, newStatus, changedBy, changedBy
         delivered: 'order_delivered',
         cancelled: 'order_cancelled',
         on_hold: 'order_status_change',
+        cancellation_requested: 'order_status_change',
+        cancellation_rejected: 'order_status_change',
       };
 
       // Notification for user

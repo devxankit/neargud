@@ -11,12 +11,10 @@ import {
   FiRefreshCw,
   FiShoppingBag,
   FiDollarSign,
-  FiAlertCircle,
-  FiEdit
+  FiAlertCircle
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Badge from "../../../../components/Badge";
-import AnimatedSelect from "../../../../components/Admin/AnimatedSelect";
 import { formatPrice } from "../../../../utils/helpers";
 import { useVendorAuthStore } from "../../store/vendorAuthStore";
 import { vendorReturnApi } from "../../../../services/vendorReturnApi";
@@ -28,7 +26,6 @@ const ReturnRequestDetail = () => {
   const { vendor } = useVendorAuthStore();
   const [returnRequest, setReturnRequest] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState('');
 
   const vendorId = vendor?.id;
@@ -61,8 +58,18 @@ const ReturnRequestDetail = () => {
   }, [id, navigate, vendorId]);
 
   const handleStatusUpdate = async (newStatus) => {
+    let rejectionReason = '';
+    if (newStatus === 'rejected') {
+      rejectionReason = window.prompt('Please provide a reason for rejection:');
+      if (rejectionReason === null) return; // User cancelled
+      if (!rejectionReason.trim()) {
+        toast.error('Rejection reason is required');
+        return;
+      }
+    }
+
     try {
-      await vendorReturnApi.updateStatus(id, newStatus);
+      await vendorReturnApi.updateStatus(id, newStatus, '', rejectionReason);
       toast.success('Status updated successfully');
       fetchReturn();
       setIsEditing(false);
@@ -72,13 +79,7 @@ const ReturnRequestDetail = () => {
     }
   };
 
-  const handleStatusSave = () => {
-    if (status !== returnRequest.status) {
-      handleStatusUpdate(status);
-    } else {
-      setIsEditing(false);
-    }
-  };
+
 
   const getStatusVariant = (status) => {
     const statusMap = {
@@ -121,84 +122,44 @@ const ReturnRequestDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isEditing ? (
+          <Badge variant={getStatusVariant(returnRequest.status)}>{returnRequest.status}</Badge>
+          {returnRequest.status === 'pending' && (
             <>
-              <AnimatedSelect
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                options={[
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'approved', label: 'Approved' },
-                  { value: 'processing', label: 'Processing' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'rejected', label: 'Rejected' },
-                ]}
-                className="min-w-[140px]"
-              />
               <button
-                onClick={handleStatusSave}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Are you sure you want to approve this return request?')) {
+                    handleStatusUpdate('approved');
+                  }
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold">
                 <FiCheck className="text-sm" />
-                Save
+                Approve
               </button>
               <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setStatus(returnRequest.status);
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Are you sure you want to reject this return request?')) {
+                    handleStatusUpdate('rejected');
+                  }
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold">
                 <FiX className="text-sm" />
-                Cancel
+                Reject
               </button>
             </>
-          ) : (
-            <>
-              <Badge variant={getStatusVariant(returnRequest.status)}>{returnRequest.status}</Badge>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold">
-                <FiEdit className="text-sm" />
-                Edit Status
-              </button>
-              {returnRequest.status === 'pending' && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm('Are you sure you want to approve this return request?')) {
-                        handleStatusUpdate('approved');
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold">
-                    <FiCheck className="text-sm" />
-                    Approve
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm('Are you sure you want to reject this return request?')) {
-                        handleStatusUpdate('rejected');
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold">
-                    <FiX className="text-sm" />
-                    Reject
-                  </button>
-                </>
-              )}
-              {returnRequest.status === 'approved' && returnRequest.refundStatus === 'pending' && (
-                <button
-                  onClick={() => {
-                    if (window.confirm('Process refund for this return request?')) {
-                      handleStatusUpdate('completed', 'process-refund');
-                    }
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold">
-                  <FiRefreshCw className="text-sm" />
-                  Process Refund
-                </button>
-              )}
-            </>
+          )}
+          {returnRequest.status === 'approved' && returnRequest.refundStatus === 'pending' && (
+            <button
+              onClick={() => {
+                if (window.confirm('Process refund for this return request?')) {
+                  handleStatusUpdate('completed', 'process-refund');
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold">
+              <FiRefreshCw className="text-sm" />
+              Process Refund
+            </button>
           )}
         </div>
       </div>

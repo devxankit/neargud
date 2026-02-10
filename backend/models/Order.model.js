@@ -47,8 +47,45 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'ready_to_ship', 'dispatched', 'shipped_seller', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded', 'on_hold'],
+      enum: ['pending', 'processing', 'ready_to_ship', 'dispatched', 'shipped_seller', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded', 'on_hold', 'return_requested', 'return_approved', 'return_rejected', 'returned', 'cancellation_requested', 'cancellation_rejected'],
       default: 'pending',
+    },
+    // ... existing fields ...
+    cancellationRequest: {
+      reason: String,
+      status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+      },
+      originalStatus: String, // To revert to if rejected
+      requestedAt: Date,
+      processedAt: Date,
+      note: String,
+      rejectionReason: String
+    },
+    // ... existing fields ...
+    returnRequest: {
+      requestId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ReturnRequest'
+      },
+      returnCode: String,
+      reason: String,
+      status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+      },
+      refundAmount: {
+        type: Number,
+        default: 0
+      },
+      images: [String],
+      requestedAt: Date,
+      processedAt: Date,
+      note: String,
+      rejectionReason: String
     },
     paymentMethod: {
       type: String,

@@ -54,11 +54,7 @@
     "route": "/vendor/notifications",
     "children": []
   },
-  {
-    "title": "Shipping Management",
-    "route": "/vendor/shipping-management",
-    "children": []
-  },
+ 
   {
     "title": "Customers",
     "route": "/vendor/customers",

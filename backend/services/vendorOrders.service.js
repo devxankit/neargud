@@ -178,6 +178,8 @@ export const transformOrderWithVendorItems = async (order, vendorId) => {
       // Add customer information
       customer: customerInfo,
       customerSnapshot: customerInfo, // For backward compatibility
+      returnRequest: order.returnRequest,
+      cancellationRequest: order.cancellationRequest,
     };
 
     return transformedOrder;

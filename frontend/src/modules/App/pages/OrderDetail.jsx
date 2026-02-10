@@ -197,7 +197,7 @@ const MobileOrderDetail = () => {
 
         <div className="px-4 py-4 space-y-4">
           {/* Return Information (if exists) */}
-          {order.returnRequest && (
+          {order.returnRequest && order.returnRequest.returnCode && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -223,7 +223,7 @@ const MobileOrderDetail = () => {
                 <div>
                   <p className="text-gray-500">Reason</p>
                   <p className="font-semibold capitalize text-primary-700">
-                    {order.returnRequest.reason.replace(/_/g, ' ')}
+                    {(order.returnRequest.reason || '').replace(/_/g, ' ')}
                   </p>
                 </div>
                 <div>
@@ -232,13 +232,19 @@ const MobileOrderDetail = () => {
                 </div>
                 <div>
                   <p className="text-gray-500">Requested</p>
-                  <p className="font-semibold text-gray-800">{formatDate(order.returnRequest.createdAt)}</p>
+                  <p className="font-semibold text-gray-800">{formatDate(order.returnRequest.requestedAt || order.returnRequest.createdAt || order.createdAt)}</p>
                 </div>
               </div>
               {order.returnRequest.note && (
                 <div className="p-2 bg-gray-50 rounded-lg">
                   <p className="text-[10px] text-gray-400 mb-0.5 font-medium uppercase tracking-wider">Comment</p>
                   <p className="text-xs text-gray-700 italic leading-relaxed">"{order.returnRequest.note}"</p>
+                </div>
+              )}
+              {order.returnRequest.status === 'rejected' && order.returnRequest.rejectionReason && (
+                <div className="mt-3 p-2 bg-red-50 rounded-lg border border-red-100">
+                  <p className="text-[10px] text-red-500 mb-0.5 font-bold uppercase tracking-wider">Rejection Reason</p>
+                  <p className="text-xs text-red-700 leading-relaxed font-medium">{order.returnRequest.rejectionReason}</p>
                 </div>
               )}
             </motion.div>
@@ -441,20 +447,24 @@ const MobileOrderDetail = () => {
                 Cancel Order
               </button>
             )}
-            <button
-              onClick={handleReorder}
-              className="w-full py-3 gradient-green text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-glow-green transition-all"
-            >
-              <FiRotateCw className="text-lg" />
-              Reorder
-            </button>
-            <button
-              onClick={() => navigate(`/app/track-order/${order._id || order.id}`)}
-              className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
-            >
-              <FiTruck className="text-lg" />
-              Track Order
-            </button>
+            {!['cancelled', 'return_approved', 'returned', 'refunded'].includes(order.status) && order.returnRequest?.status !== 'rejected' && (
+              <>
+                <button
+                  onClick={handleReorder}
+                  className="w-full py-3 gradient-green text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-glow-green transition-all"
+                >
+                  <FiRotateCw className="text-lg" />
+                  Reorder
+                </button>
+                <button
+                  onClick={() => navigate(`/app/track-order/${order._id || order.id}`)}
+                  className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
+                >
+                  <FiTruck className="text-lg" />
+                  Track Order
+                </button>
+              </>
+            )}
           </div>
         </div>
 

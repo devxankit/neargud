@@ -8,8 +8,8 @@ export const adminReturnApi = {
     getReturn: (requestId) => api.get(`/admin/returns/${requestId}`),
 
     // Update return status
-    updateStatus: (requestId, status, note = '') =>
-        api.put(`/admin/returns/${requestId}/status`, { status, note }),
+    updateStatus: (requestId, status, note = '', rejectionReason = '') =>
+        api.put(`/admin/returns/${requestId}/status`, { status, note, rejectionReason }),
 
     // Process refund
     processRefund: (requestId) =>
