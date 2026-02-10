@@ -873,7 +873,9 @@ const MobileCheckout = () => {
                     <span className="text-slate-900 font-black">
                       {shipping === 0 ? (
                         <span className="text-emerald-600">FREE</span>
-                      ) : formatPrice(shipping)}
+                      ) : (
+                        formatPrice(shipping)
+                      )}
                     </span>
                   </div>
 

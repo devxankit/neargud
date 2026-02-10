@@ -419,10 +419,15 @@ const MobileReels = () => {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-none"
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-none touch-pan-y flex flex-col"
+        style={{ overscrollBehaviorY: 'contain', height: '100dvh' }}
       >
-        {reels.map((reel, index) => (
-          <div key={reel._id || reel.id} className="h-full w-full snap-start snap-always relative bg-black flex items-center justify-center overflow-hidden">
+        {reels.filter(r => r.videoUrl).map((reel, index) => (
+          <div
+            key={reel._id || reel.id}
+            className="w-full snap-start snap-always relative bg-black flex items-center justify-center overflow-hidden flex-shrink-0"
+            style={{ height: '100dvh', minHeight: '100dvh' }}
+          >
             {/* Video Player */}
             <video
               ref={el => videoRefs.current[index] = el}
