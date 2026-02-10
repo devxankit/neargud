@@ -90,25 +90,11 @@ const MobileCheckout = () => {
   }, [isAuthenticated, user, isGuest, getDefaultAddress, addresses]);
 
   const calculateShipping = () => {
-    const total = getTotal();
     // Prioritize deliveryPartnerFee from admin settings as the base delivery charge
     const deliveryFee = settings?.delivery?.deliveryPartnerFee || settings?.shipping?.defaultShippingRate || 0;
-    const freeShippingThreshold = settings?.shipping?.freeShippingThreshold || 0;
 
-    let currentCharge = deliveryFee;
-
-    // Only apply free shipping if a threshold is explicitly set (greater than 0)
-    if (appliedCoupon?.type === 'freeship') {
-      currentCharge = 0;
-    } else if (freeShippingThreshold > 0 && total >= freeShippingThreshold) {
-      currentCharge = 0;
-    }
-
-    if (shippingOption === 'express') {
-      return 100;
-    }
-
-    return currentCharge;
+    // Always return the delivery fee as per user request (no free shipping)
+    return deliveryFee;
   };
 
   const getBaseShippingFee = () => {
@@ -868,6 +854,13 @@ const MobileCheckout = () => {
                       <span>-{formatPrice(discount)}</span>
                     </div>
                   )}
+                  {tax > 0 && (
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      <span>{taxSettings?.taxName || 'Tax'}</span>
+                      <span className="text-slate-900 font-black">{formatPrice(tax)}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
                     <span>Delivery Charge</span>
                     <span className="text-slate-900 font-black">

@@ -7,7 +7,8 @@ import StoreIdentity from './settings/StoreIdentity';
 import ContactInfo from './settings/ContactInfo';
 import DeliverySettings from './settings/DeliverySettings';
 import TaxSettings from './settings/TaxSettings';
-import { FiTruck, FiPercent } from 'react-icons/fi';
+import VendorCommissionSettings from './settings/VendorCommissionSettings';
+import { FiTruck, FiPercent, FiDollarSign } from 'react-icons/fi';
 
 const Settings = () => {
   const { fetchFullSettings } = useSettingsStore();
@@ -38,6 +39,7 @@ const Settings = () => {
   const tabs = [
     { id: 'store', label: 'Store', icon: FiSettings, component: StoreIdentity, route: '/admin/settings/store' },
     { id: 'contact', label: 'Contact Info', icon: FiGlobe, component: ContactInfo, route: '/admin/settings/contact' },
+    { id: 'commission', label: 'Commission', icon: FiDollarSign, component: VendorCommissionSettings, route: '/admin/settings/commission' },
     { id: 'delivery', label: 'Delivery', icon: FiTruck, component: DeliverySettings, route: '/admin/settings/delivery' },
     { id: 'tax', label: 'Tax', icon: FiPercent, component: TaxSettings, route: '/admin/settings/tax' },
   ];

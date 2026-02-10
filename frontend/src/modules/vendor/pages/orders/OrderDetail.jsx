@@ -90,14 +90,11 @@ const OrderDetail = () => {
   const vendorEarnings = vendorOrderData.vendorEarnings || (totalAmount - platformCommission);
 
   const statusOptions = [
-    { value: 'pending', label: 'Pending' },
     { value: 'processing', label: 'Processing' },
     { value: 'ready_to_ship', label: 'Ready to Ship' },
-    { value: 'dispatched', label: 'Dispatched' },
     { value: 'shipped_seller', label: 'Shipped (Seller)' },
     { value: 'delivered', label: 'Delivered' },
     { value: 'cancelled', label: 'Cancelled' },
-    { value: 'on_hold', label: 'On Hold' },
   ];
 
   // Get product image
@@ -130,28 +127,28 @@ const OrderDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleStatusUpdate}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-              >
-                <FiCheck className="text-sm" />
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setStatus(order.status);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-              >
-                <FiX className="text-sm" />
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
+          {order.status !== 'delivered' && order.status !== 'cancelled' && (
+            isEditing ? (
+              <>
+                <button
+                  onClick={handleStatusUpdate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <FiCheck className="text-sm" />
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setStatus(order.status);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                >
+                  <FiX className="text-sm" />
+                  Cancel
+                </button>
+              </>
+            ) : (
               <AnimatedSelect
                 value={status}
                 onChange={(e) => {
@@ -161,7 +158,7 @@ const OrderDetail = () => {
                 options={statusOptions}
                 className="min-w-[140px]"
               />
-            </>
+            )
           )}
         </div>
       </div>
@@ -320,13 +317,13 @@ const OrderDetail = () => {
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Status History</p>
                 <div className="relative space-y-4">
                   <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-100"></div>
-                  {order.statusHistory.map((history, idx) => (
+                  {[...order.statusHistory].reverse().map((history, idx) => (
                     <div key={idx} className="relative flex gap-3 pl-6">
                       <div className={`absolute left-0 top-1.5 w-[14px] h-[14px] rounded-full border-2 border-white z-10 ${idx === 0 ? 'bg-primary-500' : 'bg-gray-300'
                         }`}></div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-bold capitalize ${idx === 0 ? 'text-primary-700' : 'text-gray-700'}`}>
-                          {history.status.replace('_', ' ')}
+                          {history.status.replace(/_/g, ' ')}
                         </p>
                         <p className="text-[10px] text-gray-400">
                           {new Date(history.timestamp).toLocaleString([], {
@@ -338,7 +335,7 @@ const OrderDetail = () => {
                         </p>
                       </div>
                     </div>
-                  )).reverse()}
+                  ))}
                 </div>
               </div>
             )}

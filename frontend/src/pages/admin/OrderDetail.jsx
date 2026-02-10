@@ -86,7 +86,7 @@ const OrderDetail = () => {
     );
   }
 
-  const statusOptions = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+  const statusOptions = ['pending', 'processing', 'ready_to_ship', 'shipped_seller', 'shipped', 'delivered', 'cancelled'];
 
   // Handle items - could be a number or an array
   const itemsCount = Array.isArray(order.items) ? order.items.length : (typeof order.items === 'number' ? order.items : 0);
@@ -160,37 +160,42 @@ const OrderDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleStatusUpdate}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-              >
-                <FiCheck className="text-sm" />
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setStatus(order.status);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-              >
-                <FiX className="text-sm" />
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <Badge variant={order.status}>{order.status}</Badge>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
-              >
-                <FiEdit className="text-sm" />
-                Edit
-              </button>
-            </>
+          {order.status !== 'delivered' && order.status !== 'cancelled' && (
+            isEditing ? (
+              <>
+                <button
+                  onClick={handleStatusUpdate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <FiCheck className="text-sm" />
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setStatus(order.status);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                >
+                  <FiX className="text-sm" />
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <Badge variant={order.status}>{order.status.replace(/_/g, ' ')}</Badge>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                >
+                  <FiEdit className="text-sm" />
+                  Edit
+                </button>
+              </>
+            )
+          )}
+          {(order.status === 'delivered' || order.status === 'cancelled') && (
+            <Badge variant={order.status}>{order.status.replace(/_/g, ' ')}</Badge>
           )}
         </div>
       </div>
@@ -210,7 +215,7 @@ const OrderDetail = () => {
                   onChange={(e) => setStatus(e.target.value)}
                   options={statusOptions.map((option) => ({
                     value: option,
-                    label: option.charAt(0).toUpperCase() + option.slice(1),
+                    label: option.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
                   }))}
                 />
               </div>

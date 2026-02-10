@@ -74,33 +74,34 @@ const MobileTrackOrder = () => {
   };
 
   const getTrackingSteps = () => {
+    const getStatusDate = (statusName) => {
+      const historyItem = order.statusHistory?.find(h => h.status === statusName);
+      return historyItem ? historyItem.timestamp : null;
+    };
+
     const steps = [
       {
         label: 'Order Placed',
         completed: true,
-        date: order.date || order.createdAt,
+        date: getStatusDate('pending') || order.date || order.createdAt,
         icon: FiCheckCircle,
       },
       {
         label: 'Processing',
-        completed: ['processing', 'shipped', 'delivered'].includes(order.status),
-        date: (order.date || order.createdAt) && order.status !== 'pending'
-          ? new Date(new Date(order.date || order.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
-          : null,
+        completed: ['processing', 'ready_to_ship', 'dispatched', 'shipped_seller', 'shipped', 'out_for_delivery', 'delivered'].includes(order.status),
+        date: getStatusDate('processing') || (order.status !== 'pending' ? order.updatedAt : null),
         icon: FiPackage,
       },
       {
         label: 'Shipped',
-        completed: ['shipped', 'delivered'].includes(order.status),
-        date: (order.date || order.createdAt) && (order.status === 'shipped' || order.status === 'delivered')
-          ? new Date(new Date(order.date || order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
-          : null,
+        completed: ['shipped', 'out_for_delivery', 'delivered'].includes(order.status),
+        date: getStatusDate('shipped') || getStatusDate('shipped_seller') || (['shipped', 'out_for_delivery', 'delivered'].includes(order.status) ? order.updatedAt : null),
         icon: FiTruck,
       },
       {
         label: 'Delivered',
         completed: order.status === 'delivered',
-        date: order.status === 'delivered' ? order.estimatedDelivery : null,
+        date: getStatusDate('delivered') || order.tracking?.deliveredAt || (order.status === 'delivered' ? order.updatedAt : order.estimatedDelivery),
         icon: FiCheckCircle,
       },
     ];

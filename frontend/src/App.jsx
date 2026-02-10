@@ -586,6 +586,7 @@ const AppRoutes = () => {
           element={<Navigate to="/admin/settings/store" replace />}
         />
         <Route path="settings/store" element={<Settings />} />
+        <Route path="settings/commission" element={<Settings />} />
         <Route path="settings/contact" element={<Settings />} />
         <Route path="settings/delivery" element={<Settings />} />
         <Route path="settings/tax" element={<Settings />} />
