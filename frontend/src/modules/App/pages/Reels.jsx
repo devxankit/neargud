@@ -202,27 +202,28 @@ const MobileReels = () => {
 
     // Slight delay to ensure refs are attached
     const timer = setTimeout(() => {
-      if (!videoRefs.current[currentIndex]) return;
+      const currentVideo = videoRefs.current[currentIndex];
+      if (!currentVideo) return;
 
+      // Pause all other videos
       videoRefs.current.forEach((video, index) => {
-        if (video) {
-          if (index === currentIndex) {
-            video.currentTime = 0;
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(e => {
-                // Auto-play policy
-                video.muted = true;
-                setIsMuted(true);
-                video.play().catch(() => { });
-              });
-            }
-          } else {
-            video.pause();
-          }
+        if (video && index !== currentIndex) {
+          video.pause();
         }
       });
-    }, 100);
+
+      // Play current video
+      currentVideo.currentTime = 0;
+      const playPromise = currentVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          // If auto-play blocked, mute and try again
+          currentVideo.muted = true;
+          setIsMuted(true);
+          currentVideo.play().catch(() => { });
+        });
+      }
+    }, 150);
 
     // Scroll to current index
     if (containerRef.current) {
@@ -436,6 +437,8 @@ const MobileReels = () => {
               loop
               muted={index !== currentIndex || isMuted}
               playsInline
+              preload="auto"
+              autoPlay={index === currentIndex}
               onMouseDown={(e) => {
                 const video = e.target;
                 isLongPress.current = false;
