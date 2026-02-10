@@ -51,6 +51,13 @@ export const getPublicSettingsController = async (req, res, next) => {
         outOfStockBehavior: settings.products?.outOfStockBehavior,
       },
       tax: settings.tax,
+      shipping: {
+        freeShippingThreshold: settings.shipping?.freeShippingThreshold,
+        defaultShippingRate: settings.shipping?.defaultShippingRate,
+      },
+      delivery: {
+        deliveryPartnerFee: settings.delivery?.deliveryPartnerFee,
+      }
     };
 
     res.status(200).json({

@@ -19,7 +19,7 @@ export const transformOrderWithVendorItems = async (order, vendorId) => {
     // Check if items.productId is already populated, if not populate it
     // Also preserve customerId if already populated
     let populatedOrder = order;
-    const needsProductPopulation = order.items && order.items[0] && (
+    const needsProductPopulation = order.items && order.items[0] && order.items[0].productId && (
       (typeof order.items[0].productId === 'string') ||
       (typeof order.items[0].productId === 'object' && !order.items[0].productId.vendorId)
     );

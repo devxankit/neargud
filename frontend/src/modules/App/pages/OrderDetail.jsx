@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiPackage, FiTruck, FiMapPin, FiCreditCard, FiRotateCw, FiArrowLeft, FiShoppingBag, FiStar } from 'react-icons/fi';
 import { motion } from 'framer-motion';
@@ -26,6 +26,49 @@ const MobileOrderDetail = () => {
   const [eligibility, setEligibility] = useState({ eligible: false });
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [fetching, setFetching] = useState(false);
+
+  const isOrderCancelable = useMemo(() => {
+    if (!order) return false;
+
+    // 1. Check order status (only pending/processing can be cancelled)
+    const isStatusCancelable = ['pending', 'processing'].includes(order.status);
+    if (!isStatusCancelable) return false;
+
+    // 2. Check if ANY item in the order is non-cancelable
+    const items = order.items || [];
+    const vendorItems = order.vendorItems?.flatMap(v => v.items) || [];
+    const allItems = vendorItems.length > 0 ? vendorItems : items;
+
+    const hasNonCancelableProduct = allItems.some(item => {
+      // The backend now provides 'cancelable' property on items
+      // Fallback to true if property is missing
+      const cancelable = item.cancelable !== undefined
+        ? item.cancelable
+        : (item.productId?.cancelable !== undefined ? item.productId.cancelable : true);
+      return cancelable === false;
+    });
+
+    return !hasNonCancelableProduct;
+  }, [order]);
+
+  const isOrderReturnable = useMemo(() => {
+    if (!order) return false;
+
+    // 1. Check if ANY item in the order is non-returnable
+    const items = order.items || [];
+    const vendorItems = order.vendorItems?.flatMap(v => v.items) || [];
+    const allItems = vendorItems.length > 0 ? vendorItems : items;
+
+    const hasNonReturnableProduct = allItems.some(item => {
+      // The backend now provides 'returnable' property on items
+      const returnable = item.returnable !== undefined
+        ? item.returnable
+        : (item.productId?.returnable !== undefined ? item.productId.returnable : true);
+      return returnable === false;
+    });
+
+    return !hasNonReturnableProduct;
+  }, [order]);
 
   const handleOpenReview = (product) => {
     setSelectedProduct(product);
@@ -122,7 +165,7 @@ const MobileOrderDetail = () => {
 
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel this order?')) {
-      if (['pending', 'processing'].includes(order.status)) {
+      if (isOrderCancelable) {
         cancelOrder(order._id || order.id);
         toast.success('Order cancelled successfully');
         navigate('/app/orders');
@@ -146,7 +189,7 @@ const MobileOrderDetail = () => {
             </button>
             <div className="flex-1">
               <h1 className="text-xl font-bold text-gray-800">Order Details</h1>
-              <p className="text-sm text-gray-600">Order #{order?.orderCode || order?._id || order?.id}</p>
+              <p className="text-sm text-gray-600">Order #{order.orderCode || order._id}</p>
             </div>
             <Badge variant={order?.status}>{order?.status?.toUpperCase()}</Badge>
           </div>
@@ -345,7 +388,7 @@ const MobileOrderDetail = () => {
               )}
               <div className="flex justify-between">
                 <span>Order Date:</span>
-                <span className="font-semibold text-gray-800">{formatDate(order.date)}</span>
+                <span className="font-semibold text-gray-800">{formatDate(order.orderDate || order.createdAt)}</span>
               </div>
             </div>
           </div>
@@ -381,7 +424,7 @@ const MobileOrderDetail = () => {
 
           {/* Actions */}
           <div className="space-y-2">
-            {order.status === 'delivered' && eligibility.eligible && !order.returnRequest && (
+            {order.status === 'delivered' && eligibility.eligible && isOrderReturnable && !order.returnRequest && (
               <button
                 onClick={() => setIsReturnModalOpen(true)}
                 className="w-full py-3 bg-white border-2 border-orange-500 text-orange-500 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-orange-50 transition-colors"
@@ -390,7 +433,7 @@ const MobileOrderDetail = () => {
                 Return Items
               </button>
             )}
-            {['pending', 'processing'].includes(order.status) && (
+            {isOrderCancelable && (
               <button
                 onClick={handleCancel}
                 className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors"

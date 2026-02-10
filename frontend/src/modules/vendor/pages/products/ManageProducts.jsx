@@ -30,6 +30,11 @@ const ManageProducts = () => {
     isOpen: false,
     productId: null,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationInfo, setPaginationInfo] = useState({
+    totalPages: 1,
+    totalItems: 0
+  });
 
   const vendorId = vendor?._id || vendor?.id;
 
@@ -39,18 +44,20 @@ const ManageProducts = () => {
   }, [fetchAdminCategories, fetchBrands]);
 
   useEffect(() => {
-    loadProducts();
+    setCurrentPage(1); // Reset to first page on filter change
+    loadProducts(1);
   }, [vendorId, selectedStatus, selectedCategory, selectedBrand]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadProducts();
+      setCurrentPage(1);
+      loadProducts(1);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const loadProducts = async () => {
+  const loadProducts = async (page = currentPage) => {
     if (!vendorId) return;
 
     setLoading(true);
@@ -60,20 +67,33 @@ const ManageProducts = () => {
         stock: selectedStatus !== "all" ? selectedStatus : undefined,
         categoryId: selectedCategory !== "all" ? selectedCategory : undefined,
         brandId: selectedBrand !== "all" ? selectedBrand : undefined,
+        limit: 5,
+        page: page
       });
 
       const prodData = response.data?.products || response.products || [];
+      const pagination = response.pagination || {};
+
       const normalized = prodData.map((p) => ({
         ...p,
         id: p._id || p.id,
       }));
       setProducts(normalized);
+      setPaginationInfo({
+        totalPages: pagination.pages || 1,
+        totalItems: pagination.total || 0
+      });
     } catch (error) {
       console.error("Load products error:", error);
       toast.error("Failed to load products");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    loadProducts(newPage);
   };
 
   const filteredProducts = products; // Filtering now handled by API
@@ -267,7 +287,11 @@ const ManageProducts = () => {
             data={products}
             columns={columns}
             pagination={true}
-            itemsPerPage={10}
+            itemsPerPage={5}
+            currentPage={currentPage}
+            totalPages={paginationInfo.totalPages}
+            totalItems={paginationInfo.totalItems}
+            onPageChange={handlePageChange}
             onRowClick={(row) => navigate(`/vendor/products/${row.id}`)}
           />
         ) : (

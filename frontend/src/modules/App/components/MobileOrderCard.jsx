@@ -35,7 +35,7 @@ const MobileOrderCard = ({ order }) => {
               <h3 className="font-bold text-gray-800 text-base">Order #{order.orderCode || order._id || order.id}</h3>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <FiCalendar className="text-xs" />
-                {new Date(order.date || order.createdAt).toLocaleDateString()}
+                {new Date(order.orderDate || order.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>

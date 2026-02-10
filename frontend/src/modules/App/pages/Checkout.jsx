@@ -91,16 +91,28 @@ const MobileCheckout = () => {
 
   const calculateShipping = () => {
     const total = getTotal();
+    // Prioritize deliveryPartnerFee from admin settings as the base delivery charge
+    const deliveryFee = settings?.delivery?.deliveryPartnerFee || settings?.shipping?.defaultShippingRate || 0;
+    const freeShippingThreshold = settings?.shipping?.freeShippingThreshold || 0;
+
+    let currentCharge = deliveryFee;
+
+    // Only apply free shipping if a threshold is explicitly set (greater than 0)
     if (appliedCoupon?.type === 'freeship') {
-      return 0;
+      currentCharge = 0;
+    } else if (freeShippingThreshold > 0 && total >= freeShippingThreshold) {
+      currentCharge = 0;
     }
-    if (total >= 100) {
-      return 0;
-    }
+
     if (shippingOption === 'express') {
       return 100;
     }
-    return 50;
+
+    return currentCharge;
+  };
+
+  const getBaseShippingFee = () => {
+    return settings?.delivery?.deliveryPartnerFee || settings?.shipping?.defaultShippingRate || 0;
   };
 
   const [useWallet, setUseWallet] = useState(false);
@@ -857,9 +869,14 @@ const MobileCheckout = () => {
                     </div>
                   )}
                   <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    <span>Shipping</span>
-                    <span className="text-slate-900">{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
+                    <span>Delivery Charge</span>
+                    <span className="text-slate-900 font-black">
+                      {shipping === 0 ? (
+                        <span className="text-emerald-600">FREE</span>
+                      ) : formatPrice(shipping)}
+                    </span>
                   </div>
+
                   <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                     <span className="text-lg font-black tracking-tight text-slate-900">Total Amount</span>
                     <span className="text-2xl font-black text-primary-600">{formatPrice(finalTotal)}</span>

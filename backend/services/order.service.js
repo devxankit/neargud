@@ -422,7 +422,7 @@ export const getOrderById = async (orderId, userId = null) => {
     const order = await Order.findOne(query)
       .populate('customerId', 'name email phone')
       .populate('shippingAddress')
-      .populate('items.productId', 'name images slug vendorId vendorName')
+      .populate('items.productId', 'name images slug vendorId vendorName cancelable returnable')
       .populate('vendorBreakdown.vendorId', 'name storeName')
       .lean();
 
@@ -481,6 +481,8 @@ export const getOrderById = async (orderId, userId = null) => {
             price: item.price,
             originalPrice: item.originalPrice,
             image: item.image || item.productId?.images?.[0],
+            cancelable: item.productId?.cancelable !== undefined ? item.productId.cancelable : true,
+            returnable: item.productId?.returnable !== undefined ? item.productId.returnable : true,
           })),
           subtotal: vb.subtotal || 0,
           shipping: vb.shipping || 0,
@@ -542,7 +544,7 @@ export const getUserOrders = async (userId, filters = {}) => {
 
     const orders = await Order.find(query)
       .populate('shippingAddress')
-      .populate('items.productId', 'name images slug vendorId vendorName')
+      .populate('items.productId', 'name images slug vendorId vendorName cancelable returnable')
       .populate('vendorBreakdown.vendorId', 'name storeName')
       .sort({ createdAt: -1 })
       .skip(skip)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { FiSave, FiX, FiUpload } from "react-icons/fi";
+import { FiSave, FiX, FiUpload, FiPlus } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCategoryStore } from "../../store/categoryStore";
 import { useBrandStore } from "../../store/brandStore";
@@ -40,7 +40,6 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
     isNew: false,
     isFeatured: false,
     isVisible: true,
-    codAllowed: true,
     returnable: true,
     cancelable: true,
     taxIncluded: false,
@@ -58,6 +57,10 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
     relatedProducts: [],
     isBuy: true,
   });
+
+  const [tagInput, setTagInput] = useState("");
+  const [sizeInput, setSizeInput] = useState("");
+  const [colorInput, setColorInput] = useState("");
 
   useEffect(() => {
     fetchAdminCategories();
@@ -172,8 +175,45 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
           isBuy: true,
         });
       }
+    };
+    loadProductDetails();
+  }, [isOpen, productId, isEdit]);
+
+  const handleAddItem = (type, value, inputSetter) => {
+    if (!value.trim()) return;
+    const items = value.split(',').map(v => v.trim()).filter(v => v);
+
+    if (type === 'tags') {
+      const newTags = items.filter(item => !formData.tags.includes(item));
+      if (newTags.length > 0) {
+        setFormData(prev => ({ ...prev, tags: [...prev.tags, ...newTags] }));
+      }
+    } else {
+      const currentItems = formData.variants[type] || [];
+      const newItems = items.filter(item => !currentItems.includes(item));
+      if (newItems.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          variants: { ...prev.variants, [type]: [...currentItems, ...newItems] }
+        }));
+      }
     }
-  }, [isOpen, isEdit, productId]);
+    inputSetter("");
+  };
+
+  const handleRemoveItem = (type, item) => {
+    if (type === 'tags') {
+      setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== item) }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        variants: {
+          ...prev.variants,
+          [type]: (prev.variants[type] || []).filter(v => v !== item)
+        }
+      }));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -748,48 +788,65 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
                     <h3 className="text-lg font-bold text-gray-800 mb-4">
                       Product Variants
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
+                      {/* Sizes */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Sizes (comma-separated)
-                        </label>
-                        <input
-                          type="text"
-                          value={(formData.variants?.sizes || []).join(", ")}
-                          onChange={(e) => {
-                            const sizes = e.target.value
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter((s) => s);
-                            setFormData({
-                              ...formData,
-                              variants: { ...formData.variants, sizes },
-                            });
-                          }}
-                          placeholder="S, M, L, XL"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Sizes</label>
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={sizeInput}
+                            onChange={(e) => setSizeInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem('sizes', sizeInput, setSizeInput))}
+                            placeholder="Add sizes (e.g. S, M, L)"
+                            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddItem('sizes', sizeInput, setSizeInput)}
+                            className="p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all"
+                          >
+                            <FiPlus size={20} />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.variants?.sizes || []).map(size => (
+                            <span key={size} className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-50 text-primary-700 rounded-md text-xs font-bold border border-primary-100">
+                              {size}
+                              <button type="button" onClick={() => handleRemoveItem('sizes', size)} className="hover:text-red-500"><FiX size={12} /></button>
+                            </span>
+                          ))}
+                        </div>
                       </div>
+
+                      {/* Colors */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Colors (comma-separated)
-                        </label>
-                        <input
-                          type="text"
-                          value={(formData.variants?.colors || []).join(", ")}
-                          onChange={(e) => {
-                            const colors = e.target.value
-                              .split(",")
-                              .map((c) => c.trim())
-                              .filter((c) => c);
-                            setFormData({
-                              ...formData,
-                              variants: { ...formData.variants, colors },
-                            });
-                          }}
-                          placeholder="Red, Blue, Green"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Colors</label>
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={colorInput}
+                            onChange={(e) => setColorInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem('colors', colorInput, setColorInput))}
+                            placeholder="Add colors (e.g. Red, Blue)"
+                            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddItem('colors', colorInput, setColorInput)}
+                            className="p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all"
+                          >
+                            <FiPlus size={20} />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.variants?.colors || []).map(color => (
+                            <span key={color} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-700 rounded-md text-xs font-bold border border-gray-200">
+                              {color}
+                              <button type="button" onClick={() => handleRemoveItem('colors', color)} className="hover:text-red-500"><FiX size={12} /></button>
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -799,20 +856,32 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
                     <h3 className="text-lg font-bold text-gray-800 mb-4">
                       Tags
                     </h3>
-                    <div>
-                      <input
-                        type="text"
-                        value={(formData.tags || []).join(", ")}
-                        onChange={(e) => {
-                          const tags = e.target.value
-                            .split(",")
-                            .map((t) => t.trim())
-                            .filter((t) => t);
-                          setFormData({ ...formData, tags });
-                        }}
-                        placeholder="tag1, tag2, tag3"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      />
+                    <div className="space-y-4">
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem('tags', tagInput, setTagInput))}
+                          placeholder="Add tags..."
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddItem('tags', tagInput, setTagInput)}
+                          className="p-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
+                        >
+                          <FiPlus size={20} />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(formData.tags || []).map(tag => (
+                          <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 bg-yellow-50 text-yellow-700 rounded-md text-xs font-bold border border-yellow-100">
+                            {tag}
+                            <button type="button" onClick={() => handleRemoveItem('tags', tag)} className="hover:text-red-500"><FiX size={12} /></button>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -926,18 +995,6 @@ const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
                       Product Settings
                     </h3>
                     <div className="space-y-2">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          name="codAllowed"
-                          checked={formData.codAllowed}
-                          onChange={handleChange}
-                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                        />
-                        <span className="text-sm font-semibold text-gray-700">
-                          COD Allowed
-                        </span>
-                      </label>
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"

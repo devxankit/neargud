@@ -88,6 +88,13 @@ const MobileProductDetail = () => {
 
   const currentPrice = useMemo(() => {
     if (!product) return 0;
+
+    // If we have a selected variant with a price, use it
+    if (selectedVariant?.price !== undefined && selectedVariant?.price !== null) {
+      return selectedVariant.price;
+    }
+
+    // Fallback for legacy prices structure
     if (selectedVariant && product.variants?.prices) {
       if (
         selectedVariant.size &&
@@ -102,6 +109,7 @@ const MobileProductDetail = () => {
         return product.variants.prices[selectedVariant.color];
       }
     }
+
     return product.price;
   }, [product, selectedVariant]);
 
@@ -180,21 +188,19 @@ const MobileProductDetail = () => {
   }, [cartItem]);
 
   const handleQuantityChange = (val) => {
-    if (!cartItem) {
-      if (
-        quantity + val > 0 &&
-        quantity + val <= (product?.stockQuantity || 10)
-      ) {
-        setQuantity(quantity + val);
-      }
-      return;
-    }
+    const maxStock = selectedVariant?.stock !== undefined
+      ? selectedVariant.stock
+      : (product?.stockQuantity || 10);
 
-    const newQty = cartItem.quantity + val;
-    if (newQty <= (product?.stockQuantity || 10)) {
-      // Allow passing 0 or negative to trigger removal in store
-      // Using updateQuantity instead of updateCartItem
-      updateQuantity(product._id || product.id, newQty);
+    const currentQty = cartItem?.quantity || quantity;
+    const newQty = currentQty + val;
+
+    if (newQty > 0 && newQty <= maxStock) {
+      if (cartItem) {
+        updateQuantity(product._id || product.id, newQty);
+      } else {
+        setQuantity(newQty);
+      }
     }
   };
 
@@ -208,8 +214,20 @@ const MobileProductDetail = () => {
 
     // Validate Variants
     if (product.variants) {
+      const hasColorVariants = product.variants.colorVariants && product.variants.colorVariants.length > 0;
       const hasSizes = product.variants.sizes && product.variants.sizes.length > 0;
       const hasColors = product.variants.colors && product.variants.colors.length > 0;
+
+      if (hasColorVariants) {
+        if (!selectedVariant || !selectedVariant.color) {
+          toast.error("Please select a color");
+          return false;
+        }
+        if (!selectedVariant.size) {
+          toast.error("Please select a size");
+          return false;
+        }
+      }
 
       if (hasSizes && (!selectedVariant || !selectedVariant.size)) {
         toast.error("Please select a size");
@@ -244,8 +262,8 @@ const MobileProductDetail = () => {
       id: product?._id || product?.id,
       _id: product?._id || product?.id,
       name: product?.name,
-      price: finalPrice,
-      image: product?.image,
+      price: currentPrice,
+      image: selectedVariant?.image || product?.image,
       quantity: quantity,
       variant: selectedVariant,
       isCouponEligible: product?.isCouponEligible,
@@ -574,12 +592,43 @@ const MobileProductDetail = () => {
                     {product.description}
                   </p>
 
+                  {/* Base Attributes */}
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {product.mainColor && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Primary Color</span>
+                        <span className="text-xs font-black text-slate-800">{product.mainColor}</span>
+                      </div>
+                    )}
+                    {product.unit && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Unit</span>
+                        <span className="text-xs font-black text-slate-800">{product.unit}</span>
+                      </div>
+                    )}
+                  </div>
+
                   {product.attributes && product.attributes.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {product.attributes.map((attr, idx) => (
-                        <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{attr.name}</span>
-                          <span className="text-xs font-black text-slate-800">{attr.value}</span>
+                    <div className="space-y-6">
+                      {/* Grouped Attributes */}
+                      {Object.entries(
+                        product.attributes.reduce((acc, attr) => {
+                          const group = attr.group || 'General';
+                          if (!acc[group]) acc[group] = [];
+                          acc[group].push(attr);
+                          return acc;
+                        }, {})
+                      ).map(([group, attrs], gIdx) => (
+                        <div key={gIdx} className="space-y-3">
+                          <h4 className="text-[10px] font-black text-primary-600 uppercase tracking-widest px-1">{group}</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            {attrs.map((attr, idx) => (
+                              <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{attr.name || attr.attributeName}</span>
+                                <span className="text-xs font-black text-slate-800">{attr.value || (attr.values && attr.values[0]?.value)}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -183,6 +183,7 @@ export const createVendorProduct = async (productData, vendorId) => {
       unit,
       price,
       originalPrice,
+      mainColor,
       image,
       images = [],
       categoryId,
@@ -605,6 +606,7 @@ export const createVendorProduct = async (productData, vendorId) => {
       images: imageUrls,
       imagesPublicIds: imagePublicIds,
       description: description || '',
+      mainColor: mainColor || '',
       categoryId: categoryId || null,
       subcategoryId: subcategoryId || null,
       // Ensure subSubCategoryId is properly set (not empty string, not undefined)
@@ -688,6 +690,7 @@ export const updateVendorProduct = async (productId, productData, vendorId) => {
       unit,
       price,
       originalPrice,
+      mainColor,
       image,
       images,
       categoryId,
@@ -1136,6 +1139,7 @@ export const updateVendorProduct = async (productId, productData, vendorId) => {
         ...(returnable !== undefined && { returnable }),
         ...(cancelable !== undefined && { cancelable }),
         ...(taxIncluded !== undefined && { taxIncluded }),
+        ...(mainColor !== undefined && { mainColor }),
         ...(hasSizes !== undefined && { hasSizes }),
         ...(productType !== undefined && { productType }),
         ...(variants !== undefined && {
