@@ -224,6 +224,15 @@ const orderSchema = new mongoose.Schema(
       ref: 'DeliveryPartner',
       default: null,
     },
+    deliveryPartnerFee: {
+      type: Number,
+      default: 0,
+    },
+    cashCollectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DeliveryPartner',
+      default: null,
+    },
     // Return window and settlement tracking
     returnWindowExpiresAt: {
       type: Date,

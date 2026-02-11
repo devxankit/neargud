@@ -312,6 +312,12 @@ export const updateOrderStatus = async (req, res, next) => {
             const settings = await Settings.getSettings();
             const deliveryFee = settings?.delivery?.deliveryPartnerFee || 50;
 
+            // Record fee on order
+            order.deliveryPartnerFee = deliveryFee;
+            if (['cash', 'cod'].includes(order.paymentMethod)) {
+                order.cashCollectedBy = deliveryPartnerId;
+            }
+
             // Get current balance
             const lastTransaction = await DeliveryWalletTransaction.findOne({ deliveryPartnerId }).sort({ createdAt: -1 });
             const currentBalance = lastTransaction ? lastTransaction.balanceAfter : 0;
@@ -335,7 +341,7 @@ export const updateOrderStatus = async (req, res, next) => {
             changedByModel: 'DeliveryPartner',
             changedByRole: 'delivery_partner',
             timestamp: new Date(),
-            note: `Updated by delivery partner`
+            note: `Updated to ${status} by delivery partner`
         });
 
         await order.save();
@@ -408,14 +414,13 @@ export const requestWithdrawal = async (req, res, next) => {
             });
         }
 
-        await DeliveryWalletTransaction.create({
+        // Create withdrawal request
+        await WithdrawalRequest.create({
             deliveryPartnerId,
-            type: 'withdrawal',
+            userType: 'delivery_partner',
             amount: amount,
-            balanceBefore: currentBalance,
-            balanceAfter: currentBalance - amount,
-            description: 'Withdrawal request',
-            status: 'pending'
+            status: 'pending',
+            requestedAt: new Date()
         });
 
         res.status(200).json({

@@ -17,7 +17,7 @@ const CashCollection = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
-  const [stats, setStats] = useState({ totalCollected: 0, totalPending: 0 });
+  const [stats, setStats] = useState({ totalCollected: 0, totalPending: 0, totalEarnings: 0 });
   const [withdrawalStats, setWithdrawalStats] = useState(null);
 
   // Modal States for Withdrawals
@@ -45,6 +45,7 @@ const CashCollection = () => {
         setStats({
           totalCollected: response.data.totalCollected,
           totalPending: response.data.totalPending,
+          totalEarnings: response.data.totalEarnings || 0,
         });
       }
     } catch (error) {
@@ -143,19 +144,24 @@ const CashCollection = () => {
       render: (value) => <span className="font-semibold text-gray-800">{value}</span>,
     },
     {
-      key: 'customerName',
-      label: 'Customer',
+      key: 'amount',
+      label: 'Cash to Collect',
       sortable: true,
+      render: (value, row) => (
+        <div className="flex flex-col">
+          <span className={`font-bold ${value > 0 ? 'text-gray-800' : 'text-gray-400'}`}>
+            {formatCurrency(value)}
+          </span>
+          <span className="text-[10px] uppercase text-gray-400">{row.paymentMethod}</span>
+        </div>
+      ),
     },
     {
-      key: 'amount',
-      label: 'Amount',
+      key: 'deliveryFee',
+      label: 'Boy Fee',
       sortable: true,
       render: (value) => (
-        <div className="flex items-center gap-2">
-          <FiDollarSign className="text-green-600" />
-          <span className="font-bold text-gray-800">{formatCurrency(value)}</span>
-        </div>
+        <span className="font-bold text-blue-600">{formatCurrency(value)}</span>
       ),
     },
     {
@@ -180,27 +186,23 @@ const CashCollection = () => {
       render: (value) => formatDateTime(value),
     },
     {
-      key: 'collectionDate',
-      label: 'Collection Date',
-      sortable: true,
-      render: (value) => value ? formatDateTime(value) : <span className="text-gray-400">Pending</span>,
-    },
-    {
       key: 'actions',
       label: 'Actions',
       sortable: false,
       render: (_, row) => (
-        row.status === 'pending' ? (
+        row.amount > 0 && row.status === 'pending' ? (
           <button
             className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
             onClick={() => handleMarkCollected(row.id)}
           >
             Mark Collected
           </button>
-        ) : (
-          <span className="text-green-600">
-            <FiCheckCircle />
+        ) : row.amount > 0 ? (
+          <span className="text-green-600 flex items-center gap-1 text-sm">
+            <FiCheckCircle /> Collected
           </span>
+        ) : (
+          <span className="text-gray-400 text-sm italic">Prepaid</span>
         )
       ),
     },
@@ -265,8 +267,8 @@ const CashCollection = () => {
     >
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Cash Management</h1>
-          <p className="text-sm sm:text-base text-gray-600">Track and manage cash collections & withdrawal requests</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Cash & Earnings</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage cash collections and delivery partner payouts</p>
         </div>
 
         <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
@@ -286,28 +288,32 @@ const CashCollection = () => {
       </div>
 
       {activeTab === 'orders' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Total Collected</p>
+            <p className="text-sm text-gray-600 mb-1">Total Cash Collected</p>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalCollected)}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Pending Collection</p>
+            <p className="text-sm text-gray-600 mb-1">Cash Pending</p>
             <p className="text-2xl font-bold text-orange-600">{formatCurrency(stats.totalPending)}</p>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <p className="text-sm text-gray-600 mb-1">Total Partner Fees</p>
+            <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalEarnings)}</p>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Pending Withdrawals</p>
+            <p className="text-sm text-gray-600 mb-1">Pending Payouts</p>
             <p className="text-2xl font-bold text-orange-600">{withdrawalStats?.pendingCount || 0}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Total Processed Today</p>
+            <p className="text-sm text-gray-600 mb-1">Payouts Today</p>
             <p className="text-2xl font-bold text-blue-600">{withdrawalStats?.processedToday || 0}</p>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Total Withdrawn</p>
+            <p className="text-sm text-gray-600 mb-1">Total Paid Out</p>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(withdrawalStats?.totalWithdrawn || 0)}</p>
           </div>
         </div>

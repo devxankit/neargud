@@ -415,7 +415,10 @@ export const getCashCollections = async (req, res, next) => {
     const { status, search, deliveryPartnerId, page = 1, limit = 50 } = req.query;
 
     const query = {
-      paymentMethod: { $in: ['cash', 'cod'] },
+      $or: [
+        { paymentMethod: { $in: ['cash', 'cod'] } },
+        { status: 'delivered', deliveryPartnerId: { $ne: null } }
+      ]
     };
 
     if (deliveryPartnerId) {
@@ -439,7 +442,7 @@ export const getCashCollections = async (req, res, next) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [orders, total, stats] = await Promise.all([
+    const [orders, total, statsResult] = await Promise.all([
       Order.find(query)
         .populate('customerId', 'firstName lastName')
         .populate('deliveryPartnerId', 'firstName lastName phone')
@@ -449,19 +452,21 @@ export const getCashCollections = async (req, res, next) => {
         .lean(),
       Order.countDocuments(query),
       Order.aggregate([
-        { $match: { paymentMethod: { $in: ['cash', 'cod'] } } },
+        { $match: query },
         {
           $group: {
             _id: '$paymentStatus',
-            totalAmount: { $sum: '$total' }
+            totalAmount: { $sum: { $cond: [{ $in: ['$paymentMethod', ['cash', 'cod']] }, '$total', 0] } },
+            totalFees: { $sum: '$deliveryPartnerFee' }
           }
         }
       ])
     ]);
 
-    const totalCollected = stats.find(s => s._id === 'completed')?.totalAmount || 0;
-    const totalPending = stats.find(s => s._id === 'pending')?.totalAmount || 0;
-    console.log("ordersorders", orders)
+    const totalCollected = statsResult.find(s => s._id === 'completed')?.totalAmount || 0;
+    const totalPending = statsResult.find(s => s._id === 'pending')?.totalAmount || 0;
+    const totalEarnings = statsResult.reduce((acc, s) => acc + (s.totalFees || 0), 0);
+
     // Format data for frontend
     const collections = orders.map((order) => {
       // Find collection date from status history if delivered/completed
@@ -475,7 +480,9 @@ export const getCashCollections = async (req, res, next) => {
         customerName: order.customerSnapshot?.name ||
           (order.customerId ? `${order.customerId.firstName || ''} ${order.customerId.lastName || ''}`.trim() : null) ||
           'Unknown',
-        amount: order.total,
+        amount: ['cash', 'cod'].includes(order.paymentMethod) ? order.total : 0,
+        deliveryFee: order.deliveryPartnerFee || 0,
+        paymentMethod: order.paymentMethod,
         deliveryBoy: order.deliveryPartnerId
           ? `${order.deliveryPartnerId.firstName || ''} ${order.deliveryPartnerId.lastName || ''}`.trim() || 'Assigned'
           : 'Not Assigned',
@@ -493,6 +500,7 @@ export const getCashCollections = async (req, res, next) => {
         collections,
         totalCollected,
         totalPending,
+        totalEarnings,
         pagination: {
           total,
           page: parseInt(page),
