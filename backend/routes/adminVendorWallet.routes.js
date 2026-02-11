@@ -5,6 +5,7 @@ import {
     rejectWithdrawal,
     getReports,
     getAllVendorWallets,
+    getAllDeliveryWallets,
     getVendorWallet
 } from '../controllers/admin-controllers/adminVendorWallet.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -22,6 +23,9 @@ router.get('/pending-withdrawals', asyncHandler(getPendingWithdrawals));
 
 // Get withdrawal reports
 router.get('/reports', asyncHandler(getReports));
+
+// Get all delivery wallets
+router.get('/delivery-wallets', asyncHandler(getAllDeliveryWallets));
 
 // Get all vendor wallets
 router.get('/', asyncHandler(getAllVendorWallets));

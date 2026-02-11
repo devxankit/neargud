@@ -8,6 +8,7 @@ import Badge from '../../../components/Badge';
 import ExportButton from '../../../components/Admin/ExportButton';
 
 const VendorWithdrawals = () => {
+    const [requestType, setRequestType] = useState('vendor'); // 'vendor' or 'delivery'
     const [activeTab, setActiveTab] = useState('pending');
     const [pendingRequests, setPendingRequests] = useState([]);
     const [allRequests, setAllRequests] = useState([]);
@@ -24,14 +25,14 @@ const VendorWithdrawals = () => {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [requestType]); // Reload when type changes
 
     const loadData = async () => {
         setLoading(true);
         try {
             const [pendingRes, reportsRes] = await Promise.all([
-                fetchPendingWithdrawals(),
-                fetchWithdrawalReports()
+                fetchPendingWithdrawals(requestType),
+                fetchWithdrawalReports({ type: requestType })
             ]);
 
             const pendingData = pendingRes?.data || {};
@@ -126,6 +127,16 @@ const VendorWithdrawals = () => {
         }
     };
 
+    const getRequesterName = (req) => {
+        if (requestType === 'vendor') {
+            return req.vendorId?.storeName || req.vendorId?.name || 'Unknown Vendor';
+        } else {
+            return `${req.deliveryPartnerId?.firstName || ''} ${req.deliveryPartnerId?.lastName || ''}`.trim() || 'Unknown Partner';
+        }
+    };
+
+    const getRequesterLabel = () => requestType === 'vendor' ? 'Vendor' : 'Delivery Partner';
+
     if (loading && pendingRequests.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -143,16 +154,40 @@ const VendorWithdrawals = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Vendor Withdrawals</h1>
-                    <p className="text-gray-600 mt-1">Manage vendor payment withdrawal requests</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Withdrawals</h1>
+                    <p className="text-gray-600 mt-1">Manage payment withdrawal requests</p>
                 </div>
+                {requestType === 'vendor' && (
+                    <button
+                        onClick={handleReleaseFunds}
+                        disabled={releasing}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        <FiRefreshCw className={releasing ? 'animate-spin' : ''} />
+                        <span>{releasing ? 'Releasing...' : 'Release Pending Funds'}</span>
+                    </button>
+                )}
+            </div>
+
+            {/* Type Toggle */}
+            <div className="flex space-x-1 rounded-xl bg-gray-100 p-1 w-fit">
                 <button
-                    onClick={handleReleaseFunds}
-                    disabled={releasing}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={() => setRequestType('vendor')}
+                    className={`flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${requestType === 'vendor'
+                        ? 'bg-white text-gray-800 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                        }`}
                 >
-                    <FiRefreshCw className={releasing ? 'animate-spin' : ''} />
-                    <span>{releasing ? 'Releasing...' : 'Release Pending Funds'}</span>
+                    <FiDollarSign /> Vendors
+                </button>
+                <button
+                    onClick={() => setRequestType('delivery')}
+                    className={`flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${requestType === 'delivery'
+                        ? 'bg-white text-gray-800 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                >
+                    <FiCheckCircle /> Delivery Partners
                 </button>
             </div>
 
@@ -240,7 +275,7 @@ const VendorWithdrawals = () => {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-3">
                                                     <h3 className="text-lg font-bold text-gray-800">
-                                                        {request.vendorId?.storeName || request.vendorId?.name || 'Unknown Vendor'}
+                                                        {getRequesterName(request)}
                                                     </h3>
                                                     {getStatusBadge(request.status)}
                                                 </div>
@@ -316,14 +351,14 @@ const VendorWithdrawals = () => {
                                 <ExportButton
                                     data={filteredRequests}
                                     headers={[
-                                        { label: 'Vendor', accessor: (row) => row.vendorId?.storeName || row.vendorId?.name || 'N/A' },
+                                        { label: getRequesterLabel(), accessor: (row) => getRequesterName(row) },
                                         { label: 'Amount', accessor: (row) => formatPrice(row.amount) },
                                         { label: 'Status', accessor: (row) => row.status },
                                         { label: 'Requested', accessor: (row) => new Date(row.requestedAt).toLocaleDateString() },
                                         { label: 'Processed', accessor: (row) => row.processedAt ? new Date(row.processedAt).toLocaleDateString() : 'N/A' },
                                         { label: 'Transaction ID', accessor: (row) => row.transactionId || 'N/A' },
                                     ]}
-                                    filename="withdrawal-history"
+                                    filename={`${requestType}-withdrawal-history`}
                                 />
                             </div>
 
@@ -351,7 +386,7 @@ const VendorWithdrawals = () => {
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-3">
                                                         <h3 className="text-lg font-bold text-gray-800">
-                                                            {request.vendorId?.storeName || request.vendorId?.name || 'Unknown Vendor'}
+                                                            {getRequesterName(request)}
                                                         </h3>
                                                         {getStatusBadge(request.status)}
                                                     </div>
@@ -415,9 +450,9 @@ const VendorWithdrawals = () => {
                         <h2 className="text-xl font-bold text-gray-800 mb-4">Approve Withdrawal Request</h2>
                         <div className="space-y-4">
                             <div>
-                                <p className="text-sm text-gray-600 mb-1">Vendor</p>
+                                <p className="text-sm text-gray-600 mb-1">{getRequesterLabel()}</p>
                                 <p className="font-semibold text-gray-800">
-                                    {selectedRequest.vendorId?.storeName || selectedRequest.vendorId?.name}
+                                    {getRequesterName(selectedRequest)}
                                 </p>
                             </div>
                             <div>
@@ -484,9 +519,9 @@ const VendorWithdrawals = () => {
                         <h2 className="text-xl font-bold text-gray-800 mb-4">Reject Withdrawal Request</h2>
                         <div className="space-y-4">
                             <div>
-                                <p className="text-sm text-gray-600 mb-1">Vendor</p>
+                                <p className="text-sm text-gray-600 mb-1">{getRequesterLabel()}</p>
                                 <p className="font-semibold text-gray-800">
-                                    {selectedRequest.vendorId?.storeName || selectedRequest.vendorId?.name}
+                                    {getRequesterName(selectedRequest)}
                                 </p>
                             </div>
                             <div>
