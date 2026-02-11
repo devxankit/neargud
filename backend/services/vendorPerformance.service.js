@@ -14,13 +14,24 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
   try {
     // Get all vendor orders
     let query = {
-      $or: [
-        { 'vendorBreakdown.vendorId': new mongoose.Types.ObjectId(vendorId) },
-        { 'items.productId': { $in: await Product.find({ vendorId }).distinct('_id') } }
+      $and: [
+        {
+          $or: [
+            { 'vendorBreakdown.vendorId': new mongoose.Types.ObjectId(vendorId) },
+            { 'items.productId': { $in: await Product.find({ vendorId }).distinct('_id') } }
+          ]
+        },
+        {
+          $or: [
+            { paymentStatus: { $in: ['completed', 'refunded'] } },
+            { paymentMethod: { $in: ['cod', 'cash'] } }
+          ]
+        }
       ]
     };
 
     if (period !== 'all') {
+      // ... existing date logic ...
       const now = new Date();
       let startDate;
 
@@ -41,7 +52,6 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
     }
 
     const orders = await Order.find(query).sort({ orderDate: -1 }).lean();
-
     // Get total products count
     const totalProducts = await Product.countDocuments({
       vendorId: vendorId,
@@ -159,9 +169,19 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
     // Prepare aggregation match stage
     const matchStage = {
       $match: {
-        $or: [
-          { 'vendorBreakdown.vendorId': new mongoose.Types.ObjectId(vendorId) },
-          { 'items.productId': { $in: vendorProductIds } }
+        $and: [
+          {
+            $or: [
+              { 'vendorBreakdown.vendorId': new mongoose.Types.ObjectId(vendorId) },
+              { 'items.productId': { $in: vendorProductIds } }
+            ]
+          },
+          {
+            $or: [
+              { paymentStatus: { $in: ['completed', 'refunded'] } },
+              { paymentMethod: { $in: ['cod', 'cash'] } }
+            ]
+          }
         ],
         status: { $nin: ['cancelled', 'refunded'] },
       },

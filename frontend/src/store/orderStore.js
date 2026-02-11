@@ -204,6 +204,11 @@ export const useOrderStore = create((set, get) => ({
       const response = await orderApi.createReturnRequest(returnData);
       const result = response.data;
 
+      // Update state immediately by re-fetching order
+      if (returnData.orderId) {
+        await get().fetchOrder(returnData.orderId);
+      }
+
       toast.success('Return request submitted successfully!');
       set({ isLoading: false });
       return result;

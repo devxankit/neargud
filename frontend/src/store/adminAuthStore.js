@@ -25,6 +25,8 @@ export const useAdminAuthStore = create(
           const authData = body?.data || body;
 
           if (authData?.token && authData?.admin) {
+            console.log('[AdminAuth] Setting token in state and localStorage:', authData.token.substring(0, 20) + '...');
+            
             set({
               admin: authData.admin,
               token: authData.token,
@@ -34,6 +36,7 @@ export const useAdminAuthStore = create(
             });
 
             localStorage.setItem("admin-token", authData.token);
+            console.log('[AdminAuth] Token stored. Verifying:', localStorage.getItem('admin-token') ? 'SUCCESS' : 'FAILED');
             return body;
           }
 
@@ -70,34 +73,62 @@ export const useAdminAuthStore = create(
 
       // Initialize admin auth state
       initialize: async () => {
-        const token = localStorage.getItem('admin-token');
+        // First check if we have token in current state (from Zustand persist)
+        const currentState = get();
+        let token = currentState.token;
+        
+        // If not in state, check localStorage as fallback
+        if (!token) {
+          token = localStorage.getItem('admin-token');
+        }
+        
+        console.log('[AdminAuth] Initialize called. Token exists:', !!token);
 
         if (token) {
           try {
-            const response = await adminAuthApi.getMe();
-            if (response.success) {
-              // Handle potential nesting: response.data.admin or response.admin
-              const adminData = response.data?.admin || response.admin || response.data;
+            // Ensure token is synced to localStorage for API interceptor
+            localStorage.setItem('admin-token', token);
+            
+            // If we don't have admin data, verify the session
+            if (!currentState.admin) {
+              console.log('[AdminAuth] Verifying session with /auth/admin/me...');
+              const response = await adminAuthApi.getMe();
+              console.log('[AdminAuth] GetMe response:', response);
+              
+              if (response.success) {
+                // Handle potential nesting: response.data.admin or response.admin or response.data
+                const adminData = response.data?.admin || response.admin || response.data;
 
-              if (adminData) {
-                set({
-                  admin: adminData,
-                  isAuthenticated: true,
-                  // Token is already there
-                });
+                if (adminData) {
+                  console.log('[AdminAuth] Session restored successfully for:', adminData.email);
+                  set({
+                    admin: adminData,
+                    token: token,
+                    isAuthenticated: true,
+                  });
+                } else {
+                  // Structure mismatch, treat as invalid
+                  throw new Error("Invalid admin data structure");
+                }
               } else {
-                // Structure mismatch, treat as invalid
-                throw new Error("Invalid admin data structure");
+                throw new Error("GetMe reported failure");
               }
             } else {
-              throw new Error("GetMe reported failure");
+              // We have both token and admin data from persisted state
+              console.log('[AdminAuth] Session loaded from persisted state for:', currentState.admin.email);
+              set({
+                admin: currentState.admin,
+                token: token,
+                isAuthenticated: true,
+              });
             }
           } catch (error) {
-            console.error("Session restoration failed:", error.message);
+            console.error("[AdminAuth] Session restoration failed:", error.message, error);
             // Session is invalid or network error. 
             // In either case, we can't assume we are logged in.
             // But we should NOT call api.logout() because we likely aren't authenticated or network is down.
             // Just clear local state.
+            console.log('[AdminAuth] Clearing admin session');
             set({
               admin: null,
               token: null,
@@ -106,6 +137,14 @@ export const useAdminAuthStore = create(
             });
             localStorage.removeItem('admin-token');
           }
+        } else {
+          // No token found, ensure clean state
+          set({
+            admin: null,
+            token: null,
+            isAuthenticated: false,
+            error: null,
+          });
         }
       },
     }),

@@ -986,7 +986,19 @@ export const getAdminOrders = async (filters = {}) => {
     console.log('getAdminOrders - Filters:', filters); // Debug log
 
     if (status) query.status = status;
-    if (paymentStatus) query.paymentStatus = paymentStatus;
+
+    // Apply payment status filter
+    if (paymentStatus) {
+      query.paymentStatus = paymentStatus;
+    } else {
+      // Default: Only show valid orders (Paid online OR COD/Cash)
+      // This matches the logic used in vendor dashboard
+      query.$or = [
+        { paymentStatus: { $in: ['completed', 'refunded'] } },
+        { paymentMethod: { $in: ['cod', 'cash'] } }
+      ];
+    }
+
     if (customerId && mongoose.Types.ObjectId.isValid(customerId)) query.customerId = customerId;
 
     if (vendorId) {

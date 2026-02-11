@@ -30,17 +30,20 @@ export const getDashboardStats = async (req, res) => {
                 startDate.setDate(now.getDate() - 29);
         }
 
-        // We'll fetch more data for 'all' to show trends, or specific based on period
-        // For now, let's get stats for current month vs previous?
-        // Actually, dashboard usually shows "Total Revenue" (All time) and chart shows trend.
+        // Global Payment Filter: Only Paid or COD/Cash orders are valid
+        const paymentFilter = {
+            $or: [
+                { paymentStatus: { $in: ['completed', 'refunded'] } },
+                { paymentMethod: { $in: ['cod', 'cash'] } }
+            ]
+        };
 
         // 1. Total Revenue & Orders (Aggregated)
-        // We want Total Orders to be ALL orders in period.
-        // We want Total Revenue to be only VALID orders in period.
         const statsResult = await Order.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: startDate }
+                    createdAt: { $gte: startDate },
+                    ...paymentFilter
                 }
             },
             {
@@ -52,7 +55,6 @@ export const getDashboardStats = async (req, res) => {
                             $cond: [
                                 { $in: ['$status', ['cancelled', 'refunded', 'pending']] },
                                 0,
-                                // Use pricing.total if exists, else 0
                                 { $ifNull: ['$pricing.total', 0] }
                             ]
                         }
@@ -64,20 +66,18 @@ export const getDashboardStats = async (req, res) => {
         const totalRevenue = statsResult[0]?.totalRevenue || 0;
         const totalOrders = statsResult[0]?.totalOrders || 0;
 
-        // 2. Total Customers (All time usually, or new? Let's keep All Time for "Total Base")
+        // 2. Total Customers
         const totalCustomers = await User.countDocuments({ role: 'user', isActive: true });
 
         // 3. Total Products (Active)
         const totalProducts = await Product.countDocuments({ isActive: true });
 
         // 4. Chart Data: Revenue & Orders over time
-        // Chart usually reflects "Performance", so usually excludes cancelled?
-        // But if Total Orders card shows 2, and Chart shows 1, it is confusing.
-        // Let's show ALL orders in Chart Orders count, but only Valid Revenue in Chart Revenue.
         const chartData = await Order.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: startDate }
+                    createdAt: { $gte: startDate },
+                    ...paymentFilter
                 }
             },
             {
@@ -92,7 +92,7 @@ export const getDashboardStats = async (req, res) => {
                             ]
                         }
                     },
-                    orders: { $sum: 1 } // Count all orders
+                    orders: { $sum: 1 }
                 }
             },
             { $sort: { _id: 1 } }
@@ -116,11 +116,12 @@ export const getDashboardStats = async (req, res) => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // 5. Order Status Distribution (Pie Chart) - Apply Date Filter!
+        // 5. Order Status Distribution (Pie Chart)
         const statusAgg = await Order.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: startDate }
+                    createdAt: { $gte: startDate },
+                    ...paymentFilter
                 }
             },
             {
@@ -136,13 +137,13 @@ export const getDashboardStats = async (req, res) => {
             return acc;
         }, {});
 
-        // 6. Top Products (by sales count in orders) - Apply Date Filter!
-        // Also only count sales from VALID orders (cancelled items shouldn't be "Top Sellers")
+        // 6. Top Products
         const topProductsAgg = await Order.aggregate([
             {
                 $match: {
                     status: { $nin: ['cancelled', 'refunded'] },
-                    createdAt: { $gte: startDate }
+                    createdAt: { $gte: startDate },
+                    ...paymentFilter
                 }
             },
             { $unwind: '$items' },
@@ -176,18 +177,12 @@ export const getDashboardStats = async (req, res) => {
             }
         ]);
 
-        // 7. Recent Orders 
-        // We can fetch this separately or include it. 
-        // The dashboard already fetches recent orders separately in the frontend code I saw!
-        // But I can include it to save a request if I want. 
-        // The current frontend implementation uses `adminOrderApi.getOrders({ limit: 5 })`.
-        // I will leave that as is or return it here. Returning it here is cleaner.
-        const recentOrders = await Order.find()
+        // 7. Recent Orders
+        const recentOrders = await Order.find(paymentFilter)
             .sort({ createdAt: -1 })
             .limit(5)
             .populate('customerId', 'firstName lastName email')
             .lean();
-
 
         res.status(200).json({
             success: true,

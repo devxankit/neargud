@@ -228,15 +228,29 @@ export const getVendorOrdersTransformed = async (vendorId, filters = {}) => {
     });
 
     // Build query to find orders containing vendor's products
-    const query = {
+    let baseVendorQuery = {
       $or: [
         { 'vendorBreakdown.vendorId': vendorIdQuery }
       ]
     };
 
     if (vendorProductIds.length > 0) {
-      query.$or.push({ 'items.productId': { $in: vendorProductIds } });
+      baseVendorQuery.$or.push({ 'items.productId': { $in: vendorProductIds } });
     }
+
+    // Combine with payment status filter
+    // Only show orders that are PAID (completed/refunded) OR COD/Cash
+    const query = {
+      $and: [
+        baseVendorQuery,
+        {
+          $or: [
+            { paymentStatus: { $in: ['completed', 'refunded'] } },
+            { paymentMethod: { $in: ['cod', 'cash'] } }
+          ]
+        }
+      ]
+    };
 
     if (status) {
       query.status = status;
@@ -325,15 +339,27 @@ export const getAllVendorOrdersTransformed = async (vendorId, filters = {}) => {
     const vendorProductIds = vendorProducts.map((p) => p._id);
 
     // Build query to find orders containing vendor's products or in breakdown
-    const query = {
+    const baseVendorQuery = {
       $or: [
         { 'vendorBreakdown.vendorId': vendorIdQuery }
       ]
     };
 
     if (vendorProductIds.length > 0) {
-      query.$or.push({ 'items.productId': { $in: vendorProductIds } });
+      baseVendorQuery.$or.push({ 'items.productId': { $in: vendorProductIds } });
     }
+
+    const query = {
+      $and: [
+        baseVendorQuery,
+        {
+          $or: [
+            { paymentStatus: { $in: ['completed', 'refunded'] } },
+            { paymentMethod: { $in: ['cod', 'cash'] } }
+          ]
+        }
+      ]
+    };
 
     if (status) {
       query.status = status;

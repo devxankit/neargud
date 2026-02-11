@@ -30,9 +30,9 @@ const Vendors = () => {
       ]);
 
       setStats({
-        total: analytics?.overall?.totalVendors || 0,
-        pending: pendingData?.total || 0,
-        revenue: analytics?.overall?.totalRevenue || 0,
+        total: analytics?.data?.overall?.totalVendors || 0,
+        pending: pendingData?.data?.total || 0,
+        revenue: analytics?.data?.overall?.totalRevenue || 0,
         avgCommission: 0.1 // Default or calculate from analytics if available
       });
     } catch (error) {

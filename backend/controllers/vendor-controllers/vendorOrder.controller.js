@@ -247,9 +247,19 @@ export const getStats = async (req, res, next) => {
     const stats = await Order.aggregate([
       {
         $match: {
-          $or: [
-            { 'vendorBreakdown.vendorId': new mongoose.Types.ObjectId(vendorId.toString()) },
-            { 'items.productId': { $in: vendorProductObjectIds } }
+          $and: [
+            {
+              $or: [
+                { 'vendorBreakdown.vendorId': new mongoose.Types.ObjectId(vendorId.toString()) },
+                { 'items.productId': { $in: vendorProductObjectIds } }
+              ]
+            },
+            {
+              $or: [
+                { paymentStatus: { $in: ['completed', 'refunded'] } },
+                { paymentMethod: { $in: ['cod', 'cash'] } }
+              ]
+            }
           ]
         },
       },
@@ -332,9 +342,19 @@ export const getEarningsStats = async (req, res, next) => {
 
     // Fetch all relevant orders
     const orders = await Order.find({
-      $or: [
-        { 'vendorBreakdown.vendorId': vendorId },
-        { 'items.productId': { $in: vendorProductObjectIds } }
+      $and: [
+        {
+          $or: [
+            { 'vendorBreakdown.vendorId': vendorId },
+            { 'items.productId': { $in: vendorProductObjectIds } }
+          ]
+        },
+        {
+          $or: [
+            { paymentStatus: { $in: ['completed', 'refunded'] } },
+            { paymentMethod: { $in: ['cod', 'cash'] } }
+          ]
+        }
       ],
       status: { $nin: ['cancelled', 'returned', 'refunded'] }
     })

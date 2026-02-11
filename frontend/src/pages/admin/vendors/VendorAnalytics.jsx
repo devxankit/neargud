@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { FiBarChart2, FiTrendingUp, FiDollarSign, FiShoppingBag, FiPackage } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { formatPrice } from "../../../utils/helpers";
-import { 
-  fetchVendorAnalytics 
+import {
+  fetchVendorAnalytics
 } from "../../../services/vendorApi";
 import toast from "react-hot-toast";
 
 const VendorAnalytics = () => {
   const navigate = useNavigate();
-  
+
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,14 +33,14 @@ const VendorAnalytics = () => {
     loadAnalytics();
   }, []);
 
-  const overallStats = analyticsData?.overall || {
+  const overallStats = analyticsData?.data?.overall || {
     totalVendors: 0,
     totalOrders: 0,
     totalRevenue: 0,
     totalEarnings: 0,
   };
 
-  const vendorStats = analyticsData?.vendors || [];
+  const vendorStats = analyticsData?.data?.vendors || [];
 
   if (loading) {
     return (

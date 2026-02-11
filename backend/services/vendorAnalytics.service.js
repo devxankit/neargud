@@ -48,7 +48,11 @@ const getSingleVendorAnalytics = async (vendorId) => {
     if (Order) {
       orders = await Order.find({
         'vendorBreakdown.vendorId': vendorId,
-        status: { $ne: 'cancelled' } // Exclude cancelled orders
+        status: { $ne: 'cancelled' }, // Exclude cancelled orders
+        $or: [
+          { paymentStatus: { $in: ['completed', 'refunded'] } },
+          { paymentMethod: { $in: ['cod', 'cash'] } }
+        ]
       }).lean();
     }
 
@@ -118,7 +122,12 @@ const getAllVendorsAnalytics = async () => {
     // Get all orders
     let orders = [];
     if (Order) {
-      orders = await Order.find({}).lean();
+      orders = await Order.find({
+        $or: [
+          { paymentStatus: { $in: ['completed', 'refunded'] } },
+          { paymentMethod: { $in: ['cod', 'cash'] } }
+        ]
+      }).lean();
     }
 
     // Calculate overall stats
@@ -224,7 +233,11 @@ export const getVendorOrders = async (vendorId, filters = {}) => {
 
     const query = {
       'vendorBreakdown.vendorId': vendorId,
-      status: { $ne: 'cancelled' } // Exclude cancelled orders
+      status: { $ne: 'cancelled' }, // Exclude cancelled orders
+      $or: [
+        { paymentStatus: { $in: ['completed', 'refunded'] } },
+        { paymentMethod: { $in: ['cod', 'cash'] } }
+      ]
     };
 
     if (status) {

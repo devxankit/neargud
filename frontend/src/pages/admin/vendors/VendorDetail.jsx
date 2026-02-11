@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   FiArrowLeft,
@@ -22,7 +22,6 @@ import {
   fetchVendorOrders,
   fetchVendorAnalytics,
   updateVendorStatusApi,
-  updateVendorCommissionApi
 } from '../../../services/vendorApi';
 import Badge from '../../../components/Badge';
 import DataTable from '../../../components/Admin/DataTable';
@@ -37,6 +36,7 @@ const VendorDetail = () => {
   const [loading, setLoading] = useState(true);
   const [vendorOrders, setVendorOrders] = useState([]);
   const [commissions, setCommissions] = useState([]);
+  const [commissionRate, setCommissionRate] = useState('');
   const [orderPagination, setOrderPagination] = useState({
     page: 1,
     limit: 10,
@@ -54,8 +54,8 @@ const VendorDetail = () => {
         fetchVendorAnalytics(id)
       ]);
 
-      if (vendorRes?.vendor) {
-        const v = vendorRes.vendor;
+      if (vendorRes?.data?.vendor) {
+        const v = vendorRes.data.vendor;
         setVendor({
           ...v,
           id: v._id,
@@ -64,8 +64,8 @@ const VendorDetail = () => {
         setCommissionRate(((v.commissionRate || 0) * 100).toFixed(1));
       }
 
-      if (analyticsRes) {
-        setEarningsSummary(analyticsRes.stats || analyticsRes);
+      if (analyticsRes?.data) {
+        setEarningsSummary(analyticsRes.data.stats || analyticsRes.data);
       }
     } catch (error) {
       console.error(error);
@@ -83,8 +83,8 @@ const VendorDetail = () => {
         limit: orderPagination.limit
       });
 
-      if (response?.orders) {
-        const formattedOrders = response.orders.map(o => ({
+      if (response?.data?.orders) {
+        const formattedOrders = response.data.orders.map(o => ({
           ...o,
           id: o._id,
           code: o.orderCode,
@@ -109,8 +109,8 @@ const VendorDetail = () => {
 
         setOrderPagination(prev => ({
           ...prev,
-          total: response.total,
-          totalPages: response.totalPages
+          total: response.data.total,
+          totalPages: response.data.totalPages
         }));
       }
     } catch (error) {
@@ -314,7 +314,7 @@ const VendorDetail = () => {
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex border-b border-gray-200">
-          {['overview', 'documents', 'orders', 'commissions'].map((tab) => (
+          {['overview', 'documents', 'orders'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -380,6 +380,7 @@ const VendorDetail = () => {
                         </p>
                       </div>
                     </div>
+                  
                   </div>
                 </div>
 
@@ -517,22 +518,7 @@ const VendorDetail = () => {
             </div>
           )}
 
-          {/* Commissions Tab */}
-          {activeTab === 'commissions' && (
-            <div>
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Commission History</h2>
-              {commissions.length > 0 ? (
-                <DataTable
-                  data={commissions}
-                  columns={commissionColumns}
-                  pagination={true}
-                  itemsPerPage={10}
-                />
-              ) : (
-                <p className="text-gray-500 text-center py-8">No commission records found</p>
-              )}
-            </div>
-          )}
+
 
         </div>
       </div>

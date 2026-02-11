@@ -303,7 +303,18 @@ export const processRefund = async (req, res, next) => {
  */
 export const getStats = async (req, res, next) => {
   try {
+    // Filter for valid orders only
+    const matchStage = {
+      $match: {
+        $or: [
+          { paymentStatus: { $in: ['completed', 'refunded'] } },
+          { paymentMethod: { $in: ['cod', 'cash'] } }
+        ]
+      }
+    };
+
     const stats = await Order.aggregate([
+      matchStage,
       {
         $group: {
           _id: '$status',
@@ -313,6 +324,7 @@ export const getStats = async (req, res, next) => {
     ]);
 
     const paymentStats = await Order.aggregate([
+      matchStage,
       {
         $group: {
           _id: '$paymentStatus',

@@ -12,7 +12,7 @@ import api from '../utils/api';
  */
 export const fetchVendors = async (params = {}) => {
     const response = await api.get('/admin/vendors', { params });
-    return response.data;
+    return response;
 };
 
 /**
@@ -22,7 +22,7 @@ export const fetchVendors = async (params = {}) => {
  */
 export const fetchPendingVendors = async (params = {}) => {
     const response = await api.get('/admin/vendors/pending', { params });
-    return response.data;
+    return response;
 };
 
 /**
@@ -32,7 +32,7 @@ export const fetchPendingVendors = async (params = {}) => {
  */
 export const fetchApprovedVendors = async (params = {}) => {
     const response = await api.get('/admin/vendors/approved', { params });
-    return response.data;
+    return response;
 };
 
 /**
@@ -42,7 +42,7 @@ export const fetchApprovedVendors = async (params = {}) => {
  */
 export const fetchVendorById = async (id) => {
     const response = await api.get(`/admin/vendors/${id}`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -53,7 +53,7 @@ export const fetchVendorById = async (id) => {
  */
 export const updateVendorStatusApi = async (id, status) => {
     const response = await api.put(`/admin/vendors/${id}/status`, { status });
-    return response.data;
+    return response;
 };
 
 /**
@@ -64,7 +64,7 @@ export const updateVendorStatusApi = async (id, status) => {
  */
 export const updateVendorCommissionApi = async (id, commissionRate) => {
     const response = await api.put(`/admin/vendors/${id}/commission`, { commissionRate });
-    return response.data;
+    return response;
 };
 
 /**
@@ -75,7 +75,7 @@ export const updateVendorCommissionApi = async (id, commissionRate) => {
 export const fetchVendorAnalytics = async (id = null) => {
     const url = id ? `/admin/vendors/analytics/${id}` : '/admin/vendors/analytics';
     const response = await api.get(url);
-    return response.data;
+    return response;
 };
 
 /**
@@ -86,7 +86,7 @@ export const fetchVendorAnalytics = async (id = null) => {
  */
 export const fetchVendorOrders = async (id, params = {}) => {
     const response = await api.get(`/admin/vendors/${id}/orders`, { params });
-    return response.data;
+    return response;
 };
 
 /**
@@ -97,5 +97,5 @@ export const fetchVendorOrders = async (id, params = {}) => {
  */
 export const updateVendorActiveStatusApi = async (id, isActive) => {
     const response = await api.put(`/admin/vendors/${id}/active`, { isActive });
-    return response.data;
+    return response;
 };

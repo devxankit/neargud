@@ -20,7 +20,6 @@ import { formatPrice } from "../../../utils/helpers";
 import {
   fetchVendors,
   updateVendorStatusApi,
-  updateVendorCommissionApi,
   updateVendorActiveStatusApi,
 } from "../../../services/vendorApi";
 
@@ -58,9 +57,9 @@ const ManageVendors = () => {
         status: selectedStatus !== "all" ? selectedStatus : undefined,
       });
 
-      if (response?.vendors) {
+      if (response?.data?.vendors) {
         // 🔥 normalize _id to id
-        const formattedVendors = response.vendors.map((v) => ({
+        const formattedVendors = response.data.vendors.map((v) => ({
           ...v,
           id: v._id,
         }));
@@ -68,8 +67,8 @@ const ManageVendors = () => {
         setVendors(formattedVendors);
         setPagination((prev) => ({
           ...prev,
-          total: response.total,
-          totalPages: response.totalPages,
+          total: response.data.total,
+          totalPages: response.data.totalPages,
         }));
       }
     } catch (error) {
@@ -225,7 +224,6 @@ const ManageVendors = () => {
       vendorId: null,
       vendorName: null,
     });
-    setCommissionRate("");
   };
 
   // ================= MODAL CONTENT =================

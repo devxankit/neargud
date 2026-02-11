@@ -19,6 +19,7 @@ api.interceptors.request.use(
 
     if (url.includes('/admin/')) {
       token = localStorage.getItem('admin-token');
+      console.log('[API Debug] Admin route detected:', url, 'Token:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
     } else if (url.includes('/vendor/')) {
       token = localStorage.getItem('vendor-token');
     } else if (url.includes('/delivery/')) {
@@ -32,6 +33,7 @@ api.interceptors.request.use(
       const path = window.location.pathname;
       if (path.startsWith('/admin')) {
         token = localStorage.getItem('admin-token');
+        console.log('[API Debug] Fallback admin token:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
       } else if (path.startsWith('/vendor')) {
         token = localStorage.getItem('vendor-token');
       } else if (path.startsWith('/delivery')) {
@@ -43,6 +45,8 @@ api.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('[API Debug] No token found for request:', url);
     }
     return config;
   },

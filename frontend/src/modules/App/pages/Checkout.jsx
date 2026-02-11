@@ -49,6 +49,7 @@ const MobileCheckout = () => {
     country: '',
     paymentMethod: 'card',
   });
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   useEffect(() => {
     if (isAuthenticated && wallet?.balance > 0) {
       setUseWallet(true);   // auto enable wallet
@@ -248,18 +249,34 @@ const MobileCheckout = () => {
 
   // Load Razorpay script
   useEffect(() => {
+    if (window.Razorpay) {
+      setRazorpayLoaded(true);
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
+    script.onload = () => setRazorpayLoaded(true);
+    script.onerror = () => {
+      toast.error('Failed to load payment gateway. Please check your internet connection.');
+    };
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
   // Handle Razorpay Payment
   const handleRazorpayPayment = async (orderData) => {
+    if (!razorpayLoaded && !window.Razorpay) {
+      toast.error('Payment gateway is still loading. Please wait a moment...');
+      return;
+    }
+
     try {
       // Create order on backend
       const response = await createOrder({
