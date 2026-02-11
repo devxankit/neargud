@@ -3,12 +3,27 @@ import api from '../utils/api';
 /**
  * Get all pending withdrawal requests
  */
-export const fetchPendingWithdrawals = async () => {
+export const fetchPendingWithdrawals = async (type = 'vendor') => {
     try {
-        const response = await api.get('/admin/vendor-wallets/pending-withdrawals');
+        const response = await api.get('/admin/vendor-wallets/pending-withdrawals', {
+            params: { type }
+        });
         return response.data;
     } catch (error) {
         console.error('Error fetching pending withdrawals:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get all delivery partner wallets
+ */
+export const fetchAllDeliveryWallets = async () => {
+    try {
+        const response = await api.get('/admin/vendor-wallets/delivery-wallets');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching delivery wallets:', error);
         throw error;
     }
 };
