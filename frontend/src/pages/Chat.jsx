@@ -52,6 +52,7 @@ const Chat = () => {
     const productName = searchParams.get('productName');
     const productImage = searchParams.get('productImage');
     const productPrice = searchParams.get('productPrice');
+    const productDescription = searchParams.get('productDescription');
 
     // Initialize socket on mount
     useEffect(() => {
@@ -132,7 +133,8 @@ const Chat = () => {
                                             productId,
                                             name: productName,
                                             image: productImage,
-                                            price: parseFloat(productPrice)
+                                            price: parseFloat(productPrice),
+                                            description: productDescription
                                         }
                                     );
                                 }
@@ -151,7 +153,7 @@ const Chat = () => {
             initializeVendorChat();
         }
 
-    }, [vendorId, user, !!conversations.length]); // Use boolean to avoid re-triggering on every length change if not needed, but length 0 to >0 transition is key.
+    }, [vendorId, user, !!conversations.length, productDescription]); // Added productDescription dependency // Use boolean to avoid re-triggering on every length change if not needed, but length 0 to >0 transition is key.
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -602,6 +604,9 @@ const Chat = () => {
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className={`text-xs font-bold truncate ${isUser ? 'text-white' : 'text-gray-900'}`}>{msg.productData.name}</p>
+                                                                {msg.productData.description && (
+                                                                    <p className={`text-[9px] line-clamp-1 ${isUser ? 'text-white/70' : 'text-gray-500'}`}>{msg.productData.description}</p>
+                                                                )}
                                                                 <p className={`text-[10px] font-medium ${isUser ? 'text-white/80' : 'text-primary-600'}`}>{formatPrice(msg.productData.price)}</p>
                                                             </div>
                                                         </div>

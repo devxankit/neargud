@@ -566,6 +566,9 @@ const VendorChat = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-xs font-bold truncate ${isVendor ? 'text-white' : 'text-gray-900'}`}>{msg.productData.name}</p>
+                            {msg.productData.description && (
+                              <p className={`text-[9px] line-clamp-1 ${isVendor ? 'text-white/70' : 'text-gray-500'}`}>{msg.productData.description}</p>
+                            )}
                             <p className={`text-[10px] font-medium ${isVendor ? 'text-white/80' : 'text-primary-600'}`}>{formatPrice(msg.productData.price)}</p>
                           </div>
                         </div>

@@ -347,6 +347,32 @@ const MobileProductDetail = () => {
     }
   };
 
+  const handleChatSeller = () => {
+    if (!user) {
+      toast.error("Please login to chat with seller");
+      navigate("/app/login", { state: { from: location } });
+      return;
+    }
+
+    const vId = vendor?._id || vendor?.id;
+    if (!vId) {
+      toast.error("Vendor information not found");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      vendorId: vId,
+      vendorName: vendor.storeName || vendor.name || '',
+      productId: product._id || product.id,
+      productName: product.name,
+      productImage: productImages[0] || '',
+      productPrice: currentPrice.toString(),
+      productDescription: product.description?.substring(0, 100) || ''
+    });
+
+    navigate(`/app/chat?${params.toString()}`);
+  };
+
   if (loading && !product) {
     return (
       <PageTransition>
@@ -517,11 +543,15 @@ const MobileProductDetail = () => {
                     </div>
                   </Link>
                   <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-50">
-                    <button className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
+                    <button
+                      onClick={handleChatSeller}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
                       <FiMessageCircle className="text-sm" />
                       Chat Seller
                     </button>
-                    <button className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
+                    <button
+                      onClick={handleShare}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
                       <FiShare2 className="text-sm" />
                       Share Product
                     </button>
