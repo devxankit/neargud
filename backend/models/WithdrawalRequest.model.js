@@ -5,7 +5,16 @@ const withdrawalRequestSchema = new mongoose.Schema(
         vendorId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Vendor',
-            required: true,
+        },
+        deliveryPartnerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'DeliveryPartner',
+        },
+        userType: {
+            type: String,
+            enum: ['vendor', 'delivery_partner'],
+            default: 'vendor',
+            required: true
         },
         amount: {
             type: Number,

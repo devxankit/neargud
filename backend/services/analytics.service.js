@@ -50,7 +50,7 @@ export const getAdminAnalyticsSummary = async (period) => {
     totalCustomers
   ] = await Promise.all([
     Order.aggregate([
-      { $match: { status: { $ne: 'cancelled' } } },
+      { $match: { status: { $nin: ['cancelled', 'returned', 'return_approved'] } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]),
     Order.countDocuments({ status: { $ne: 'cancelled' } }),
@@ -76,11 +76,11 @@ export const getAdminAnalyticsSummary = async (period) => {
     previousCustomers
   ] = await Promise.all([
     Order.aggregate([
-      { $match: { orderDate: { $gte: startDate, $lte: endDate }, status: { $ne: 'cancelled' } } },
+      { $match: { orderDate: { $gte: startDate, $lte: endDate }, status: { $nin: ['cancelled', 'returned', 'return_approved'] } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]),
     Order.aggregate([
-      { $match: { orderDate: { $gte: previousStartDate, $lt: startDate }, status: { $ne: 'cancelled' } } },
+      { $match: { orderDate: { $gte: previousStartDate, $lt: startDate }, status: { $nin: ['cancelled', 'returned', 'return_approved'] } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]),
     Order.countDocuments({ orderDate: { $gte: startDate, $lte: endDate }, status: { $ne: 'cancelled' } }),
@@ -128,7 +128,7 @@ export const getAdminChartData = async (period) => {
     {
       $match: {
         orderDate: { $gte: startDate, $lte: endDate },
-        status: { $ne: 'cancelled' }
+        status: { $nin: ['cancelled', 'returned', 'return_approved'] }
       }
     },
     {
@@ -158,7 +158,7 @@ export const getAdminFinanceSummary = async (period) => {
   const [revenueResult, commissionResult, ordersCount] = await Promise.all([
     // Total Revenue (GMV)
     Order.aggregate([
-      { $match: { orderDate: { $gte: startDate, $lte: endDate }, status: { $ne: 'cancelled' } } },
+      { $match: { orderDate: { $gte: startDate, $lte: endDate }, status: { $nin: ['cancelled', 'returned', 'return_approved'] } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]),
     // Commissions (Admin Profit)
@@ -201,14 +201,23 @@ export const getOrderTrends = async (period) => {
   const trends = await Order.aggregate([
     {
       $match: {
-        orderDate: { $gte: startDate, $lte: endDate }
+        orderDate: { $gte: startDate, $lte: endDate },
+        status: { $ne: 'cancelled' }
       }
     },
     {
       $group: {
         _id: { $dateToString: { format: "%Y-%m-%d", date: "$orderDate" } },
         orders: { $sum: 1 },
-        revenue: { $sum: "$total" }
+        revenue: {
+          $sum: {
+            $cond: [
+              { $in: ['$status', ['returned', 'return_approved']] },
+              0,
+              '$total'
+            ]
+          }
+        }
       }
     },
     { $sort: { _id: 1 } }
@@ -262,7 +271,7 @@ export const getTaxReports = async (period) => {
     {
       $match: {
         orderDate: { $gte: startDate, $lte: endDate },
-        status: 'delivered'
+        status: { $nin: ['cancelled', 'returned', 'return_approved'] }
       }
     },
     {
@@ -293,7 +302,7 @@ export const getRefundReports = async (period) => {
     {
       $match: {
         orderDate: { $gte: startDate, $lte: endDate },
-        status: 'returned'
+        status: { $in: ['returned', 'return_approved', 'refunded'] }
       }
     },
     {

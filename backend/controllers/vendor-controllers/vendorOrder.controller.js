@@ -356,7 +356,7 @@ export const getEarningsStats = async (req, res, next) => {
           ]
         }
       ],
-      status: { $nin: ['cancelled', 'returned', 'refunded'] }
+      status: { $nin: ['cancelled', 'returned', 'refunded', 'return_approved'] }
     })
       .select('items status vendorBreakdown total orderCode createdAt')
       .lean();
@@ -385,7 +385,8 @@ export const getEarningsStats = async (req, res, next) => {
       let hasVendorItems = false;
 
       // Filter out unsuccessful orders from earnings
-      const isUnsuccessful = ['cancelled', 'returned', 'refunded', 'cancellation_requested', 'return_requested'].includes(order.status);
+      // return_requested and cancellation_requested are counted UNTIL approved/completed
+      const isUnsuccessful = ['cancelled', 'returned', 'refunded', 'return_approved'].includes(order.status);
 
       // Check items to see if this order really belongs to this vendor
       order.items.forEach(item => {

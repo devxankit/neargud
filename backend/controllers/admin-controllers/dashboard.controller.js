@@ -53,7 +53,7 @@ export const getDashboardStats = async (req, res) => {
                     totalRevenue: {
                         $sum: {
                             $cond: [
-                                { $in: ['$status', ['cancelled', 'refunded', 'pending']] },
+                                { $in: ['$status', ['cancelled', 'refunded', 'pending', 'returned', 'return_approved']] },
                                 0,
                                 { $ifNull: ['$pricing.total', 0] }
                             ]
@@ -86,7 +86,7 @@ export const getDashboardStats = async (req, res) => {
                     revenue: {
                         $sum: {
                             $cond: [
-                                { $in: ['$status', ['cancelled', 'refunded', 'pending']] },
+                                { $in: ['$status', ['cancelled', 'refunded', 'pending', 'returned', 'return_approved']] },
                                 0,
                                 { $ifNull: ['$pricing.total', 0] }
                             ]
@@ -141,7 +141,7 @@ export const getDashboardStats = async (req, res) => {
         const topProductsAgg = await Order.aggregate([
             {
                 $match: {
-                    status: { $nin: ['cancelled', 'refunded'] },
+                    status: { $nin: ['cancelled', 'refunded', 'returned', 'return_approved'] },
                     createdAt: { $gte: startDate },
                     ...paymentFilter
                 }

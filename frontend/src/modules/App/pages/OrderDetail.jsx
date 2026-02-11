@@ -430,7 +430,7 @@ const MobileOrderDetail = () => {
 
           {/* Actions */}
           <div className="space-y-2">
-            {order.status === 'delivered' && eligibility.eligible && isOrderReturnable && !order.returnRequest && (
+            {order.status === 'delivered' && eligibility.eligible && isOrderReturnable && (!order.returnRequest || !order.returnRequest.returnCode) && (
               <button
                 onClick={() => setIsReturnModalOpen(true)}
                 className="w-full py-3 bg-white border-2 border-orange-500 text-orange-500 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-orange-50 transition-colors"

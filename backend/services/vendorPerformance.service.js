@@ -81,7 +81,8 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
       let itemsFound = false;
 
       // Filter out unsuccessful orders from metrics (but they remain in recentOrders)
-      const isUnsuccessful = ['cancelled', 'returned', 'refunded', 'cancellation_requested', 'return_requested'].includes(order.status);
+      // return_requested and cancellation_requested are counted UNTIL approved/completed
+      const isUnsuccessful = ['cancelled', 'returned', 'refunded', 'return_approved'].includes(order.status);
 
       // 1. First, check if there's data in vendorBreakdown
       if (order.vendorBreakdown && Array.isArray(order.vendorBreakdown)) {
@@ -183,7 +184,7 @@ export const getVendorPerformanceMetrics = async (vendorId, period = 'all') => {
             ]
           }
         ],
-        status: { $nin: ['cancelled', 'refunded'] },
+        status: { $nin: ['cancelled', 'refunded', 'returned', 'return_approved'] },
       },
     };
 

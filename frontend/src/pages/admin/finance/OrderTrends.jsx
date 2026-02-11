@@ -1,13 +1,33 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FiTrendingUp, FiCalendar } from "react-icons/fi";
 import { motion } from "framer-motion";
 import OrderTrendsLineChart from "../../../components/Admin/Analytics/OrderTrendsLineChart";
 import AnimatedSelect from "../../../components/Admin/AnimatedSelect";
-import { generateRevenueData } from "../../../data/adminMockData";
+import { fetchOrderTrends } from "../../../services/adminFinanceApi";
+import { toast } from "react-hot-toast";
 
 const OrderTrends = () => {
   const [period, setPeriod] = useState("month");
-  const revenueData = useMemo(() => generateRevenueData(30), []);
+  const [revenueData, setRevenueData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchOrderTrends(period);
+        setRevenueData(data);
+      } catch (error) {
+        console.error("Failed to load order trends:", error);
+        toast.error("Failed to load order trends");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [period]);
 
   const orderTrends = useMemo(() => {
     return revenueData.map((day) => ({
@@ -20,6 +40,14 @@ const OrderTrends = () => {
   const averageOrders =
     orderTrends.length > 0 ? totalOrders / orderTrends.length : 0;
   const maxOrders = Math.max(...orderTrends.map((d) => d.orders), 0);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

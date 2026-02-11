@@ -1,12 +1,25 @@
 import VendorWalletService from '../../services/vendorWallet.service.js';
+import DeliveryWalletService from '../../services/deliveryWallet.service.js';
+import WithdrawalRequest from '../../models/WithdrawalRequest.model.js';
 import { asyncHandler } from '../../middleware/errorHandler.middleware.js';
 
 /**
  * Get all vendor wallets with balances (Admin)
  */
 export const getAllVendorWallets = asyncHandler(async (req, res) => {
-    // Ideally this would be paginated in a production app
+    // This remains specific to Vendor Wallets
     const wallets = await VendorWalletService.getAllVendorWallets();
+    res.status(200).json({
+        success: true,
+        data: wallets
+    });
+});
+
+/**
+ * Get all delivery partner wallets (Admin)
+ */
+export const getAllDeliveryWallets = asyncHandler(async (req, res) => {
+    const wallets = await DeliveryWalletService.getAllPartnerWallets();
     res.status(200).json({
         success: true,
         data: wallets
@@ -29,8 +42,18 @@ export const getVendorWallet = asyncHandler(async (req, res) => {
  * Get pending withdrawal requests (Admin)
  */
 export const getPendingWithdrawals = asyncHandler(async (req, res) => {
-    const requests = await VendorWalletService.getPendingWithdrawals();
-    const stats = await VendorWalletService.getAdminStats();
+    const { type } = req.query; // 'vendor' or 'delivery'
+
+    let requests = [];
+    let stats = {};
+
+    if (type === 'delivery') {
+        requests = await DeliveryWalletService.getPendingWithdrawals();
+        stats = await DeliveryWalletService.getAdminStats();
+    } else {
+        requests = await VendorWalletService.getPendingWithdrawals();
+        stats = await VendorWalletService.getAdminStats();
+    }
 
     res.status(200).json({
         success: true,
@@ -49,12 +72,22 @@ export const approveWithdrawal = asyncHandler(async (req, res) => {
     const { notes, transactionId } = req.body;
     const adminId = req.user.adminId;
 
-    const request = await VendorWalletService.approveWithdrawal(requestId, adminId, notes, transactionId);
+    const requestToCheck = await WithdrawalRequest.findById(requestId);
+    if (!requestToCheck) {
+        throw new Error('Withdrawal request not found');
+    }
+
+    let result;
+    if (requestToCheck.userType === 'delivery_partner') {
+        result = await DeliveryWalletService.approveWithdrawal(requestId, adminId, notes, transactionId);
+    } else {
+        result = await VendorWalletService.approveWithdrawal(requestId, adminId, notes, transactionId);
+    }
 
     res.status(200).json({
         success: true,
         message: 'Withdrawal request approved and processed',
-        data: request
+        data: result
     });
 });
 
@@ -66,12 +99,22 @@ export const rejectWithdrawal = asyncHandler(async (req, res) => {
     const { reason } = req.body;
     const adminId = req.user.adminId;
 
-    const request = await VendorWalletService.rejectWithdrawal(requestId, adminId, reason);
+    const requestToCheck = await WithdrawalRequest.findById(requestId);
+    if (!requestToCheck) {
+        throw new Error('Withdrawal request not found');
+    }
+
+    let result;
+    if (requestToCheck.userType === 'delivery_partner') {
+        result = await DeliveryWalletService.rejectWithdrawal(requestId, adminId, reason);
+    } else {
+        result = await VendorWalletService.rejectWithdrawal(requestId, adminId, reason);
+    }
 
     res.status(200).json({
         success: true,
         message: 'Withdrawal request rejected',
-        data: request
+        data: result
     });
 });
 
@@ -79,8 +122,14 @@ export const rejectWithdrawal = asyncHandler(async (req, res) => {
  * Get withdrawal reports (Admin)
  */
 export const getReports = asyncHandler(async (req, res) => {
-    const { status, startDate, endDate, vendorId } = req.query;
-    const reports = await VendorWalletService.getWithdrawalReports({ status, startDate, endDate, vendorId });
+    const { status, startDate, endDate, vendorId, type } = req.query;
+
+    let reports;
+    if (type === 'delivery') {
+        reports = await DeliveryWalletService.getWithdrawalReports({ status, startDate, endDate });
+    } else {
+        reports = await VendorWalletService.getWithdrawalReports({ status, startDate, endDate, vendorId });
+    }
 
     res.status(200).json({
         success: true,

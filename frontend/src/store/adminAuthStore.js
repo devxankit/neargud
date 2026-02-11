@@ -26,7 +26,7 @@ export const useAdminAuthStore = create(
 
           if (authData?.token && authData?.admin) {
             console.log('[AdminAuth] Setting token in state and localStorage:', authData.token.substring(0, 20) + '...');
-            
+
             set({
               admin: authData.admin,
               token: authData.token,
@@ -73,28 +73,30 @@ export const useAdminAuthStore = create(
 
       // Initialize admin auth state
       initialize: async () => {
+        set({ isLoading: true });
+
         // First check if we have token in current state (from Zustand persist)
         const currentState = get();
         let token = currentState.token;
-        
+
         // If not in state, check localStorage as fallback
         if (!token) {
           token = localStorage.getItem('admin-token');
         }
-        
+
         console.log('[AdminAuth] Initialize called. Token exists:', !!token);
 
         if (token) {
           try {
             // Ensure token is synced to localStorage for API interceptor
             localStorage.setItem('admin-token', token);
-            
+
             // If we don't have admin data, verify the session
             if (!currentState.admin) {
               console.log('[AdminAuth] Verifying session with /auth/admin/me...');
               const response = await adminAuthApi.getMe();
               console.log('[AdminAuth] GetMe response:', response);
-              
+
               if (response.success) {
                 // Handle potential nesting: response.data.admin or response.admin or response.data
                 const adminData = response.data?.admin || response.admin || response.data;
@@ -105,6 +107,7 @@ export const useAdminAuthStore = create(
                     admin: adminData,
                     token: token,
                     isAuthenticated: true,
+                    isLoading: false,
                   });
                 } else {
                   // Structure mismatch, treat as invalid
@@ -120,6 +123,7 @@ export const useAdminAuthStore = create(
                 admin: currentState.admin,
                 token: token,
                 isAuthenticated: true,
+                isLoading: false,
               });
             }
           } catch (error) {
@@ -134,6 +138,7 @@ export const useAdminAuthStore = create(
               token: null,
               isAuthenticated: false,
               error: null,
+              isLoading: false,
             });
             localStorage.removeItem('admin-token');
           }
@@ -144,6 +149,7 @@ export const useAdminAuthStore = create(
             token: null,
             isAuthenticated: false,
             error: null,
+            isLoading: false,
           });
         }
       },

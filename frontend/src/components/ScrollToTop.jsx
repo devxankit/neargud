@@ -22,7 +22,7 @@ const ScrollToTop = () => {
       const elementsToReset = [
         document.documentElement,
         document.body,
-        ...document.querySelectorAll('main, [data-scroll-container], .overflow-y-auto')
+        ...document.querySelectorAll('main, [data-scroll-container]')
       ];
 
       elementsToReset.forEach(el => {

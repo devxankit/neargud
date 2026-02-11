@@ -614,3 +614,37 @@
 [2026-02-10T17:42:34.489Z] Found 45 products
 [2026-02-10T17:42:34.539Z] Found 1 orders in DB
 [2026-02-10T17:42:34.540Z] Final: Orders=1, Total=1080, Pending=0, Commission=120
+[2026-02-11T10:25:48.853Z] Vendor: 6989c355506ce778a6bfdbbb
+[2026-02-11T10:25:48.907Z] Found 45 products
+[2026-02-11T10:29:07.321Z] Vendor: 6989c355506ce778a6bfdbbb
+[2026-02-11T10:29:07.324Z] Found 45 products
+[2026-02-11T10:31:00.371Z] Vendor: 6989c355506ce778a6bfdbbb
+[2026-02-11T10:31:00.372Z] Found 45 products
+[2026-02-11T10:32:00.488Z] Vendor: 6989c355506ce778a6bfdbbb
+[2026-02-11T10:32:00.489Z] Found 45 products
+[2026-02-11T10:33:18.737Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T10:33:18.738Z] Found 1 products
+[2026-02-11T10:35:58.295Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T10:35:58.296Z] Found 1 products
+[2026-02-11T10:35:58.347Z] Found 1 orders in DB
+[2026-02-11T10:35:58.349Z] Final: Orders=1, Total=4899.02, Pending=4899.02, Commission=99.98
+[2026-02-11T10:36:29.009Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T10:36:29.009Z] Found 1 products
+[2026-02-11T10:36:29.040Z] Found 1 orders in DB
+[2026-02-11T10:36:29.040Z] Final: Orders=1, Total=4899.02, Pending=4899.02, Commission=99.98
+[2026-02-11T10:36:44.037Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T10:36:44.038Z] Found 1 products
+[2026-02-11T10:36:44.073Z] Found 1 orders in DB
+[2026-02-11T10:36:44.073Z] Final: Orders=1, Total=4899.02, Pending=4899.02, Commission=99.98
+[2026-02-11T10:38:28.545Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T10:38:28.565Z] Found 1 products
+[2026-02-11T10:38:28.609Z] Found 1 orders in DB
+[2026-02-11T10:38:28.610Z] Final: Orders=1, Total=4899.02, Pending=4899.02, Commission=99.98
+[2026-02-11T10:44:29.588Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T10:44:29.589Z] Found 1 products
+[2026-02-11T10:44:29.620Z] Found 1 orders in DB
+[2026-02-11T10:44:29.620Z] Final: Orders=1, Total=4899.02, Pending=4899.02, Commission=99.98
+[2026-02-11T11:22:05.307Z] Vendor: 698b6ec743fddbdd74d69a9c
+[2026-02-11T11:22:05.318Z] Found 1 products
+[2026-02-11T11:22:05.344Z] Found 1 orders in DB
+[2026-02-11T11:22:05.345Z] Final: Orders=1, Total=4899.02, Pending=4899.02, Commission=99.98

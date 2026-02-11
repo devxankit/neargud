@@ -118,7 +118,6 @@
     "route": "/admin/finance",
     "children": [
       "Revenue Overview",
-      "Profit & Loss",
       "Order Trends",
       "Payment Breakdown",
       "Tax Reports",
