@@ -238,7 +238,7 @@ const DailyDeals = () => {
                     Check back tomorrow for new daily deals!
                   </p>
                   <Link
-                    to="/"
+                    to="/app"
                     className="inline-block px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
                   >
                     Continue Shopping

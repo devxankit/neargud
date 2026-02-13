@@ -15,7 +15,7 @@ const OrderConfirmation = () => {
 
   useEffect(() => {
     if (!order) {
-      navigate('/');
+      navigate('/app');
     }
   }, [order, navigate]);
 
@@ -27,7 +27,7 @@ const OrderConfirmation = () => {
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Order Not Found</h2>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/app')}
                 className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
               >
                 Go Home
@@ -252,7 +252,7 @@ const OrderConfirmation = () => {
                           View Order Details
                         </Link>
                         <Link
-                          to="/"
+                          to="/app"
                           className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                         >
                           <FiArrowLeft />

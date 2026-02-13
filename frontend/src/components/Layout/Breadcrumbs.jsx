@@ -29,14 +29,17 @@ const Breadcrumbs = () => {
   };
 
   const breadcrumbs = [
-    { name: 'Home', path: '/' },
-    ...pathnames.map((value, index) => {
-      const to = `/${pathnames.slice(0, index + 1).join('/')}`;
-      return {
-        name: getBreadcrumbName(value, index),
-        path: to,
-      };
-    }),
+    { name: 'Home', path: '/app' },
+    ...pathnames
+      .map((value, index) => {
+        if (value === "app") return null;
+        const to = `/${pathnames.slice(0, index + 1).join("/")}`;
+        return {
+          name: getBreadcrumbName(value, index),
+          path: to,
+        };
+      })
+      .filter(Boolean),
   ];
 
   return (

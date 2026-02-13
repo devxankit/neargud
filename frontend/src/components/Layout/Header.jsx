@@ -293,7 +293,7 @@ const Header = () => {
           <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 overflow-visible">
             {/* Logo */}
             <Link
-              to="/"
+              to="/app"
               className="flex items-center flex-shrink-0 group cursor-pointer min-w-0 overflow-visible relative z-10">
               <div ref={logoRef} className="overflow-visible relative">
                 {/* Animation behind logo */}

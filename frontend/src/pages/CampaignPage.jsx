@@ -84,7 +84,7 @@ const CampaignPage = () => {
 
   // Redirect if campaign not found
   if (!campaign && !loading) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const pageConfig = campaign?.pageConfig || {
@@ -486,7 +486,7 @@ const CampaignPage = () => {
                     Check back later for exciting deals!
                   </p>
                   <Link
-                    to="/"
+                    to="/app"
                     className="inline-block px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
                   >
                     Continue Shopping

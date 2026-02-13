@@ -65,8 +65,8 @@ const Wishlist = () => {
                       <button
                         onClick={() => setViewMode('grid')}
                         className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
                           }`}
                       >
                         <FiGrid className="text-lg" />
@@ -74,8 +74,8 @@ const Wishlist = () => {
                       <button
                         onClick={() => setViewMode('list')}
                         className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
-                            ? 'bg-white text-primary-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-800'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
                           }`}
                       >
                         <FiList className="text-lg" />
@@ -100,7 +100,7 @@ const Wishlist = () => {
                     Start adding products you love to your wishlist!
                   </p>
                   <Link
-                    to="/"
+                    to="/app"
                     className="inline-block px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
                   >
                     Continue Shopping

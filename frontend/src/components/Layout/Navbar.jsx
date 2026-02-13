@@ -9,14 +9,14 @@ const Navbar = () => {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const navRef = useRef(null);
-  
+
   // Hide navbar on mobile app routes and checkout-related routes
-  const isCheckoutRoute = 
-    location.pathname.startsWith('/checkout') || 
+  const isCheckoutRoute =
+    location.pathname.startsWith('/checkout') ||
     location.pathname.startsWith('/app/checkout') ||
-    location.pathname.startsWith('/order-confirmation') || 
+    location.pathname.startsWith('/order-confirmation') ||
     location.pathname.startsWith('/app/order-confirmation') ||
-    location.pathname.startsWith('/track-order') || 
+    location.pathname.startsWith('/track-order') ||
     location.pathname.startsWith('/app/track-order');
 
   if (location.pathname.startsWith('/app') || isCheckoutRoute) {
@@ -24,7 +24,7 @@ const Navbar = () => {
   }
 
   const navLinks = [
-    { path: "/", label: "Home" },
+    { path: "/app", label: "Home" },
     { path: "/offers", label: "Offers" },
     { path: "/daily-deals", label: "Daily Deals" },
     { path: "/flash-sale", label: "Flash Sale" },
@@ -72,9 +72,8 @@ const Navbar = () => {
               <span className="hidden sm:inline">Browse Category</span>
               <span className="sm:hidden">Category</span>
               <span
-                className={`text-xs transition-transform duration-300 ${
-                  isCategoryOpen ? "rotate-180" : ""
-                }`}>
+                className={`text-xs transition-transform duration-300 ${isCategoryOpen ? "rotate-180" : ""
+                  }`}>
                 ▼
               </span>
             </button>

@@ -114,7 +114,7 @@ const ProductDetail = () => {
           <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]" style={{ paddingTop: `${responsivePadding}px` }}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">{error || 'Product Not Found'}</h2>
-              <Link to="/" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
+              <Link to="/app" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
                 Go Back Home
               </Link>
             </div>
