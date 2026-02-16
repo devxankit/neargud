@@ -25,7 +25,6 @@
       "Manage Products"
     ]
   },
-
   {
     "title": "Categories",
     "route": "/admin/categories",
@@ -82,7 +81,8 @@
     "title": "Offers & Sliders",
     "route": "/admin/offers",
     "children": [
-      "Home Sliders"    ]
+      "Home Sliders"
+    ]
   },
   {
     "title": "Promo Codes",
@@ -130,7 +130,6 @@
     "route": "/admin/content",
     "children": []
   },
- 
   {
     "title": "Policies",
     "route": "/admin/policies",
@@ -140,7 +139,7 @@
       "Terms & Conditions"
     ]
   },
-   {
+  {
     "title": "Settings",
     "route": "/admin/settings",
     "children": [
