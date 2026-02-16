@@ -306,8 +306,8 @@ const MobileHome = () => {
               {loadingTertiary ? (
                 Array(10).fill(0).map((_, i) => <ProductSkeleton key={i} />)
               ) : (
-                recommended.slice(0, 10).map((product) => (
-                  <motion.div key={product._id} variants={itemVariants}>
+                recommended.slice(0, 10).map((product, index) => (
+                  <motion.div key={product._id || product.id || index} variants={itemVariants}>
                     <ProductCard product={product} />
                   </motion.div>
                 ))

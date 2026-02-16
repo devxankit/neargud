@@ -147,7 +147,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
               const productLink = isMobileApp ? `/app/product/${product._id || product.id}` : `/product/${product._id || product.id}`;
               return (
                 <motion.div
-                  key={product._id || product.id}
+                  key={`${product._id || product.id}-${index}`}
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{

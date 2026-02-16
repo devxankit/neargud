@@ -27,8 +27,8 @@ export const fetchPublicCategories = async () => {
 };
 
 // Vendors
-export const fetchPublicVendors = async () => {
-    const response = await api.get('/public/vendors');
+export const fetchPublicVendors = async (params = {}) => {
+    const response = await api.get('/public/vendors', { params });
     return response;
 };
 

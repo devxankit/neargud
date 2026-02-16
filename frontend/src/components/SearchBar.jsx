@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FiSearch, FiClock, FiTrendingUp, FiX } from "react-icons/fi";
+import { getImageUrl } from "../utils/helpers";
 import { motion, AnimatePresence } from "framer-motion";
 
 const RECENT_SEARCHES_KEY = "recent-searches";
@@ -80,22 +81,45 @@ const SearchBar = () => {
 
     const timer = setTimeout(async () => {
       try {
-        const { fetchPublicProducts } = await import("../services/publicApi");
-        const res = await fetchPublicProducts({
-          search: query.trim(),
-          limit: MAX_SUGGESTIONS
-        });
+        const { fetchPublicProducts, fetchPublicVendors } = await import("../services/publicApi");
 
-        if (res.success) {
-          const data = (res.data.products || []).map((p) => ({
+        const [prodRes, venRes] = await Promise.all([
+          fetchPublicProducts({
+            search: query.trim(),
+            limit: Math.floor(MAX_SUGGESTIONS / 2) + 2
+          }),
+          fetchPublicVendors({
+            search: query.trim(),
+            limit: 3
+          })
+        ]);
+
+        let combinedSuggestions = [];
+
+        if (prodRes.success) {
+          const prods = (prodRes.data.products || []).map((p) => ({
             id: p._id || p.id,
             name: p.name,
-            image: p.image,
+            image: getImageUrl(p.images?.[0] || p.image),
             price: p.price,
-            category: p.category?.name || "General"
+            category: p.category?.name || "General",
+            type: 'product'
           }));
-          setSuggestions(data);
+          combinedSuggestions = [...combinedSuggestions, ...prods];
         }
+
+        if (venRes.success) {
+          const vens = (venRes.data.vendors || []).map((v) => ({
+            id: v._id || v.id,
+            name: v.storeName || v.name,
+            image: getImageUrl(v.storeLogo),
+            type: 'vendor',
+            address: v.address
+          }));
+          combinedSuggestions = [...vens, ...combinedSuggestions]; // Shops first
+        }
+
+        setSuggestions(combinedSuggestions.slice(0, MAX_SUGGESTIONS + 2));
       } catch (err) {
         console.error("Suggestion Error:", err);
       }
@@ -177,9 +201,13 @@ const SearchBar = () => {
     if (query.trim()) {
       const item = suggestions[index];
       if (!item) return;
-      const route = isMobileApp
-        ? `/app/product/${item.id}`
-        : `/product/${item.id}`;
+
+      let route;
+      if (item.type === 'vendor') {
+        route = isMobileApp ? `/app/vendor/${item.id}` : `/vendor/${item.id}`;
+      } else {
+        route = isMobileApp ? `/app/product/${item.id}` : `/product/${item.id}`;
+      }
       navigate(route);
     } else {
       if (index < recentSearches.length) {
@@ -301,12 +329,12 @@ const SearchBar = () => {
             {query.trim() && suggestions.length > 0 ? (
               <div className="px-3">
                 <p className="px-4 py-2 text-[14px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
-                  Products Found
+                  Search Results
                 </p>
                 <div className="space-y-1">
                   {suggestions.map((item, index) => (
                     <button
-                      key={item.id}
+                      key={`${item.type}-${item.id}-${index}`}
                       onClick={() => handleSelect(index)}
                       className={`
                         w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-200 group/item
@@ -318,15 +346,33 @@ const SearchBar = () => {
                           src={item.image}
                           alt={item.name}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110"
+                          onError={(e) => {
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=${item.type === 'vendor' ? 'FFE4E6' : 'EFF6FF'}&color=${item.type === 'vendor' ? 'E11D48' : '3B82F6'}&size=128&bold=true`;
+                          }}
                         />
                       </div>
                       <div className="text-left flex-1 min-w-0">
-                        <p className="font-bold text-gray-900 truncate text-sm mb-0.5 group-hover/item:text-purple-600 transition-colors">{item.name}</p>
+                        <p className="font-bold text-gray-900 truncate text-sm mb-0.5 group-hover/item:text-purple-600 transition-colors">
+                          {item.name}
+                        </p>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-gray-800">₹{item.price}</span>
-                          <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{item.category}</span>
+                          {item.type === 'vendor' ? (
+                            <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider">Shop</span>
+                          ) : (
+                            <>
+                              <span className="text-xs font-black text-gray-800">₹{item.price}</span>
+                              <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{item.category}</span>
+                            </>
+                          )}
                         </div>
+                        {item.type === 'vendor' && item.address && (
+                          <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                            {typeof item.address === 'string'
+                              ? item.address
+                              : `${item.address.city || ''}${item.address.city && item.address.state ? ', ' : ''}${item.address.state || ''}`}
+                          </p>
+                        )}
                       </div>
                       <div className="text-gray-300 group-hover/item:text-purple-400 group-hover/item:translate-x-1 transition-all">
                         <FiTrendingUp className="rotate-45" />

@@ -504,21 +504,32 @@ const MobileProductDetail = () => {
               </div>
 
               {/* Price & Offers */}
-              <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-100/50">
-                <div className="flex items-baseline gap-3 mb-1">
-                  <span className="text-3xl font-extrabold text-slate-800">
-                    {formatPrice(currentPrice)}
-                  </span>
-                  {product.originalPrice > currentPrice && (
-                    <span className="text-lg text-slate-300 line-through font-bold">
-                      {formatPrice(product.originalPrice)}
+              <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-100/50 flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-3 mb-1">
+                    <span className="text-3xl font-extrabold text-slate-800">
+                      {formatPrice(currentPrice)}
                     </span>
+                    {product.originalPrice > currentPrice && (
+                      <span className="text-lg text-slate-300 line-through font-bold">
+                        {formatPrice(product.originalPrice)}
+                      </span>
+                    )}
+                  </div>
+                  {product.originalPrice > currentPrice && (
+                    <div className="inline-flex items-center bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      Save {formatPrice(product.originalPrice - currentPrice)} ({Math.round(((product.originalPrice - currentPrice) / product.originalPrice) * 100)}% OFF)
+                    </div>
                   )}
                 </div>
-                {product.originalPrice > currentPrice && (
-                  <div className="inline-flex items-center bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                    Save {formatPrice(product.originalPrice - currentPrice)} ({Math.round(((product.originalPrice - currentPrice) / product.originalPrice) * 100)}% OFF)
-                  </div>
+
+                {vendor && (
+                  <button
+                    onClick={handleChatSeller}
+                    className="flex-shrink-0 flex flex-col items-center justify-center p-3 rounded-2xl bg-[#EEEFFF] text-[#6366F1] active:scale-95 transition-all group">
+                    <FiMessageCircle className="text-lg mb-0.5" strokeWidth={2.5} />
+                    <span className="text-[7px] font-black uppercase tracking-widest">Chat Seller</span>
+                  </button>
                 )}
               </div>
 
@@ -542,16 +553,10 @@ const MobileProductDetail = () => {
                       <FiArrowLeft className="rotate-180" />
                     </div>
                   </Link>
-                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-50">
-                    <button
-                      onClick={handleChatSeller}
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
-                      <FiMessageCircle className="text-sm" />
-                      Chat Seller
-                    </button>
+                  <div className="mt-4 pt-4 border-t border-slate-50">
                     <button
                       onClick={handleShare}
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#EEEFFF] text-[#6366F1] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors">
                       <FiShare2 className="text-sm" />
                       Share Product
                     </button>
@@ -602,15 +607,7 @@ const MobileProductDetail = () => {
                       </motion.button>
                     </div>
 
-                    {/* Full Width Add to Bag */}
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleAddToCart}
-                      disabled={product.stock === "out_of_stock" || product.isBuy === false}
-                      className="w-full h-14 bg-[#EEEFFF] text-[#6366F1] rounded-2xl font-black uppercase text-[10px] tracking-wider flex items-center justify-center gap-3 border border-indigo-50 shadow-sm shadow-indigo-100/50">
-                      <FiShoppingBag className="text-base" strokeWidth={2.5} />
-                      {cartItem ? "Update Quantity" : "Add to Bag"}
-                    </motion.button>
+
                   </div>
                 </div>
                 <div className="px-1 text-[10px] font-bold text-slate-400 italic">

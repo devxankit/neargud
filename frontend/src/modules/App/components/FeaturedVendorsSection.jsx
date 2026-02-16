@@ -53,7 +53,7 @@ const FeaturedVendorsSection = ({ vendors = [], loading = false, theme = null })
           ))
         ) : (
           featuredVendors.map((vendor, index) => (
-            <div key={vendor._id || vendor.id} className="flex-shrink-0 w-32 md:w-44 lg:w-56">
+            <div key={vendor._id || vendor.id || index} className="flex-shrink-0 w-32 md:w-44 lg:w-56">
               <VendorShowcaseCard vendor={vendor} index={index} />
             </div>
           ))

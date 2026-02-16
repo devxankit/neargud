@@ -10,6 +10,7 @@ import { fetchPublicProducts, fetchPublicVendors, fetchPublicCategories } from '
 import useInfiniteScroll from '../../../hooks/useInfiniteScroll';
 import toast from 'react-hot-toast';
 import PageTransition from '../../../components/PageTransition';
+import VendorShowcaseCard from '../components/VendorShowcaseCard';
 
 const MobileSearch = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -88,6 +89,7 @@ const MobileSearch = () => {
   };
 
   const [products, setProducts] = useState([]);
+  const [matchingVendors, setMatchingVendors] = useState([]);
   const [allVendors, setAllVendors] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -107,7 +109,7 @@ const MobileSearch = () => {
     }
   };
 
-  const fetchProducts = async (pageNum = 1, append = false) => {
+  const performSearch = async (pageNum = 1, append = false) => {
     try {
       setLoading(true);
       const params = {
@@ -116,15 +118,29 @@ const MobileSearch = () => {
         limit: 10,
         ...filters
       };
-      const res = await fetchPublicProducts(params);
-      if (res.success) {
-        const newProducts = res.data.products;
+
+      // Also search for vendors if it's the first page and we have a query
+      const vendorsToFetch = (pageNum === 1 && searchQuery)
+        ? fetchPublicVendors({ search: searchQuery, limit: 10 })
+        : Promise.resolve({ success: true, data: { vendors: [] } });
+
+      const [prodRes, venRes] = await Promise.all([
+        fetchPublicProducts(params),
+        vendorsToFetch
+      ]);
+
+      if (prodRes.success) {
+        const newProducts = prodRes.data.products;
         setProducts(prev => append ? [...prev, ...newProducts] : newProducts);
         setHasMore(newProducts.length === 10);
         setPage(pageNum);
       }
+
+      if (venRes.success && pageNum === 1) {
+        setMatchingVendors(venRes.data.vendors || []);
+      }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error performing search:", error);
     } finally {
       setLoading(false);
     }
@@ -136,7 +152,7 @@ const MobileSearch = () => {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchProducts(1, false);
+      performSearch(1, false);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
@@ -144,7 +160,7 @@ const MobileSearch = () => {
 
   const loadMore = () => {
     if (!loading && hasMore) {
-      fetchProducts(page + 1, true);
+      performSearch(page + 1, true);
     }
   };
 
@@ -200,7 +216,11 @@ const MobileSearch = () => {
     setShowSuggestions(false);
   };
 
-  const handleSuggestionSelect = (query) => {
+  const handleSuggestionSelect = (query, type, id) => {
+    if (type === 'shop' && id) {
+      navigate(`/app/vendor/${id}`);
+      return;
+    }
     setSearchQuery(query);
     setShowSuggestions(false);
     saveRecentSearch(query);
@@ -288,7 +308,7 @@ const MobileSearch = () => {
           {/* Filter Toggle and View Mode */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              Found {products.length} product(s)
+              Found {products.length} product(s) {matchingVendors.length > 0 && `and ${matchingVendors.length} shop(s)`}
             </p>
             <div className="flex items-center gap-2">
               {/* View Toggle Buttons */}
@@ -482,12 +502,29 @@ const MobileSearch = () => {
           </div>
         </div>
 
+        {/* Matching Shops Section */}
+        {matchingVendors.length > 0 && page === 1 && (
+          <div className="px-4 mb-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-1 h-5 bg-rose-500 rounded-full"></span>
+              Shops Found
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {matchingVendors.map((vendor, idx) => (
+                <div key={vendor._id || vendor.id} className="flex-shrink-0">
+                  <VendorShowcaseCard vendor={vendor} index={idx} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Products List */}
         <div className="px-4 py-4">
-          {products.length === 0 ? (
+          {products.length === 0 && matchingVendors.length === 0 ? (
             <div className="text-center py-12">
               <FiSearch className="text-6xl text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">No products found</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">No results found</h3>
               <p className="text-gray-600 mb-6">Try adjusting your search or filters</p>
               <button
                 onClick={clearFilters}

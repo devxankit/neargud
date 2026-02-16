@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FiSearch, FiFilter, FiX, FiLoader } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
+import VendorShowcaseCard from '../modules/App/components/VendorShowcaseCard';
 import Header from '../components/Layout/Header';
 import Navbar from '../components/Layout/Navbar';
 import Footer from '../components/Layout/Footer';
@@ -17,11 +18,12 @@ const Search = () => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState([]);
+  const [matchingVendors, setMatchingVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [categories, setCategories] = useState([]);
-  const [vendors, setVendors] = useState([]);
+  const [vendors, setVendors] = useState([]); // All vendors for filter
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     vendor: searchParams.get('vendor') || '',
@@ -48,14 +50,16 @@ const Search = () => {
     fetchSupportData();
   }, []);
 
-  // Fetch products
+  // Fetch products and matching vendors
   useEffect(() => {
-    const fetchProducts = async () => {
+    const performSearch = async () => {
       try {
         setLoading(true);
-        const { fetchPublicProducts } = await import('../services/publicApi');
-        const params = {
-          search: searchParams.get('q') || '',
+        const { fetchPublicProducts, fetchPublicVendors } = await import('../services/publicApi');
+        const query = searchParams.get('q') || '';
+
+        const productParams = {
+          search: query,
           categoryId: filters.category,
           vendorId: filters.vendor,
           minPrice: filters.minPrice,
@@ -65,23 +69,36 @@ const Search = () => {
           limit: 12
         };
 
-        const res = await fetchPublicProducts(params);
-        if (res.success) {
+        // If it's the first page and we have a search query, also search for vendors
+        const vendorsToFetch = (page === 1 && query)
+          ? fetchPublicVendors({ search: query, limit: 10 })
+          : Promise.resolve({ success: true, data: { vendors: [] } });
+
+        const [prodRes, venRes] = await Promise.all([
+          fetchPublicProducts(productParams),
+          vendorsToFetch
+        ]);
+
+        if (prodRes.success) {
           if (page === 1) {
-            setProducts(res.data.products || []);
+            setProducts(prodRes.data.products || []);
           } else {
-            setProducts(prev => [...prev, ...(res.data.products || [])]);
+            setProducts(prev => [...prev, ...(prodRes.data.products || [])]);
           }
-          setTotalPages(res.data.totalPages || 1);
+          setTotalPages(prodRes.data.totalPages || 1);
+        }
+
+        if (venRes.success && page === 1) {
+          setMatchingVendors(venRes.data.vendors || []);
         }
       } catch (error) {
-        console.error("Error fetching search products:", error);
+        console.error("Error fetching search results:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    performSearch();
   }, [searchParams, page, filters]); // Refetch when params or page or filter object changes
 
   // Infinite scroll logic
@@ -157,7 +174,7 @@ const Search = () => {
                 {/* Filter Toggle */}
                 <div className="flex items-center justify-between">
                   <p className="text-gray-600">
-                    Found {filteredProducts.length} product(s)
+                    Found {products.length} product(s) {matchingVendors.length > 0 && `and ${matchingVendors.length} shop(s)`}
                   </p>
                   <button
                     onClick={() => setShowFilters(!showFilters)}
@@ -278,9 +295,26 @@ const Search = () => {
                   </div>
                 </motion.div>
 
-                {/* Products Grid */}
+                {/* Content Area */}
                 <div className="lg:col-span-3">
-                  {filteredProducts.length === 0 ? (
+                  {/* Matching Shops Section */}
+                  {matchingVendors.length > 0 && page === 1 && (
+                    <div className="mb-8">
+                      <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
+                        Shops Found
+                      </h2>
+                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                        {matchingVendors.map((vendor, idx) => (
+                          <div key={vendor._id || vendor.id} className="flex-shrink-0">
+                            <VendorShowcaseCard vendor={vendor} index={idx} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {products.length === 0 && matchingVendors.length === 0 ? (
                     <div className="text-center py-12">
                       <FiSearch className="text-6xl text-gray-300 mx-auto mb-4" />
                       <h3 className="text-xl font-bold text-gray-800 mb-2">
