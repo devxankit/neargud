@@ -32,6 +32,8 @@ const VendorStore = () => {
   // Follower Logic
   const [isFollowing, setIsFollowing] = useState(false);
   const [followers, setFollowers] = useState(0);
+  const [vendorReels, setVendorReels] = useState([]);
+  const [reelsLoading, setReelsLoading] = useState(false);
 
   // Sync activeTab with URL
   const activeTab = searchParams.get('tab') || 'shop';
@@ -47,7 +49,7 @@ const VendorStore = () => {
     const fetchVendorData = async () => {
       try {
         setLoading(true);
-        const { fetchPublicVendorById, fetchPublicProducts } = await import('../services/publicApi');
+        const { fetchPublicVendorById, fetchPublicProducts, fetchPublicReels } = await import('../services/publicApi');
         const res = await fetchPublicVendorById(id);
 
         if (res.success && res.data.vendor) {
@@ -75,6 +77,14 @@ const VendorStore = () => {
             }
             setTotalPages(productsRes.data.totalPages || 1);
           }
+
+          // Fetch Vendor Reels
+          setReelsLoading(true);
+          const reelsRes = await fetchPublicReels({ vendorId: id, limit: 12 });
+          if (reelsRes.success) {
+            setVendorReels(reelsRes.data.reels || []);
+          }
+          setReelsLoading(false);
         }
       } catch (error) {
         console.error("Error fetching vendor data:", error);
@@ -444,7 +454,7 @@ const VendorStore = () => {
             {/* Tabs */}
             <div className="sticky top-[60px] md:top-[70px] z-20 bg-slate-50/80 backdrop-blur-lg py-3 px-4 shadow-sm shadow-slate-200/20 border-b border-slate-100/10">
               <div className="flex bg-slate-200/50 rounded-2xl p-1 items-center relative gap-1">
-                {['Shop', 'About', 'Photos', ...(vendor.hasReels ? ['Videos'] : []), 'Reviews'].map((tab) => (
+                {['Shop', 'About', 'Photos', 'Videos', 'Reviews'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
@@ -599,16 +609,22 @@ const VendorStore = () => {
                       LIVE REELS
                     </div>
                   </div>
-                  {products.length > 0 ? (
+                  {reelsLoading ? (
                     <div className="grid grid-cols-2 gap-3">
-                      {products.slice(0, 4).map((product, idx) => (
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="aspect-[9/16] bg-slate-50 rounded-[1.5rem] animate-pulse" />
+                      ))}
+                    </div>
+                  ) : vendorReels.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {vendorReels.map((reel, idx) => (
                         <Link
-                          key={idx}
-                          to={`/app/reels?vendorId=${vendor._id || vendor.id}`}
+                          key={reel._id || reel.id || idx}
+                          to={`/app/reels?vendorId=${vendor._id || vendor.id}&reel=${reel._id || reel.id}`}
                           className="relative aspect-[9/16] bg-slate-100 rounded-[1.5rem] overflow-hidden group border border-slate-200 shadow-sm"
                         >
                           <img
-                            src={product.image || product.imageUrl}
+                            src={reel.thumbnail || 'https://via.placeholder.com/300x533?text=Video'}
                             alt="Reel Thumbnail"
                             className="w-full h-full object-cover brightness-[0.85] group-hover:scale-110 transition-transform duration-700"
                           />
@@ -623,7 +639,7 @@ const VendorStore = () => {
                             </motion.div>
                           </div>
                           <div className="absolute bottom-4 left-3 right-3">
-                            <p className="text-white text-[11px] font-black leading-tight line-clamp-2 drop-shadow-md">{product.name}</p>
+                            <p className="text-white text-[11px] font-black leading-tight line-clamp-2 drop-shadow-md">{reel.productName || 'Store Highlight'}</p>
                             <div className="flex items-center gap-1.5 mt-2">
                               <div className="w-1 h-1 rounded-full bg-rose-500 animate-ping" />
                               <p className="text-white/80 text-[9px] font-bold uppercase tracking-wider">Watch Reel</p>

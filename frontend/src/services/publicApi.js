@@ -56,7 +56,9 @@ export const fetchPublicBrands = async () => {
 };
 
 // Reels
-export const fetchPublicReels = async () => {
-    const response = await api.get('/user/reels?limit=10'); // /user/reels is public
-    return response.data;
+export const fetchPublicReels = async (params = {}) => {
+    const response = await api.get('/user/reels', {
+        params: { limit: 10, ...params }
+    });
+    return response;
 };

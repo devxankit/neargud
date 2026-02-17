@@ -79,10 +79,15 @@ const MobileReels = () => {
       setLoading(true);
       try {
         const reelId = searchParams.get("reel");
+        const vendorId = searchParams.get("vendorId");
         let fetchedReels = [];
 
         // 1. Fetch Feed
-        const feedResponse = await api.get('/user/reels?limit=20');
+        let url = '/user/reels?limit=20';
+        if (vendorId) {
+          url += `&vendorId=${vendorId}`;
+        }
+        const feedResponse = await api.get(url);
         if (feedResponse.success && Array.isArray(feedResponse.data?.reels)) {
           fetchedReels = feedResponse.data.reels;
         }

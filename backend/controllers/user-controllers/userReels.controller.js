@@ -11,6 +11,7 @@ export const getReels = async (req, res, next) => {
       limit = 20,
       sortBy = 'createdAt',
       sortOrder = 'desc',
+      vendorId,
     } = req.query;
 
     const result = await getActiveReelsForUsers({
@@ -18,6 +19,7 @@ export const getReels = async (req, res, next) => {
       limit,
       sortBy,
       sortOrder,
+      vendorId,
     });
 
     res.status(200).json({

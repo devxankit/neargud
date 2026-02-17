@@ -1,5 +1,6 @@
 import { getApprovedVendors, getVendorById } from '../../services/vendorManagement.service.js';
 import Product from '../../models/Product.model.js';
+import Reel from '../../models/Reel.model.js';
 
 /**
  * Get all approved vendors (public endpoint)
@@ -139,10 +140,9 @@ export const getPublicVendor = async (req, res, next) => {
     }
 
     // Check if vendor has any reels/videos
-    const hasReels = await Product.exists({
+    const hasReels = await Reel.exists({
       vendorId: vendor._id,
-      isActive: true,
-      videos: { $exists: true, $not: { $size: 0 } },
+      status: 'active',
     });
 
     // Transform vendor data for public consumption

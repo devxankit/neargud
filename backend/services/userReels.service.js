@@ -16,6 +16,9 @@ export const getActiveReelsForUsers = async (filters = {}) => {
 
     // Only get active reels
     const query = { status: 'active' };
+    if (filters.vendorId) {
+      query.vendorId = filters.vendorId;
+    }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
