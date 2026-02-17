@@ -3,7 +3,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.ne
 
 // App Constants
 export const APP_NAME = 'Neargud';
-export const APP_DESCRIPTION = 'Multi Vendor E-commerce Platform';
+export const APP_DESCRIPTION = "India's Best Local Commerce";
 
 // Animation Durations
 export const ANIMATION_DURATION = {

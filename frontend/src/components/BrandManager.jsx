@@ -14,7 +14,7 @@ const BrandManager = () => {
         // Prevent "Appzeto" from ever appearing in the title if it somehow leaks through
         const finalTitle = storeName.includes('Appzeto') ? 'Neargud' : storeName;
 
-        document.title = `${finalTitle} - Multi Vendor E-commerce`;
+        document.title = `${finalTitle} - India's Best Local Commerce`;
 
         // Update Favicon
         if (settings?.general?.favicon) {
