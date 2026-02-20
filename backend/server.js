@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import connectDB from './config/database.js';
 import { errorHandler } from './middleware/errorHandler.middleware.js';
@@ -90,9 +90,6 @@ import vendorChatRoutes from './routes/vendorChat.routes.js';
 import adminChatRoutes from './routes/adminChat.routes.js';
 import userSupportTicketRoutes from './routes/userSupportTicket.routes.js';
 
-
-// Load environment variables
-dotenv.config();
 
 // Initialize Express app
 const app = express();

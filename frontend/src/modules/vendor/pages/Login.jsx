@@ -48,7 +48,7 @@ const VendorLogin = () => {
       // Register FCM Token
       try {
         const { registerFCMToken } =
-          await import("../../../services/pushNotificationService");
+          await import("../../../services/pushNotificationService.jsx");
         await registerFCMToken(true);
 
         // Trigger a test notification after registration to ensure it works

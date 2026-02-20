@@ -234,7 +234,7 @@ const VendorSocial = lazy(() => import("./modules/vendor/pages/Social"));
 import {
   initializePushNotifications,
   setupForegroundNotificationHandler,
-} from "./services/pushNotificationService";
+} from "./services/pushNotificationService.jsx";
 import { useNotificationListeners } from "./hooks/useNotificationListeners";
 
 const AppRoutes = () => {
@@ -799,10 +799,7 @@ import { useDeliveryAuthStore } from "./store/deliveryAuthStore";
 import { useAuthStore } from "./store/authStore";
 import { useLocationStore } from "./store/locationStore";
 import { useAddressStore } from "./store/addressStore";
-import {
-  requestNotificationPermission,
-  onMessageListener,
-} from "./utils/notification";
+// Notification initialization will be handled inside AppRoutes or components that need it
 
 function App() {
   const { initialize: initializeAdminAuth } = useAdminAuthStore();
@@ -831,25 +828,7 @@ function App() {
   // Notification initialization
   const { isAuthenticated } = useAuthStore();
 
-  useEffect(() => {
-    // Avoid calling notification registration on login/auth pages
-    const isAuthPage = [
-      "/login",
-      "/vendor/login",
-      "/admin/login",
-      "/delivery/login",
-      "/register",
-      "/vendor/register",
-      "/verification",
-    ].some((path) => window.location.pathname.includes(path));
-
-    if (isAuthenticated && !isAuthPage) {
-      requestNotificationPermission().catch((err) =>
-        console.error("Notification permission error", err),
-      );
-      onMessageListener();
-    }
-  }, [isAuthenticated]);
+  // Notification initialization is now centralized in AppRoutes setup
 
   return (
     <ErrorBoundary>

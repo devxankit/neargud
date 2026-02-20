@@ -1,10 +1,8 @@
-import api from '../utils/api';
+import { registerFCMToken as unifiedRegister } from './pushNotificationService.jsx';
 
 export const registerFCMToken = async (fcmToken, deviceInfo) => {
-    return await api.post('/user/notifications/register-token', {
-        fcmToken,
-        deviceInfo
-    });
+    // Redirect to unified service for better role handling
+    return await unifiedRegister(true);
 };
 
 export const unregisterFCMToken = async (fcmToken) => {

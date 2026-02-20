@@ -3,6 +3,9 @@ import Message from '../models/Message.model.js';
 import mongoose from 'mongoose';
 import notificationService from './notification.service.js';
 import { getSocket } from '../config/socket.io.js';
+import User from '../models/User.model.js';
+import Vendor from '../models/Vendor.model.js';
+import Admin from '../models/Admin.model.js';
 
 class ChatService {
   /**
@@ -565,18 +568,50 @@ class ChatService {
 
       // Create notification for receiver
       try {
+        // Fetch sender name for better notification title
+        let senderName = senderRole === 'user' ? 'User' : (senderRole === 'admin' ? 'Admin' : 'Vendor');
+        try {
+          if (senderRole === 'user') {
+            const userDoc = await User.findById(senderId).select('name').lean();
+            if (userDoc) senderName = userDoc.name;
+          } else if (senderRole === 'vendor') {
+            const vendorDoc = await Vendor.findById(senderId).select('storeName name').lean();
+            if (vendorDoc) senderName = vendorDoc.storeName || vendorDoc.name;
+          } else if (senderRole === 'admin') {
+            const adminDoc = await Admin.findById(senderId).select('name').lean();
+            if (adminDoc) senderName = adminDoc.name;
+          }
+        } catch (nameError) {
+          console.error('Error fetching sender name for notification:', nameError);
+        }
+
+        // Determine correct actionUrl
+        let actionUrl;
+        if (receiverRole === 'user') {
+          // User side uses query params to open specific vendor chat
+          actionUrl = `/app/chat?vendorId=${senderId}`;
+        } else if (receiverRole === 'vendor') {
+          // Vendor side has a general chat list
+          actionUrl = `/vendor/chat`;
+        } else if (receiverRole === 'admin') {
+          actionUrl = `/admin/support`;
+        } else {
+          actionUrl = senderRole === 'user' ? `/vendor/chat` : (senderRole === 'admin' ? `/vendor/chat/admin` : `/app/chat?vendorId=${senderId}`);
+        }
+
         await notificationService.createNotification({
           recipientId: receiverId,
           recipientType: receiverRole,
           type: 'chat_message',
-          title: `New message from ${senderRole === 'user' ? 'User' : 'Vendor'}`,
+          title: `New message from ${senderName}`,
           message: message.substring(0, 100),
-          actionUrl: senderRole === 'user' ? `/vendor/chat` : (senderRole === 'admin' ? `/vendor/chat/admin` : `/app/chat/${senderId}`),
+          actionUrl,
           metadata: {
             conversationId: conversationId.toString(),
             messageId: newMessage._id.toString(),
             senderId: senderId.toString(),
             senderRole,
+            senderName,
           },
         });
       } catch (notifError) {

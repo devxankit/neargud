@@ -37,7 +37,13 @@ export const useChatStore = create((set, get) => ({
             // Listen for new messages in other chats (for notifications)
             socket.on('new_chat_message', (message) => {
                 console.log('🔔 New chat message notification:', message);
-                get().addMessage(message);
+                const { activeChatId } = get();
+                if (activeChatId === message.conversationId) {
+                    get().addMessage(message);
+                } else {
+                    // Update conversation preview (unread count) Only
+                    get().updateConversationPreview(message);
+                }
             });
 
 

@@ -45,7 +45,7 @@ const Login = () => {
       // Register FCM Token
       try {
         const { registerFCMToken } =
-          await import("../services/pushNotificationService");
+          await import("../services/pushNotificationService.jsx");
         await registerFCMToken(true);
 
         // Trigger a test notification after registration to ensure it works
@@ -94,21 +94,19 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setLoginMethod("phone")}
-                      className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                        loginMethod === "phone"
-                          ? "bg-primary-500 text-white shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}>
+                      className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${loginMethod === "phone"
+                        ? "bg-primary-500 text-white shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                        }`}>
                       Phone Number
                     </button>
                     <button
                       type="button"
                       onClick={() => setLoginMethod("email")}
-                      className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                        loginMethod === "email"
-                          ? "bg-primary-500 text-white shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}>
+                      className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-200 ${loginMethod === "email"
+                        ? "bg-primary-500 text-white shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                        }`}>
                       Email
                     </button>
                   </div>
@@ -148,11 +146,10 @@ const Login = () => {
                                 isValidPhone(value) ||
                                 "Please enter a valid phone number",
                             })}
-                            className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                              errors.phone
-                                ? "border-red-300 focus:border-red-500"
-                                : "border-gray-200 focus:border-primary-500"
-                            } focus:outline-none transition-colors`}
+                            className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.phone
+                              ? "border-red-300 focus:border-red-500"
+                              : "border-gray-200 focus:border-primary-500"
+                              } focus:outline-none transition-colors`}
                             placeholder="1775472701"
                           />
                         </div>
@@ -182,11 +179,10 @@ const Login = () => {
                               isValidEmail(value) ||
                               "Please enter a valid email",
                           })}
-                          className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${
-                            errors.email
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-200 focus:border-primary-500"
-                          } focus:outline-none transition-colors`}
+                          className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 ${errors.email
+                            ? "border-red-300 focus:border-red-500"
+                            : "border-gray-200 focus:border-primary-500"
+                            } focus:outline-none transition-colors`}
                           placeholder="your.email@example.com"
                         />
                       </div>
@@ -214,11 +210,10 @@ const Login = () => {
                             message: "Password must be at least 6 characters",
                           },
                         })}
-                        className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${
-                          errors.password
-                            ? "border-red-300 focus:border-red-500"
-                            : "border-gray-200 focus:border-primary-500"
-                        } focus:outline-none transition-colors`}
+                        className={`w-full pl-12 pr-12 py-3 rounded-xl border-2 ${errors.password
+                          ? "border-red-300 focus:border-red-500"
+                          : "border-gray-200 focus:border-primary-500"
+                          } focus:outline-none transition-colors`}
                         placeholder="Enter your password"
                       />
                       <button

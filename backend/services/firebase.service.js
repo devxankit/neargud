@@ -241,9 +241,20 @@ class FirebaseService {
    */
   async saveNotificationToDb(notificationData) {
     try {
+      // Map userModel to recipientType (matching Notification model enum)
+      const modelToTypeMap = {
+        User: "user",
+        Vendor: "vendor",
+        Admin: "admin",
+        DeliveryPartner: "delivery_partner",
+      };
+
       const notification = new Notification({
         recipientId: notificationData.userId,
-        recipientType: notificationData.userModel?.toLowerCase() || "user",
+        recipientType:
+          modelToTypeMap[notificationData.userModel] ||
+          notificationData.userModel?.toLowerCase() ||
+          "user",
         recipientTypeModel: notificationData.userModel || "User",
         title: notificationData.title,
         message: notificationData.message,
