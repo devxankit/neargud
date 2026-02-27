@@ -37,6 +37,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/app/addresses',
     '/addresses',
     '/app/policies',
+    '/app/contact',
     '/app/orders',
     '/orders',
   ];
@@ -56,8 +57,13 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
   const isExcludedFromBottomNav = isAuthPage ||
     location.pathname === '/app/addresses' ||
     location.pathname === '/addresses' ||
-    location.pathname === '/app/policies';
+    location.pathname === '/app/policies' ||
+    location.pathname === '/app/contact' ||
+    location.pathname === '/app/checkout' ||
+    location.pathname === '/checkout';
+
   const shouldShowBottomNav = !isExcludedFromBottomNav && showBottomNav;
+  const shouldShowCartBar = showCartBar && !['/app/checkout', '/checkout'].includes(location.pathname);
 
   const calculatedShouldShowHeader = !excludeHeaderRoutes.includes(location.pathname) &&
     !location.pathname.startsWith('/app/product/') &&
@@ -84,9 +90,9 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
       {shouldShowHeader && <MobileHeader />}
       <main
         className={`min-h-screen w-full overflow-x-hidden scrollbar-hide flex flex-col items-center ${isFullScreenPage ? '' : // No padding for reels page (container is fixed)
-          shouldShowBottomNav && showCartBar ? 'pb-24 md:pb-8' :
+          shouldShowBottomNav && shouldShowCartBar ? 'pb-24 md:pb-8' :
             shouldShowBottomNav ? 'pb-20 md:pb-8' :
-              showCartBar ? 'pb-24 md:pb-8' : ''
+              shouldShowCartBar ? 'pb-24 md:pb-8' : ''
           }`}
         style={{
           paddingTop: isThemedPage ? '0px' : (shouldShowHeader ? `${headerHeight}px` : '0px'),
@@ -103,7 +109,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
           {children}
         </div>
       </main>
-      {showCartBar && <MobileCartBar />}
+      {shouldShowCartBar && <MobileCartBar />}
       {shouldShowBottomNav && <MobileBottomNav />}
     </>
   );

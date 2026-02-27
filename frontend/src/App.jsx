@@ -164,6 +164,7 @@ const MobileFlashSale = lazy(() => import("./modules/App/pages/FlashSale"));
 const MobileTrackOrder = lazy(() => import("./modules/App/pages/TrackOrder"));
 const MobileOrderConfirmation = lazy(() => import("./modules/App/pages/OrderConfirmation"));
 const MobilePolicies = lazy(() => import("./modules/App/pages/Policies"));
+const MobileContact = lazy(() => import("./modules/App/pages/Contact"));
 const MobileSavedCards = lazy(() => import("./modules/App/pages/SavedCards"));
 const Wallet = lazy(() => import("./modules/App/pages/Wallet"));
 const MobileNotifications = lazy(() => import("./modules/App/pages/Notifications"));
@@ -772,6 +773,7 @@ const AppRoutes = () => {
         <Route path="cards" element={<MobileSavedCards />} />
         <Route path="help" element={<Chat />} />
         <Route path="policies" element={<MobilePolicies />} />
+        <Route path="contact" element={<MobileContact />} />
         <Route
           path="notifications"
           element={
@@ -846,6 +848,8 @@ function App() {
           <CartDrawer />
           <Toaster
             position="top-right"
+            containerStyle={{ top: 40 }}
+            gutter={8}
             toastOptions={{
               duration: 3000,
               style: {

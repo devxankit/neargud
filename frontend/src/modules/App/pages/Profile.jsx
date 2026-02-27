@@ -18,7 +18,8 @@ import {
   FiHelpCircle,
   FiFileText,
   FiBell,
-  FiDollarSign
+  FiDollarSign,
+  FiPhoneCall
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -211,6 +212,7 @@ const MobileProfile = () => {
     { icon: FiUser, label: 'Personal Information', action: () => setView('personal'), color: 'text-gray-700', bg: 'bg-gray-100' },
     { icon: FiLock, label: 'Change Password', action: () => setView('password'), color: 'text-gray-700', bg: 'bg-gray-100' },
     { icon: FiFileText, label: 'Terms & Policies', path: '/app/policies', color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiPhoneCall, label: 'Contact', path: '/app/contact', color: 'text-gray-700', bg: 'bg-gray-100' },
   ];
 
   return (

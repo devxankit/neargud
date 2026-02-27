@@ -205,16 +205,16 @@ const MobileCheckout = () => {
   };
 
   const handleSelectAddress = (address) => {
-    setSelectedAddressId(address.id);
+    setSelectedAddressId(address._id || address.id);
     setFormData({
       ...formData,
-      name: address.fullName,
+      name: address.fullName || address.name,
       phone: address.phone,
       address: address.address,
       city: address.city,
       zipCode: address.zipCode,
       state: address.state,
-      country: address.country,
+      country: address.country || 'India',
     });
   };
 
@@ -293,7 +293,7 @@ const MobileCheckout = () => {
         walletUsed: amountFromWallet,        // ✅ wallet deduction
         payableAmount: remainingAmount,      // ✅ razorpay amount
         paymentMethod: remainingAmount > 0 ? "razorpay" : "wallet",
-        shippingAddress: selectedAddressId || {
+        shippingAddress: (selectedAddressId && typeof selectedAddressId === 'string' && selectedAddressId.length === 24) ? selectedAddressId : {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -301,7 +301,7 @@ const MobileCheckout = () => {
           city: formData.city,
           zipCode: formData.zipCode,
           state: formData.state,
-          country: formData.country,
+          country: formData.country || 'India',
         },
         subtotal: total,
         shipping: shipping,
@@ -389,8 +389,9 @@ const MobileCheckout = () => {
       const razorpayInstance = new window.Razorpay(options);
       razorpayInstance.open();
     } catch (error) {
+      toast.dismiss(); // Prevent multiple toasts
       console.error('Payment initialization failed:', error);
-      toast.error(error.message || 'Failed to initialize payment');
+      toast.error(error.response?.data?.message || error.message || 'Failed to initialize payment');
     }
   };
 
@@ -416,7 +417,7 @@ const MobileCheckout = () => {
             walletUsed: amountFromWallet,
             payableAmount: 0,
             paymentMethod: 'wallet',
-            shippingAddress: selectedAddressId || {
+            shippingAddress: (selectedAddressId && typeof selectedAddressId === 'string' && selectedAddressId.length === 24) ? selectedAddressId : {
               name: formData.name,
               email: formData.email,
               phone: formData.phone,
@@ -424,7 +425,7 @@ const MobileCheckout = () => {
               city: formData.city,
               zipCode: formData.zipCode,
               state: formData.state,
-              country: formData.country,
+              country: formData.country || 'India',
             },
             subtotal: total,
             shipping: shipping,
@@ -435,7 +436,8 @@ const MobileCheckout = () => {
           clearCart();
           navigate(`/app/order-confirmation/${response.id || response._id}`);
         } catch (error) {
-          toast.error(error.message || 'Failed to place order');
+          toast.dismiss();
+          toast.error(error.response?.data?.message || error.message || 'Failed to place order');
         }
       } else {
         // Partial or no wallet payment, proceed to Razorpay
@@ -497,7 +499,7 @@ const MobileCheckout = () => {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="px-5 py-6 space-y-8"
+              className="px-5 py-6 space-y-8 pb-40"
             >
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-2">
@@ -813,7 +815,7 @@ const MobileCheckout = () => {
               </section>
 
               {/* Order Summary Section */}
-              <section className="space-y-4 pb-32">
+              <section className="space-y-4 pb-40">
                 <div className="flex items-center gap-2 mb-2">
                   <FiShoppingBag className="text-primary-600 text-xl" />
                   <h2 className="text-lg font-black text-slate-900 tracking-tight">Order Summary</h2>
