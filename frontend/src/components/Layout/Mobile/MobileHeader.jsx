@@ -64,7 +64,7 @@ const MobileHeader = () => {
 
   const getCurrentPage = () => {
     const path = location.pathname;
-    if (path === "/app" || path === "/app/") return "home";
+    if (path === "/" || path === "/app" || path === "/app/") return "home";
     if (path.startsWith("/app/product/")) return "product";
     if (path.startsWith("/app/category/")) return "category";
     if (path === "/app/search") return "search";

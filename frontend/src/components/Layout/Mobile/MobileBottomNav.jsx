@@ -24,7 +24,7 @@ const MobileBottomNav = () => {
 
   const isActive = (path) => {
     if (path === "/app") {
-      return location.pathname === "/app";
+      return location.pathname === "/app" || location.pathname === "/app/" || location.pathname === "/";
     }
     return location.pathname.startsWith(path);
   };
