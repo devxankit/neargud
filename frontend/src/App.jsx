@@ -255,10 +255,9 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<Navigate to="/app" replace />}
-      />
+      <Route path="/" element={<MobileAppLayout />}>
+        <Route index element={<MobileHome />} />
+      </Route>
       <Route
         path="/product/:id"
         element={
