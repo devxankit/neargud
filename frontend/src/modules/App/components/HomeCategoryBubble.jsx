@@ -33,7 +33,7 @@ const HomeCategoryBubble = ({ categories, loading }) => {
                     className="flex-shrink-0"
                 >
                     <Link
-                        to={`/app/category/${category._id || category.id}`}
+                        to={`/category/${category._id || category.id}`}
                         className="flex flex-col items-center gap-3 group"
                     >
                         <div className="relative">

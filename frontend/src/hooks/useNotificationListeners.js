@@ -6,9 +6,9 @@ import { useAuthStore } from "../store/authStore";
 
 // Pages where notification count should be fetched
 const NOTIFICATION_RELEVANT_PATHS = [
-  '/app/profile',
-  '/app/notifications',
-  '/app/orders',
+  '/profile',
+  '/notifications',
+  '/orders',
   '/profile',
   '/notifications',
   '/orders'

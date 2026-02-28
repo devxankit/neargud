@@ -13,18 +13,18 @@ const Navbar = () => {
   // Hide navbar on mobile app routes and checkout-related routes
   const isCheckoutRoute =
     location.pathname.startsWith('/checkout') ||
-    location.pathname.startsWith('/app/checkout') ||
+    location.pathname.startsWith('/checkout') ||
     location.pathname.startsWith('/order-confirmation') ||
-    location.pathname.startsWith('/app/order-confirmation') ||
+    location.pathname.startsWith('/order-confirmation') ||
     location.pathname.startsWith('/track-order') ||
-    location.pathname.startsWith('/app/track-order');
+    location.pathname.startsWith('/track-order');
 
-  if (location.pathname.startsWith('/app') || isCheckoutRoute) {
+  if (location.pathname.startsWith('') || isCheckoutRoute) {
     return null;
   }
 
   const navLinks = [
-    { path: "/app", label: "Home" },
+    { path: "", label: "Home" },
     { path: "/offers", label: "Offers" },
     { path: "/daily-deals", label: "Daily Deals" },
     { path: "/flash-sale", label: "Flash Sale" },

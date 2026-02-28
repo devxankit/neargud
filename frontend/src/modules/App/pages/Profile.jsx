@@ -123,7 +123,7 @@ const MobileProfile = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/app/login');
+    navigate('/login');
   };
 
   const handleImageUpload = async (e) => {
@@ -157,14 +157,14 @@ const MobileProfile = () => {
     {
       icon: FiPackage,
       label: 'My Orders',
-      path: '/app/orders',
+      path: '/orders',
       color: 'text-blue-500',
       bg: 'bg-blue-50'
     },
     {
       icon: FiDollarSign,
       label: 'My Wallet',
-      path: '/app/wallet',
+      path: '/wallet',
       color: 'text-green-500',
       bg: 'bg-green-50',
       // subtitle: wallet ? `₹${wallet.balance?.toFixed(2) || '0.00'}` : null
@@ -172,21 +172,21 @@ const MobileProfile = () => {
     {
       icon: FiHeart,
       label: 'Wishlist',
-      path: '/app/wishlist',
+      path: '/wishlist',
       color: 'text-pink-500',
       bg: 'bg-pink-50'
     },
     // {
     //   icon: FiHeart,
     //   label: 'My Favorites',
-    //   path: '/app/favorites',
+    //   path: '/favorites',
     //   color: 'text-pink-500',
     //   bg: 'bg-pink-50'
     // },
     {
       icon: FiBell,
       label: 'Notifications',
-      path: '/app/notifications',
+      path: '/notifications',
       color: 'text-purple-500',
       bg: 'bg-purple-50',
       badge: unreadCount > 0 ? unreadCount : null
@@ -194,14 +194,14 @@ const MobileProfile = () => {
     {
       icon: FiMapPin,
       label: 'My Addresses',
-      path: '/app/addresses',
+      path: '/addresses',
       color: 'text-orange-500',
       bg: 'bg-orange-50'
     },
     // {
     //   icon: FiCreditCard,
     //   label: 'Saved Cards',
-    //   path: '/app/cards',
+    //   path: '/cards',
     //   color: 'text-indigo-500',
     //   bg: 'bg-indigo-50'
     // },
@@ -211,14 +211,14 @@ const MobileProfile = () => {
   const settingItems = [
     { icon: FiUser, label: 'Personal Information', action: () => setView('personal'), color: 'text-gray-700', bg: 'bg-gray-100' },
     { icon: FiLock, label: 'Change Password', action: () => setView('password'), color: 'text-gray-700', bg: 'bg-gray-100' },
-    { icon: FiFileText, label: 'Terms & Policies', path: '/app/policies', color: 'text-gray-700', bg: 'bg-gray-100' },
-    { icon: FiPhoneCall, label: 'Contact', path: '/app/contact', color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiFileText, label: 'Terms & Policies', path: '/policies', color: 'text-gray-700', bg: 'bg-gray-100' },
+    { icon: FiPhoneCall, label: 'Contact', path: '/contact', color: 'text-gray-700', bg: 'bg-gray-100' },
   ];
 
   return (
     <PageTransition>
       <div className="w-full pb-24 min-h-screen bg-gray-50">
-        {/* Header / Navigation */}
+        {/* Header  // Navigation */}
         <div className="px-4 py-4 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between">
           {view === 'main' ? (
             <h1 className="text-xl font-bold text-gray-800">My Profile</h1>

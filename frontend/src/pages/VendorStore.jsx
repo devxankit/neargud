@@ -113,7 +113,7 @@ const VendorStore = () => {
   };
 
   // Check if we're in the mobile app section
-  const isMobileApp = location.pathname.startsWith('/app');
+  const isMobileApp = location.pathname.startsWith('');
 
   // Get productId from query params
   const productIdFromQuery = searchParams.get('productId');
@@ -255,7 +255,7 @@ const VendorStore = () => {
               <div className="text-center">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Vendor Not Found</h2>
                 <button
-                  onClick={() => navigate('/app')}
+                  onClick={() => navigate('')}
                   className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
                 >
                   Go Back Home
@@ -275,7 +275,7 @@ const VendorStore = () => {
           <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Vendor Not Found</h2>
-              <Link to="/app" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
+              <Link to="" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
                 Go Back Home
               </Link>
             </div>
@@ -290,7 +290,7 @@ const VendorStore = () => {
   if (isMobileApp) {
 
     const handleChatClick = () => {
-      navigate(`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}`);
+      navigate(`/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}`);
     };
 
     return (
@@ -309,7 +309,7 @@ const VendorStore = () => {
                 </button>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => navigate(`/app/search?vendorId=${vendor._id || vendor.id}`)}
+                    onClick={() => navigate(`/search?vendorId=${vendor._id || vendor.id}`)}
                     className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-lg hover:bg-white/20 transition-all">
                     <FiSearch size={20} />
                   </button>
@@ -579,7 +579,7 @@ const VendorStore = () => {
                   {products.length > 0 ? (
                     <div className="grid grid-cols-3 gap-2">
                       {products.map((product) => (
-                        <div key={product._id || product.id} onClick={() => navigate(`/app/product/${product._id || product.id}`)} className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer">
+                        <div key={product._id || product.id} onClick={() => navigate(`/product/${product._id || product.id}`)} className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer">
                           <img
                             src={product.image || product.imageUrl}
                             alt={product.name}
@@ -620,7 +620,7 @@ const VendorStore = () => {
                       {vendorReels.map((reel, idx) => (
                         <Link
                           key={reel._id || reel.id || idx}
-                          to={`/app/reels?vendorId=${vendor._id || vendor.id}&reel=${reel._id || reel.id}`}
+                          to={`/reels?vendorId=${vendor._id || vendor.id}&reel=${reel._id || reel.id}`}
                           className="relative aspect-[9/16] bg-slate-100 rounded-[1.5rem] overflow-hidden group border border-slate-200 shadow-sm"
                         >
                           <img

@@ -34,7 +34,7 @@ const MobileRegister = () => {
       await registerUser(data.firstName, data.lastName, data.email, data.password, phone);
       toast.success('Registration successful!');
       // Navigate to verification page
-      navigate('/app/verification', { state: { email: data.email } });
+      navigate('/verification', { state: { email: data.email } });
     } catch (error) {
       toast.error(error.message || 'Registration failed. Please try again.');
     }
@@ -251,7 +251,7 @@ const MobileRegister = () => {
                 <p className="text-sm text-gray-600">
                   Already have an account?{' '}
                   <Link
-                    to="/app/login"
+                    to="/login"
                     className="text-primary-600 hover:text-primary-700 font-semibold"
                   >
                     Sign In

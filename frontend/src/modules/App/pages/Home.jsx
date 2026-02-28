@@ -300,7 +300,7 @@ const MobileHome = () => {
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight">Most Popular</h2>
-              <Link to="/app/category/all" className="text-sm md:text-base font-bold" style={{ color: theme.accentColor }}>View All</Link>
+              <Link to="/category/all" className="text-sm md:text-base font-bold" style={{ color: theme.accentColor }}>View All</Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6">
               {loadingTertiary ? (

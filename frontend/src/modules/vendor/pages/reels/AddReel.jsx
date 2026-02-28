@@ -81,7 +81,7 @@ const AddReel = () => {
     if (file) {
       if (type === 'video') {
         // Basic validation
-        if (file.size > 50 * 1024 * 1024) { // 50MB
+        if (file.size > 50 * 1024 * 1024) {  // 50MB
           toast.error("Video file is too large (Max 50MB)");
           return;
         }
@@ -281,7 +281,7 @@ const AddReel = () => {
               {/* Description */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Description / Caption
+                  Description  // Caption
                 </label>
                 <textarea
                   value={formData.description}

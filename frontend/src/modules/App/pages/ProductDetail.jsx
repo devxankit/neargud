@@ -282,7 +282,7 @@ const MobileProductDetail = () => {
   const handleWishlist = () => {
     if (!user) {
       toast.error("Please login to add to wishlist");
-      navigate("/app/login", { state: { from: location } });
+      navigate("/login", { state: { from: location } });
       return;
     }
     if (isWishlisted) {
@@ -302,7 +302,7 @@ const MobileProductDetail = () => {
   const handleLike = () => {
     if (!user) {
       toast.error("Please login to like products");
-      navigate("/app/login", { state: { from: location } });
+      navigate("/login", { state: { from: location } });
       return;
     }
     if (isLiked) {
@@ -350,7 +350,7 @@ const MobileProductDetail = () => {
   const handleChatSeller = () => {
     if (!user) {
       toast.error("Please login to chat with seller");
-      navigate("/app/login", { state: { from: location } });
+      navigate("/login", { state: { from: location } });
       return;
     }
 
@@ -370,7 +370,7 @@ const MobileProductDetail = () => {
       productDescription: product.description?.substring(0, 100) || ''
     });
 
-    navigate(`/app/chat?${params.toString()}`);
+    navigate(`/chat?${params.toString()}`);
   };
 
   if (loading && !product) {
@@ -409,7 +409,7 @@ const MobileProductDetail = () => {
           <h2 className="text-2xl font-black text-slate-900 mb-2">Product Disappeared!</h2>
           <p className="text-slate-500 font-medium mb-8 text-center max-w-xs">We couldn't find the product you're looking for. It might have been moved or removed.</p>
           <button
-            onClick={() => navigate("/app")}
+            onClick={() => navigate("")}
             className="w-full max-w-xs h-14 bg-primary-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary-200">
             Keep Shopping
           </button>
@@ -536,7 +536,7 @@ const MobileProductDetail = () => {
               {/* Vendor & Trust */}
               {vendor && (
                 <div className="p-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-100/50">
-                  <Link to={`/app/vendor/${vendor._id || vendor.id}`} className="flex items-center gap-4 group">
+                  <Link to={`/vendor/${vendor._id || vendor.id}`} className="flex items-center gap-4 group">
                     <div className="w-12 h-12 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0 group-hover:scale-105 transition-transform">
                       <img src={vendor.storeLogo || "https://via.placeholder.com/100"} alt={vendor.storeName} className="w-full h-full object-cover" />
                     </div>
@@ -676,7 +676,7 @@ const MobileProductDetail = () => {
                     onClick={() => {
                       if (!user) {
                         toast.error("Please login to review");
-                        navigate("/app/login");
+                        navigate("/login");
                         return;
                       }
                       setIsReviewModalOpen(true);
@@ -729,7 +729,7 @@ const MobileProductDetail = () => {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">More for You</h3>
-                    <Link to="/app/categories" className="text-[10px] font-black text-primary-600 uppercase tracking-widest underline">View All</Link>
+                    <Link to="/categories" className="text-[10px] font-black text-primary-600 uppercase tracking-widest underline">View All</Link>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pb-12">
                     {similarProducts.map((p) => (
@@ -767,8 +767,8 @@ const MobileProductDetail = () => {
               whileTap={{ scale: 0.98 }}
               onClick={() => {
                 if (product.isBuy === false) return;
-                if (cartItem) navigate("/app/checkout");
-                else if (handleAddToCart()) navigate("/app/checkout");
+                if (cartItem) navigate("/checkout");
+                else if (handleAddToCart()) navigate("/checkout");
               }}
               disabled={product.stock === "out_of_stock" || product.isBuy === false}
               className={`flex-1 h-14 rounded-2xl font-black uppercase text-[9px] tracking-wider transition-all shadow-xl flex items-center justify-center whitespace-nowrap ${product.stock === "out_of_stock" || product.isBuy === false

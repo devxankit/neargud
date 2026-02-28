@@ -460,11 +460,11 @@ const VendorRegister = () => {
             />
             <label htmlFor="agreedToPolicies" className="text-sm text-gray-600 cursor-pointer">
               I agree to the{' '}
-              <Link to="/app/policies" className="text-primary-600 hover:text-primary-700 font-semibold underline">
+              <Link to="/policies" className="text-primary-600 hover:text-primary-700 font-semibold underline">
                 Terms & Conditions
               </Link>{' '}
               and{' '}
-              <Link to="/app/policies" className="text-primary-600 hover:text-primary-700 font-semibold underline">
+              <Link to="/policies" className="text-primary-600 hover:text-primary-700 font-semibold underline">
                 Privacy Policy
               </Link>
             </label>

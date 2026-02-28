@@ -69,7 +69,7 @@ const MobileVerification = () => {
     try {
       await verifyEmail(email, verificationCode);
       toast.success('Verification successful!');
-      navigate('/app');
+      navigate('');
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || error.message || 'Invalid verification code. Please try again.');

@@ -209,7 +209,7 @@ const MobileCategory = () => {
             }
           />
 
-          {/* Categories / Tags Section */}
+          {/* Categories  // Tags Section */}
           {subcategories.length > 0 && (
             <div className="px-4 py-8 mt-1">
               <h2
@@ -223,7 +223,7 @@ const MobileCategory = () => {
               </h2>
               <div className="grid grid-cols-4 gap-3 px-1">
                 {subcategories.map((sub) => (
-                  <Link key={sub._id || sub.id} to={`/app/category/${sub._id || sub.id}`} className="flex flex-col items-center gap-2 group">
+                  <Link key={sub._id || sub.id} to={`/category/${sub._id || sub.id}`} className="flex flex-col items-center gap-2 group">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-md border border-gray-100 group-hover:scale-105 transition-all duration-300 ring-1 ring-black/5 group-hover:ring-primary-500/30">
                       <LazyImage src={sub.image} alt={sub.name} className="w-full h-full object-cover" />
                     </div>

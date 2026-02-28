@@ -126,7 +126,7 @@ const MobileOrders = () => {
                   : `No ${selectedStatus} orders`}
               </p>
               <button
-                onClick={() => navigate('/app')}
+                onClick={() => navigate('')}
                 className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
               >
                 Start Shopping

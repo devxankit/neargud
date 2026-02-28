@@ -15,7 +15,7 @@ import Button from '../Button';
 
 const CampaignForm = ({ campaign, onClose, onSave }) => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const { createCampaign, updateCampaign } = useCampaignStore();
   const isEdit = !!campaign;
 

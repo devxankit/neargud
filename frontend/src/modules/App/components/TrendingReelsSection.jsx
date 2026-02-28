@@ -31,7 +31,7 @@ const TrendingReelsSection = ({ reels, loading }) => {
                     <p className="text-xs md:text-sm text-gray-400">Watch the latest trends</p>
                 </div>
                 <Link
-                    to="/app/reels"
+                    to="/reels"
                     className="text-xs md:text-sm font-bold bg-white/10 px-3 py-1.5 md:px-5 md:py-2.5 rounded-full hover:bg-white/20 transition-colors text-white"
                 >
                     View All
@@ -42,7 +42,7 @@ const TrendingReelsSection = ({ reels, loading }) => {
                 {reels.map((reel) => (
                     <Link
                         key={reel._id || reel.id}
-                        to={`/app/reels?reel=${reel._id || reel.id}`}
+                        to={`/reels?reel=${reel._id || reel.id}`}
                         className="relative flex-shrink-0 w-32 h-56 md:w-44 md:h-72 lg:w-56 lg:h-96 rounded-xl overflow-hidden bg-gray-900 border border-gray-800 group"
                     >
                         <div className="w-full h-full bg-gray-900">

@@ -375,7 +375,7 @@ const EditReel = () => {
                       muted
                       loop
                       playsInline
-                      // controls // Optional
+                      // controls  // Optional
                     />
                   ) : (
                     <img src={thumbnailPreview} className="w-full h-full object-cover" alt="Preview" />

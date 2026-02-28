@@ -67,7 +67,7 @@ api.interceptors.response.use(
       'Something went wrong';
 
     // Show error toast
-    // Don't show toast for 401s on non-protected pages or public routes
+      // Don't show toast for 401s on non-protected pages or public routes
     const config = error.config || {};
     const isPublicRoute =
       config.url?.includes('/public/') ||
@@ -81,7 +81,7 @@ api.interceptors.response.use(
     // Handle 401 (Unauthorized) - redirect to login
     if (error.response?.status === 401) {
       const path = window.location.pathname;
-      const isAppPath = path.startsWith('/app') || path === '/';
+      const isAppPath = path.startsWith('') || path === '/';
 
       if (path.startsWith('/admin')) {
         localStorage.removeItem('admin-token');

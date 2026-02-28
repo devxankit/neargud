@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 const TaxPricing = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const [taxRules, setTaxRules] = useState([
     { id: 1, name: 'Standard Tax', rate: 18, type: 'percentage', applicableTo: 'all', status: 'active' },
     { id: 2, name: 'GST', rate: 5, type: 'percentage', applicableTo: 'electronics', status: 'active' },

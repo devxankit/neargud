@@ -5,7 +5,7 @@ import Button from './Button';
 
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', type = 'danger' }) => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   
   if (!isOpen) return null;
 

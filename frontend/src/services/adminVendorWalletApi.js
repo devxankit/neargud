@@ -33,7 +33,7 @@ export const fetchAllDeliveryWallets = async () => {
  */
 export const approveWithdrawal = async (requestId, data) => {
     try {
-        const response = await api.post(`/admin/vendor-wallets/${requestId}/approve`, data);
+        const response = await api.post(`/admin/vendor-wallets/${requestId}/rove`, data);
         return response.data;
     } catch (error) {
         console.error('Error approving withdrawal:', error);

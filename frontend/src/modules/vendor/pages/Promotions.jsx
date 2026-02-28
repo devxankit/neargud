@@ -25,7 +25,7 @@ const Promotions = () => {
       const data = await fetchVendorPromotions({
         search: searchQuery,
         page: page,
-        limit: 100 // Fetching more for now since it's a list view
+        limit: 100  // Fetching more for now since it's a list view
       });
 
       if (data.success && data.data?.promotions) {

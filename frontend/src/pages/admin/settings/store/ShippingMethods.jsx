@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 const ShippingMethods = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const [shippingMethods, setShippingMethods] = useState([
     { id: 1, name: 'Standard Shipping', cost: 5.99, estimatedDays: '3-5', enabled: true },
     { id: 2, name: 'Express Shipping', cost: 12.99, estimatedDays: '1-2', enabled: true },

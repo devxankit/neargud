@@ -221,8 +221,7 @@ const FlashSale = () => {
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl font-bold text-accent-600 mb-1">
                         {Math.round(
-                          flashSaleWithDiscount.reduce((sum, p) => sum + p.discount, 0) /
-                          flashSaleWithDiscount.length
+                          flashSaleWithDiscount.reduce((sum, p) => sum + p.discount, 0) / flashSaleWithDiscount.length
                         )}
                         %
                       </div>
@@ -252,7 +251,7 @@ const FlashSale = () => {
                     Check back later for exciting flash sale deals!
                   </p>
                   <Link
-                    to="/app"
+                    to=""
                     className="inline-block px-6 py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all duration-300"
                   >
                     Continue Shopping

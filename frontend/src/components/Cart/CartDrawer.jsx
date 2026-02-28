@@ -12,8 +12,8 @@ import useSwipeGesture from '../../hooks/useSwipeGesture';
 const CartDrawer = () => {
   const location = useLocation();
   // Check if we're in the mobile app section
-  const isMobileApp = location.pathname.startsWith('/app');
-  const checkoutLink = isMobileApp ? '/app/checkout' : '/checkout';
+  const isMobileApp = location.pathname.startsWith('');
+  const checkoutLink = isMobileApp ? '/checkout' : '/checkout';
   const { isCartOpen, toggleCart } = useUIStore();
   const { items, removeItem, updateQuantity, getTotal, clearCart, getItemsByVendor } = useCartStore();
   const { addItem: addToWishlist } = useWishlistStore();
@@ -204,8 +204,8 @@ const CartDrawer = () => {
                 onClick={() => handleQuantityChange(item.id, item.quantity, 1)}
                 disabled={isMaxQuantity(item.id, item.quantity)}
                 className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors ${isMaxQuantity(item.id, item.quantity)
-                    ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
-                    : 'bg-white border-gray-300 hover:bg-gray-50'
+                  ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                  : 'bg-white border-gray-300 hover:bg-gray-50'
                   }`}
               >
                 <FiPlus className="text-xs text-gray-600" />

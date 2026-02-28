@@ -14,7 +14,7 @@ const TrendingItemsSection = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">Trending Items</h2>
           <Link
-            to="/app/trending"
+            to="/trending"
             className="text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors flex items-center gap-1"
           >
             See All <FiArrowRight />
@@ -43,13 +43,13 @@ const TrendingItemsSection = () => {
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             Trending Items 🔥
           </h2>
-          <Link to="/app/trending" className="text-xs font-semibold text-primary-600">
+          <Link to="/trending" className="text-xs font-semibold text-primary-600">
             View All
           </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-3 pb-4">
-          {products.slice(0, 4).map((product, index) => ( // Show limited items initially for speed
+          {products.slice(0, 4).map((product, index) => (  // Show limited items initially for speed
             <motion.div
               key={product.id}
               initial={{ opacity: 0, scale: 0.95 }}

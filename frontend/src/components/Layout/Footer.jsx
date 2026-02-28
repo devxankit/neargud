@@ -17,13 +17,13 @@ const Footer = () => {
   // Hide footer on mobile app routes and checkout-related routes
   const isCheckoutRoute =
     location.pathname.startsWith('/checkout') ||
-    location.pathname.startsWith('/app/checkout') ||
+    location.pathname.startsWith('/checkout') ||
     location.pathname.startsWith('/order-confirmation') ||
-    location.pathname.startsWith('/app/order-confirmation') ||
+    location.pathname.startsWith('/order-confirmation') ||
     location.pathname.startsWith('/track-order') ||
-    location.pathname.startsWith('/app/track-order');
+    location.pathname.startsWith('/track-order');
 
-  if (location.pathname.startsWith('/app') || location.pathname.startsWith('/policies') || isCheckoutRoute) {
+  if (location.pathname.startsWith('') || location.pathname.startsWith('/policies') || isCheckoutRoute) {
     return null;
   }
 
@@ -69,7 +69,7 @@ const Footer = () => {
           {/* Branding and Newsletter */}
           <div className="space-y-6">
             {/* Logo */}
-            <Link to="/app" className="flex items-center gap-3 cursor-pointer group">
+            <Link to="" className="flex items-center gap-3 cursor-pointer group">
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-glow-accent group-hover:scale-110 transition-all duration-300 overflow-hidden">
                 {settings?.general?.storeLogo ? (
                   <img src={settings.general.storeLogo} alt="Logo" className="w-full h-full object-contain" />

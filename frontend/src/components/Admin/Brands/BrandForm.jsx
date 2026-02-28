@@ -8,7 +8,7 @@ import Button from '../Button';
 
 const BrandForm = ({ brand, onClose, onSave }) => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const { createBrand, updateBrand } = useBrandStore();
   const isEdit = !!brand;
 

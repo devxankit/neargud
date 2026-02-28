@@ -40,7 +40,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
   };
 
   const currentCategoryId = getCurrentCategoryId();
-  const isHome = location.pathname === '/app' || location.pathname === '/app/' || location.pathname === '/';
+  const isHome = location.pathname === '' || location.pathname === '/' || location.pathname === '/';
 
   useEffect(() => {
     let element = null;
@@ -96,7 +96,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
         ) : (
           <>
             <Link
-              to="/app"
+              to=""
               ref={homeRef}
               className="flex-shrink-0 w-[20%] md:w-24 lg:w-28 flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
             >
@@ -134,7 +134,7 @@ const MobileCategoryIcons = ({ isTopRowVisible = true, colorScheme = 'white' }) 
               return (
                 <Link
                   key={categoryId}
-                  to={`/app/category/${categoryId}`}
+                  to={`/category/${categoryId}`}
                   ref={(el) => (categoryRefs.current[categoryId] = el)}
                   className="flex-shrink-0 w-[20%] md:w-24 lg:w-28 flex flex-col items-center gap-0.5 group outline-none scroll-snap-align-start py-1 pb-2"
                 >

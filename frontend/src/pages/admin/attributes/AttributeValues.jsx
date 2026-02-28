@@ -10,7 +10,7 @@ import useAttributeStore from '../../../store/attributeStore';
 
 const AttributeValues = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   
   // Store
   const { 
@@ -32,7 +32,7 @@ const AttributeValues = () => {
   // Fetch data on mount
   useEffect(() => {
     fetchAttributeValues(); // Fetch all values
-    fetchAttributes();      // Fetch attributes for dropdowns
+    fetchAttributes(); // Fetch attributes for dropdowns
   }, [fetchAttributeValues, fetchAttributes]);
 
   // Client-side filtering (backend support filtering too but for now we filter loaded data or can pass params)

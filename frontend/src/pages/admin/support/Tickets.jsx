@@ -16,7 +16,7 @@ import {
 
 const Tickets = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -249,7 +249,7 @@ const TicketModal = ({ ticketId, onClose, isAppRoute, getStatusColor, getPriorit
     try {
       const response = await respondToTicket(ticketId, { 
         response: newMessage,
-        status: ticket.status === 'open' ? 'in_progress' : undefined // Auto update status to in_progress first time
+        status: ticket.status === 'open' ? 'in_progress' : undefined  // Auto update status to in_progress first time
       });
       if (response.success) {
         setNewMessage('');

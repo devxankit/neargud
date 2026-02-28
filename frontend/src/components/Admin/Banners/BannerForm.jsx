@@ -10,7 +10,7 @@ import Button from "../Button";
 const BannerForm = ({ banner, onClose, onSave }) => {
   const location = useLocation();
   const fileInputRef = useRef(null);
-  const isAppRoute = location.pathname.startsWith("/app");
+  const isAppRoute = location.pathname.startsWith("");
   const { createBanner, updateBanner } = useBannerStore();
   const isEdit = !!banner;
 

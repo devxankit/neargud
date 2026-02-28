@@ -61,7 +61,7 @@ const VendorSocial = () => {
     }, [vendor?.socialMedia]);
 
     const handleShare = () => {
-        const url = `${window.location.origin}/app/vendor/${vendor?._id || vendor?.id}`;
+        const url = `${window.location.origin}/vendor/${vendor?._id || vendor?.id}`;
         navigator.clipboard.writeText(url);
         toast.success('Store profile link copied to clipboard!');
     };

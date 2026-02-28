@@ -81,7 +81,7 @@ const Home = () => {
               {/* Promotional Banners - Grid Layout with more banners */}
               <div className="py-4">
                 <div className="grid grid-cols-4 gap-3">
-                  <Link to="/app/offers" className="block">
+                  <Link to="/offers" className="block">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -98,7 +98,7 @@ const Home = () => {
                       />
                     </motion.div>
                   </Link>
-                  <Link to="/app/offers" className="block">
+                  <Link to="/offers" className="block">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -115,7 +115,7 @@ const Home = () => {
                       />
                     </motion.div>
                   </Link>
-                  <Link to="/app/offers" className="block">
+                  <Link to="/offers" className="block">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -132,7 +132,7 @@ const Home = () => {
                       />
                     </motion.div>
                   </Link>
-                  <Link to="/app/offers" className="block">
+                  <Link to="/offers" className="block">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -157,7 +157,7 @@ const Home = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-800">Most Popular</h2>
                   <Link
-                    to="/app/search"
+                    to="/search"
                     className="text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors"
                   >
                     See All
@@ -207,7 +207,7 @@ const Home = () => {
                       <p className="text-sm text-gray-600">Limited time offers</p>
                     </div>
                     <Link
-                      to="/app/flash-sale"
+                      to="/flash-sale"
                       className="text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors"
                     >
                       See All
@@ -228,7 +228,7 @@ const Home = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-800">Trending Now</h2>
                   <Link
-                    to="/app/search"
+                    to="/search"
                     className="text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors"
                   >
                     See All
@@ -259,7 +259,7 @@ const Home = () => {
                       </div>
                     </div>
                     <Link
-                      to="/app/search"
+                      to="/search"
                       className="flex items-center gap-1 text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors"
                     >
                       <span>See All</span>
@@ -281,7 +281,7 @@ const Home = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-800">Best Sellers</h2>
                   <Link
-                    to="/app/search"
+                    to="/search"
                     className="text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors"
                   >
                     See All
@@ -313,7 +313,7 @@ const Home = () => {
             {/* Continuous purple background container */}
             <div className="relative" style={{
               background: 'linear-gradient(180deg, #6d28d9 0%, #7c3aed 100%)',
-              marginTop: '-1px' // Eliminate any tiny gaps
+              marginTop: '-1px'  // Eliminate any tiny gaps
             }}>
               <div className="px-4">
                 <PromoStrip activeTab={activeTab} />

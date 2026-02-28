@@ -31,7 +31,7 @@ export const fetchPendingVendors = async (params = {}) => {
  * @returns {Promise<Object>} { vendors, total, ... }
  */
 export const fetchApprovedVendors = async (params = {}) => {
-    const response = await api.get('/admin/vendors/approved', { params });
+    const response = await api.get('/admin/vendors/roved', { params });
     return response;
 };
 

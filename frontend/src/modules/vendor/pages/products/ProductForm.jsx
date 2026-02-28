@@ -997,7 +997,7 @@ const ProductForm = () => {
                                       </div>
                                     </div>
                                     <div className="space-y-1">
-                                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">MRP / Original</label>
+                                      <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">MRP  // Original</label>
                                       <div className="relative">
                                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
                                         <input type="number" placeholder="0.00" value={sz.originalPrice || ""} onChange={(e) => updateSizeData(vIdx, sIdx, 'originalPrice', e.target.value)} className="w-full pl-5 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold transition-all focus:bg-white focus:ring-2 focus:ring-primary-500/20" />

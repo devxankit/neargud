@@ -53,7 +53,7 @@ const DailyDealsSection = ({ products = [], loading = false }) => {
       onClick={(e) => {
         // Prevent navigation if clicking on a product card or specific link
         if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.product-card')) return;
-        window.location.href = '/app/daily-deals';
+        window.location.href = '/daily-deals';
       }}
     >
       {/* Decorative Background Pattern */}
@@ -77,7 +77,7 @@ const DailyDealsSection = ({ products = [], loading = false }) => {
               </div>
             </div>
             <Link
-              to="/app/daily-deals"
+              to="/daily-deals"
               className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-3 py-1.5 rounded-lg hover:bg-white/30 transition-all"
             >
               See All

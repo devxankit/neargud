@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 const HomeSliders = () => {
   const location = useLocation();
   const fileInputRef = useRef(null);
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
 
   // Store hooks
   const {

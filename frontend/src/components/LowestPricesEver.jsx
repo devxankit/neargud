@@ -62,7 +62,7 @@ const ProductCard = memo(({
             style={{ scrollSnapAlign: 'start' }}
         >
             <div className="bg-white rounded-lg overflow-hidden flex flex-col relative h-full" style={{ boxShadow: '0 1px 1px rgba(0, 0, 0, 0.03)' }}>
-                <div onClick={() => navigate(`/app/product/${productId}`)} className="relative block cursor-pointer">
+                <div onClick={() => navigate(`/product/${productId}`)} className="relative block cursor-pointer">
                     <div className="w-full h-28 md:h-36 lg:h-44 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
                         <img src={product.images?.[0] || product.image || product.imageUrl || 'https://via.placeholder.com/150'} alt={product.name} className="w-full h-full object-contain" />
                         {discount > 0 && <div className="absolute top-1 left-1 z-10 text-white text-[9px] md:text-xs font-bold px-1 py-0.5 rounded" style={{ backgroundColor: theme.accentColor }}>{discount}% OFF</div>}
@@ -81,7 +81,7 @@ const ProductCard = memo(({
                         <div className="bg-neutral-200 text-neutral-700 text-[8px] md:text-[10px] font-medium px-1 py-0.5 rounded">{product.unit || '1 unit'}</div>
                     </div>
 
-                    <div onClick={() => navigate(`/app/product/${productId}`)} className="mb-0.5 md:mb-1.5 cursor-pointer">
+                    <div onClick={() => navigate(`/product/${productId}`)} className="mb-0.5 md:mb-1.5 cursor-pointer">
                         <h3 className="text-[10px] md:text-sm lg:text-base font-bold text-neutral-900 line-clamp-2 leading-tight">{product.name}</h3>
                     </div>
 
@@ -100,7 +100,7 @@ const ProductCard = memo(({
                     </div>
 
                     <div
-                        onClick={(e) => { e.stopPropagation(); navigate(`/app/product/${productId}`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/product/${productId}`); }}
                         className="w-full text-[8px] md:text-xs font-medium py-0.5 md:py-1.5 rounded-lg flex items-center justify-between px-1 md:px-2 transition-colors mt-2 cursor-pointer"
                         style={{ backgroundColor: linkBgColor, color: theme.accentColor }}
                     >

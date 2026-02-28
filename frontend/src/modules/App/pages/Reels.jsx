@@ -296,7 +296,7 @@ const MobileReels = () => {
   };
 
   const handleShare = (reel) => {
-    const url = `${window.location.origin}/app/reels?reel=${reel.id}`;
+    const url = `${window.location.origin}/reels?reel=${reel.id}`;
     if (navigator.share) {
       navigator.share({
         title: reel.productName || "Check out this reel",
@@ -397,7 +397,7 @@ const MobileReels = () => {
           <h3 className="text-xl font-bold text-gray-800">No Reels Available</h3>
           <p className="text-gray-500 mt-2 max-w-[250px]">Check back later for exciting video content from our vendors!</p>
           <button
-            onClick={() => navigate('/app')}
+            onClick={() => navigate('')}
             className="mt-8 px-8 py-3 bg-black text-white rounded-xl font-semibold shadow-lg active:scale-95 transition-transform"
           >
             Explore Home
@@ -568,7 +568,7 @@ const MobileReels = () => {
                   {/* User/Vendor Info */}
                   <div className="flex items-center gap-3 mb-4">
                     <Link
-                      to={`/app/vendor/${reel.vendorId}`}
+                      to={`/vendor/${reel.vendorId}`}
                       onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2.5 hover:opacity-90 active:scale-95 transition-all"
                     >
@@ -608,7 +608,7 @@ const MobileReels = () => {
                       animate={{ opacity: 1, x: 0 }}
                       className="mt-5"
                     >
-                      <Link to={`/app/product/${reel.productId}`} className="inline-flex items-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-500 px-5 py-3 rounded-2xl shadow-[0_10px_20px_-5px_rgba(245,158,11,0.5)] active:scale-95 transition-all cursor-pointer border border-white/20">
+                      <Link to={`/product/${reel.productId}`} className="inline-flex items-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-500 px-5 py-3 rounded-2xl shadow-[0_10px_20px_-5px_rgba(245,158,11,0.5)] active:scale-95 transition-all cursor-pointer border border-white/20">
                         <FiShoppingBag className="text-black text-lg" />
                         <div className="flex flex-col text-left">
                           <span className="text-black text-[10px] font-black uppercase tracking-wider leading-none">Best Price</span>

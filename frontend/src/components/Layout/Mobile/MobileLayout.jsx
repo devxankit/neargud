@@ -44,14 +44,14 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     '/orders',
   ];
 
-  / Hide header and bottom nav on login, register, and verification pages
+  // Hide header and bottom nav on login, register, and verification pages
   const isAuthPage = location.pathname === '/login' ||
     location.pathname === '/register' ||
     location.pathname === '/verification' ||
     location.pathname === '/forgot-password' ||
     location.pathname === '/forgot-password';
 
-  / Always show bottom nav on / routes, except auth pages and specific exclusions
+  // Always show bottom nav on / routes, except auth pages and specific exclusions
   const isFullScreenPage = location.pathname === '/reels' ||
     location.pathname === '/chat' ||
     location.pathname === '/chat';
@@ -79,7 +79,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
 
   const shouldShowHeader = showHeader !== undefined ? showHeader : calculatedShouldShowHeader;
 
-  / Ensure body scroll is restored when component mounts
+  // Ensure body scroll is restored when component mounts
   useEffect(() => {
     document.body.style.overflowY = '';
     return () => {
@@ -91,7 +91,7 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
     <>
       {shouldShowHeader && <MobileHeader />}
       <main
-        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide flex flex-col items-center ${isFullScreenPage ? '' : / No padding for reels page (container is fixed)
+        className={`min-h-screen w-full overflow-x-hidden scrollbar-hide flex flex-col items-center ${isFullScreenPage ? '' :  // No padding for reels page (container is fixed)
           shouldShowBottomNav && shouldShowCartBar ? 'pb-24 md:pb-8' :
             shouldShowBottomNav ? 'pb-20 md:pb-8' :
               shouldShowCartBar ? 'pb-24 md:pb-8' : ''
@@ -101,10 +101,10 @@ const MobileLayout = ({ children, showBottomNav = true, showCartBar = true, show
           overflowY: isFullScreenPage ? 'hidden' : 'visible',
           WebkitOverflowScrolling: 'touch',
           minHeight: isFullScreenPage ? '100vh' : 'auto',
-          backgroundColor: location.pathname === '/reels' ? 'black' : 'transparent', / Black background for reels
+          backgroundColor: location.pathname === '/reels' ? 'black' : 'transparent', // Black background for reels
           transition: 'background 0.3s ease-in-out',
           willChange: 'background',
-          ...style, / Merge custom styles
+          ...style, // Merge custom styles
         }}
       >
         <div className={`w-full h-full flex flex-col ${isFullScreenPage ? '' : 'max-w-screen-2xl mx-auto'}`}>

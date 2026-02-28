@@ -6,9 +6,9 @@ import LazyImage from '../../../components/LazyImage';
 const VendorBadge = ({ vendor, showVerified = true, size = 'sm', showLogo = true }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobileApp = location.pathname.startsWith('/app');
+  const isMobileApp = location.pathname.startsWith('');
   const vendorId = vendor?._id || vendor?.id;
-  const vendorLink = isMobileApp ? `/app/vendor/${vendorId}` : `/vendor/${vendorId}`;
+  const vendorLink = isMobileApp ? `/vendor/${vendorId}` : `/vendor/${vendorId}`;
 
   if (!vendor) return null;
 

@@ -121,7 +121,7 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
           {/* Image Counter Badge */}
           {imageArray.length > 1 && (
             <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-xs font-bold">
-              {selectedIndex + 1} / {imageArray.length}
+              {selectedIndex + 1} // {imageArray.length}
             </div>
           )}
         </div>
@@ -184,7 +184,7 @@ const ImageGallery = ({ images, productName = 'Product' }) => {
             {/* Image Counter */}
             {imageArray.length > 1 && (
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-medium tracking-wide border border-white/10">
-                {selectedIndex + 1} / {imageArray.length}
+                {selectedIndex + 1} // {imageArray.length}
               </div>
             )}
           </motion.div>

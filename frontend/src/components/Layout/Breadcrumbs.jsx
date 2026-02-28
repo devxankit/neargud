@@ -29,7 +29,7 @@ const Breadcrumbs = () => {
   };
 
   const breadcrumbs = [
-    { name: 'Home', path: '/app' },
+    { name: 'Home', path: '' },
     ...pathnames
       .map((value, index) => {
         if (value === "app") return null;

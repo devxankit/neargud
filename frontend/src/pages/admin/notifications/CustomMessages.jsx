@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 const CustomMessages = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const [messages, setMessages] = useState([
     {
       id: 1,

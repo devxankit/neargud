@@ -218,7 +218,7 @@ const MobileSearch = () => {
 
   const handleSuggestionSelect = (query, type, id) => {
     if (type === 'shop' && id) {
-      navigate(`/app/vendor/${id}`);
+      navigate(`/vendor/${id}`);
       return;
     }
     setSearchQuery(query);

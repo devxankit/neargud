@@ -64,7 +64,7 @@ const Register = () => {
                   <p className="text-sm sm:text-base text-gray-600">Create an account or log in to explore about our app</p>
                 </div>
 
-                {/* Sign Up / Log In Toggle */}
+                {/* Sign Up  // Log In Toggle */}
                 <div className="mb-6">
                   <div className="flex bg-gray-100 rounded-lg p-1">
                     <button

@@ -115,7 +115,7 @@ const getFeaturedProducts = (activeTab, categoryId) => {
 // Subcategory mappings for each main category
 const subcategoryMap = {
     // ... (Keep existing if needed, but we focus on dynamic first)
-    1: [ // Clothing
+    1: [  // Clothing
         { name: 'T-Shirts & Tops', keywords: ['t-shirt', 'shirt', 'top'], icons: ['👕', '👔', '👚', '🎽'] },
         { name: 'Jeans & Pants', keywords: ['jeans', 'pants', 'trousers'], icons: ['👖', '🩳', '👔', '👕'] },
         { name: 'Dresses & Skirts', keywords: ['dress', 'gown', 'skirt', 'maxi'], icons: ['👗', '👘', '👙', '👚'] },
@@ -210,7 +210,7 @@ export default function PromoStrip({
     const homepageData = content?.homepage || {};
     const promoStripCMS = homepageData?.promoStrip || {};
 
-    // HOUSEFULL / BANNER TEXT - Prioritize CMS content
+    // HOUSEFULL  // BANNER TEXT - Prioritize CMS content
     const housefullText =
         (promoStripCMS?.housefullText?.trim()) ||
         (homepageData?.heroTitle?.trim()) ||
@@ -343,7 +343,7 @@ export default function PromoStrip({
                             opacity: 0,
                             duration: 0.6,
                             ease: 'power2.in',
-                            delay: 2 // Wait before starting loop
+                            delay: 2  // Wait before starting loop
                         })
                         .to(targets, {
                             scale: 1.2,
@@ -767,7 +767,7 @@ export default function PromoStrip({
                             }
 
                             // For subcategories, link stays to main category (they're filters within the same category page)
-                            const linkTo = categoryId ? `/app/category/${categoryId}` : (card.categoryId ? `/app/category/${card.categoryId}` : '#');
+                            const linkTo = categoryId ? `/category/${categoryId}` : (card.categoryId ? `/category/${card.categoryId}` : '#');
 
                             return (
                                 <div

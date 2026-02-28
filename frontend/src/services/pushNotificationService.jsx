@@ -119,7 +119,7 @@ async function registerFCMToken(forceUpdate = false) {
         deviceType: "web",
         browser: navigator.userAgent,
       },
-      platform: "web" // Added platform for backend mapping
+      platform: "web"  // Added platform for backend mapping
     });
 
     if (response.success) {

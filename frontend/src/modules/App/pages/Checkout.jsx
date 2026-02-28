@@ -52,7 +52,7 @@ const MobileCheckout = () => {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   useEffect(() => {
     if (isAuthenticated && wallet?.balance > 0) {
-      setUseWallet(true);   // auto enable wallet
+      setUseWallet(true); // auto enable wallet
     }
   }, [wallet, isAuthenticated]);
 
@@ -232,7 +232,7 @@ const MobileCheckout = () => {
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Your cart is empty</h2>
             <button
-              onClick={() => navigate('/app')}
+              onClick={() => navigate('')}
               className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
             >
               Continue Shopping
@@ -290,8 +290,8 @@ const MobileCheckout = () => {
           image: item.image || item.thumbnail || '',
         })),
         total: finalTotal,
-        walletUsed: amountFromWallet,        // ✅ wallet deduction
-        payableAmount: remainingAmount,      // ✅ razorpay amount
+        walletUsed: amountFromWallet, // ✅ wallet deduction
+        payableAmount: remainingAmount, // ✅ razorpay amount
         paymentMethod: remainingAmount > 0 ? "razorpay" : "wallet",
         shippingAddress: (selectedAddressId && typeof selectedAddressId === 'string' && selectedAddressId.length === 24) ? selectedAddressId : {
           name: formData.name,
@@ -315,7 +315,7 @@ const MobileCheckout = () => {
 
       if (!razorpay || !razorpay.orderId) {
         clearCart();
-        navigate(`/app/order-confirmation/${createdOrder.id || createdOrder._id}`);
+        navigate(`/order-confirmation/${createdOrder.id || createdOrder._id}`);
         return;
       }
 
@@ -338,7 +338,7 @@ const MobileCheckout = () => {
             });
 
             clearCart();
-            navigate(`/app/order-confirmation/${createdOrder.id || createdOrder._id}`);
+            navigate(`/order-confirmation/${createdOrder.id || createdOrder._id}`);
           } catch (error) {
             console.error('Payment verification failed:', error);
             toast.error('Payment verification failed. Please contact support.');
@@ -434,7 +434,7 @@ const MobileCheckout = () => {
             couponCode: appliedCoupon ? couponCode : null,
           });
           clearCart();
-          navigate(`/app/order-confirmation/${response.id || response._id}`);
+          navigate(`/order-confirmation/${response.id || response._id}`);
         } catch (error) {
           toast.dismiss();
           toast.error(error.response?.data?.message || error.message || 'Failed to place order');
@@ -477,7 +477,7 @@ const MobileCheckout = () => {
               <p className="text-sm text-gray-600 mb-4">Sign in for faster checkout</p>
               <div className="flex gap-3">
                 <Link
-                  to="/app/login"
+                  to="/login"
                   className="flex-1 py-2.5 gradient-green text-white rounded-xl font-semibold text-center hover:shadow-glow-green transition-all"
                 >
                   Sign In
@@ -757,7 +757,7 @@ const MobileCheckout = () => {
                           <FiCreditCard className="text-xl" />
                         </div>
                         <div>
-                          <span className="block font-black text-slate-900 text-sm">Razorpay / Online</span>
+                          <span className="block font-black text-slate-900 text-sm">Razorpay  // Online</span>
                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 inline-block">
                             Pay {formatPrice(useWallet ? (remainingAmount > 0 ? remainingAmount : 0) : finalTotal)} total
                           </span>
@@ -910,7 +910,7 @@ const MobileCheckout = () => {
             </motion.div>
           )}
 
-          {/* Navigation Buttons / Order Summary Footer */}
+          {/* Navigation Buttons  // Order Summary Footer */}
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-6 z-40">
             <div className="max-w-7xl mx-auto flex flex-col gap-4">
               {step === 2 && (

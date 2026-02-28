@@ -37,7 +37,7 @@ const Offers = () => {
         const res = await fetchPublicProducts({
           page,
           limit: 12,
-          sort: '-discount' // Assuming backend supports this or we just fetch products with discounts
+          sort: '-discount'  // Assuming backend supports this or we just fetch products with discounts
         });
         if (res.success) {
           if (page === 1) {

@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 const CustomerDetail = ({ customer, onClose, onUpdate }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const { updateCustomer, toggleCustomerStatus, addActivity } = useCustomerStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({

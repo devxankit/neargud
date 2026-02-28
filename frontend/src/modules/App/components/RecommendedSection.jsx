@@ -34,7 +34,7 @@ const RecommendedSection = ({ products = [], loading = false, theme = null }) =>
           </div>
         </div>
         <Link
-          to="/app/search"
+          to="/search"
           className="flex items-center gap-1 text-[11px] md:text-sm font-black uppercase tracking-wider px-3 py-1.5 md:px-5 md:py-2.5 bg-white/40 backdrop-blur-md rounded-full shadow-sm hover:bg-white/60 transition-all active:scale-95"
           style={{ color: '#000000' }}>
           <span>See All</span>

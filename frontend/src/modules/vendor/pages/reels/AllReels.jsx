@@ -189,7 +189,7 @@ const AllReels = () => {
             <FiEye className="text-lg" />
           </button> */}
           <button
-            onClick={() => window.open(`/app/reels?reel=${row._id || row.id}`, "_blank")}
+            onClick={() => window.open(`/reels?reel=${row._id || row.id}`, "_blank")}
             className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
             title="View in App"
           >

@@ -9,7 +9,7 @@ import useAttributeStore from '../../../store/attributeStore';
 
 const AttributeSets = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   
   // Store
   const { attributeSets, fetchAttributeSets, createAttributeSet, updateAttributeSet, deleteAttributeSet, loadingSets } = useAttributeStore();

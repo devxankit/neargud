@@ -6,8 +6,8 @@ import { getApprovedVendors } from '../../../modules/vendor/data/vendors';
 
 const FeaturedVendorsSection = ({ vendors = [], loading = false, theme = null }) => {
   const location = useLocation();
-  const isMobileApp = location.pathname.startsWith('/app');
-  const vendorsLink = isMobileApp ? '/app/search' : '/search';
+  const isMobileApp = location.pathname.startsWith('');
+  const vendorsLink = isMobileApp ? '/search' : '/search';
 
   const featuredVendors = [...vendors]
     .filter(v => v.isVerified || v.status === 'active')

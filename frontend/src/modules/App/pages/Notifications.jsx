@@ -45,7 +45,7 @@ const MobileNotifications = () => {
         <div className="px-4 py-4 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/app/profile')}
+              onClick={() => navigate('/profile')}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <FiArrowLeft className="text-xl text-gray-700" />
@@ -105,7 +105,7 @@ const MobileNotifications = () => {
                     <p className="text-sm text-gray-600 mt-1">{n.message}</p>
                     {n.orderId && (
                       <button
-                        onClick={() => navigate(`/app/orders/${n.orderId}`)}
+                        onClick={() => navigate(`/orders/${n.orderId}`)}
                         className="mt-2 text-sm font-semibold text-primary-600 hover:text-primary-700"
                       >
                         View order

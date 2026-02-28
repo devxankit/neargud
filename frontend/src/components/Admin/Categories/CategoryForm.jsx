@@ -10,7 +10,7 @@ import Button from '../Button';
 
 const CategoryForm = ({ category, parentId, onClose, onSave }) => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const { categories, createCategory, updateCategory, getCategoryById } = useCategoryStore();
   const isEdit = !!category;
   const isSubcategory = !isEdit && parentId !== null;

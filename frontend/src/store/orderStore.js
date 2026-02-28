@@ -107,7 +107,7 @@ export const useOrderStore = create((set, get) => ({
       return (
         String(orderUserId) === String(userId) ||
         String(customerId) === String(userId) ||
-        !orderUserId // If no ID is present on order, include it anyway (legacy/fallback)
+        !orderUserId  // If no ID is present on order, include it anyway (legacy/fallback)
       );
     });
   },

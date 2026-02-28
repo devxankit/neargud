@@ -210,7 +210,7 @@ const MobileFavorites = () => {
                         icon={FiVideo}
                         title="No favorite videos"
                         description="Reels you like will be saved here"
-                        linkTo="/app/reels"
+                        linkTo="/reels"
                         linkText="Watch Reels"
                       />
                     ) : (
@@ -255,7 +255,7 @@ const VideoFavoriteCard = ({ video, onRemove }) => {
 
       {/* Play Button Overlay */}
       <button
-        onClick={() => navigate(`/app/reels?reel=${id}`)}
+        onClick={() => navigate(`/reels?reel=${id}`)}
         className="absolute inset-0 flex items-center justify-center text-white z-10"
       >
         <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transform transition-all duration-300 group-hover:scale-110 group-hover:bg-white/30 shadow-lg">
@@ -283,7 +283,7 @@ const VideoFavoriteCard = ({ video, onRemove }) => {
   );
 };
 
-const EmptyState = ({ icon: Icon, title, description, linkTo = "/app", linkText = "Explore More" }) => (
+const EmptyState = ({ icon: Icon, title, description, linkTo = "", linkText = "Explore More" }) => (
   <div className="text-center py-20 px-8 flex flex-col items-center">
     <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mb-6 shadow-xl shadow-slate-200/50 border border-slate-50">
       <Icon className="text-5xl text-primary-500" />

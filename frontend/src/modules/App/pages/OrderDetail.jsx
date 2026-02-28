@@ -128,7 +128,7 @@ const MobileOrderDetail = () => {
               <h2 className="text-xl font-bold text-gray-800 mb-2">Order Not Found</h2>
               <p className="text-gray-500 mb-6">We couldn't find the order you're looking for.</p>
               <button
-                onClick={() => navigate('/app/orders')}
+                onClick={() => navigate('/orders')}
                 className="gradient-green text-white px-8 py-3 rounded-xl font-semibold shadow-lg shadow-green-100"
               >
                 Back to My Orders
@@ -160,7 +160,7 @@ const MobileOrderDetail = () => {
       });
     });
     toast.success('Items added to cart!');
-    navigate('/app/checkout');
+    navigate('/checkout');
   };
 
   const handleCancel = () => {
@@ -168,7 +168,7 @@ const MobileOrderDetail = () => {
       if (isOrderCancelable) {
         cancelOrder(order._id || order.id);
         toast.success('Order cancelled successfully');
-        navigate('/app/orders');
+        navigate('/orders');
       } else {
         toast.error('This order cannot be cancelled');
       }
@@ -457,7 +457,7 @@ const MobileOrderDetail = () => {
                   Reorder
                 </button>
                 <button
-                  onClick={() => navigate(`/app/track-order/${order._id || order.id}`)}
+                  onClick={() => navigate(`/track-order/${order._id || order.id}`)}
                   className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
                 >
                   <FiTruck className="text-lg" />

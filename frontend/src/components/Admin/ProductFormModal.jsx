@@ -12,7 +12,7 @@ import { fetchProductById, createProduct, updateProduct } from "../../services/p
 
 const ProductFormModal = ({ isOpen, onClose, productId, onSuccess }) => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const isEdit = productId && productId !== "new";
 
   const { categories, fetchAdminCategories } = useCategoryStore();

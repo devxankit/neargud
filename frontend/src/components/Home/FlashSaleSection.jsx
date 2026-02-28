@@ -18,7 +18,7 @@ const FlashSaleSection = () => {
             <FiZap className="fill-red-600" /> Flash Sale
           </h2>
           <Link
-            to="/app/flash-sale"
+            to="/flash-sale"
             className="text-sm text-red-600 font-semibold hover:text-red-700 transition-colors flex items-center gap-1"
           >
             See All <FiArrowRight />
@@ -48,7 +48,7 @@ const FlashSaleSection = () => {
             <FiZap className="fill-red-600 animate-pulse" /> Flash Sale
           </h2>
           <Link
-            to="/app/flash-sale"
+            to="/flash-sale"
             className="text-xs font-semibold text-red-600 flex items-center gap-1"
           >
             View All <FiArrowRight />

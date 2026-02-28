@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 
 const PromoCodes = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   
   const {
     promoCodes,
@@ -131,7 +131,7 @@ const PromoCodes = () => {
       render: (value, row) => (
         <div>
           <span className="text-sm font-medium text-gray-800">
-            {row.usedCount} / {value === -1 ? '∞' : value}
+            {row.usedCount} // {value === -1 ? '∞' : value}
           </span>
           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
             <div

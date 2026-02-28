@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 
 const ProductFAQs = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const [faqs, setFaqs] = useState([
     {
       id: 1,

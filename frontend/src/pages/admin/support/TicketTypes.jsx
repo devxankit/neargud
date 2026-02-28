@@ -15,7 +15,7 @@ import {
 
 const TicketTypes = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   const [ticketTypes, setTicketTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingType, setEditingType] = useState(null);

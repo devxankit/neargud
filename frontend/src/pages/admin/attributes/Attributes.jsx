@@ -10,7 +10,7 @@ import useAttributeStore from '../../../store/attributeStore';
 
 const Attributes = () => {
   const location = useLocation();
-  const isAppRoute = location.pathname.startsWith('/app');
+  const isAppRoute = location.pathname.startsWith('');
   
   // Store
   const { attributes, fetchAttributes, createAttribute, updateAttribute, deleteAttribute, loadingAttributes } = useAttributeStore();

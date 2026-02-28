@@ -110,10 +110,10 @@ const MobileProductCard = ({ product }) => {
       navigator.share({
         title: product.name,
         text: `Check out ${product.name}`,
-        url: window.location.origin + `/app/product/${productId}`,
+        url: window.location.origin + `/product/${productId}`,
       });
     } else {
-      navigator.clipboard.writeText(window.location.origin + `/app/product/${productId}`);
+      navigator.clipboard.writeText(window.location.origin + `/product/${productId}`);
       toast.success('Link copied to clipboard');
     }
   };
@@ -122,7 +122,7 @@ const MobileProductCard = ({ product }) => {
 
   return (
     <>
-      <Link to={`/app/product/${productId}`} className="block">
+      <Link to={`/product/${productId}`} className="block">
         <motion.div
           whileTap={{ scale: 0.98 }}
           className="bg-white rounded-[1.5rem] overflow-hidden mb-4 border border-slate-100 shadow-sm transition-all active:shadow-md"

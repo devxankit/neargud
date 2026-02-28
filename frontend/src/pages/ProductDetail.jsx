@@ -114,7 +114,7 @@ const ProductDetail = () => {
           <main className="w-full overflow-x-hidden flex items-center justify-center min-h-[60vh]" style={{ paddingTop: `${responsivePadding}px` }}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">{error || 'Product Not Found'}</h2>
-              <Link to="/app" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
+              <Link to="" className="gradient-green text-white px-6 py-3 rounded-xl font-semibold">
                 Go Back Home
               </Link>
             </div>
@@ -286,7 +286,7 @@ const ProductDetail = () => {
                           <span className="text-sm text-primary-600">→ View Store</span>
                         </Link>
                         <Link
-                          to={`/app/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}&productId=${product?._id || product?.id || id}&productName=${encodeURIComponent(product?.name || '')}&productImage=${encodeURIComponent(product?.image || '')}&productPrice=${product?.price}`}
+                          to={`/chat?vendorId=${vendor._id || vendor.id}&vendorName=${encodeURIComponent(vendor.storeName || vendor.businessName || vendor.name)}&productId=${product?._id || product?.id || id}&productName=${encodeURIComponent(product?.name || '')}&productImage=${encodeURIComponent(product?.image || '')}&productPrice=${product?.price}`}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-primary-100 hover:border-primary-200 text-primary-700 rounded-lg transition-colors"
                         >
                           <FiMessageCircle />

@@ -153,7 +153,7 @@ const Chat = () => {
             initializeVendorChat();
         }
 
-    }, [vendorId, user, !!conversations.length, productDescription]); // Added productDescription dependency // Use boolean to avoid re-triggering on every length change if not needed, but length 0 to >0 transition is key.
+    }, [vendorId, user, !!conversations.length, productDescription]); // Added productDescription dependency  // Use boolean to avoid re-triggering on every length change if not needed, but length 0 to >0 transition is key.
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -294,9 +294,9 @@ const Chat = () => {
         const now = new Date();
         const diff = now - d;
 
-        if (diff < 86400000) { // Less than 24 hours
+        if (diff < 86400000) {  // Less than 24 hours
             return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else if (diff < 604800000) { // Less than 7 days
+        } else if (diff < 604800000) {  // Less than 7 days
             return d.toLocaleDateString([], { weekday: 'short' });
         } else {
             return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -452,7 +452,7 @@ const Chat = () => {
                         <div className="px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
                             <div className="flex items-center gap-3 mb-3">
                                 <button
-                                    onClick={() => navigate('/app')}
+                                    onClick={() => navigate('')}
                                     className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full"
                                 >
                                     <FiArrowLeft size={24} />

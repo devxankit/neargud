@@ -12,10 +12,10 @@ import { useVendorStore } from "../../../modules/vendor/store/vendorStore";
 
 const ProductListItem = ({ product, index }) => {
   const location = window.location.pathname;
-  const isMobileApp = location.startsWith("/app");
+  const isMobileApp = location.startsWith("");
   const productId = product._id || product.id;
   const productLink = isMobileApp
-    ? `/app/product/${productId}`
+    ? `/product/${productId}`
     : `/product/${productId}`;
   const { addItem, items, updateQuantity } = useCartStore();
   const cartItem = items.find((i) => i.id === productId);
@@ -151,7 +151,7 @@ const ProductListItem = ({ product, index }) => {
                 e.preventDefault();
                 e.stopPropagation();
                 // Handle chat navigation
-                // navigate(`/app/chat/${vendor.id}`);
+                  // navigate(`/chat/${vendor.id}`);
                 toast('Chat feature coming soon');
               }}
               className="w-full py-1.5 bg-gray-100 text-gray-600 rounded-lg font-semibold text-xs flex items-center justify-center gap-1 hover:bg-gray-200 transition-all border border-gray-200"

@@ -33,17 +33,17 @@ const ProtectedRoute = ({ children }) => {
     // So we need to ensure that ProtectedRoute is ONLY used for routes that absolutely require login
     // like Profile, Orders, Checkout, etc.
     
-    // If accessing /app/* route on desktop view, redirect to desktop login
-    const isAppRoute = location.pathname.startsWith('/app');
+    // If accessing /* route on desktop view, redirect to desktop login
+    const isAppRoute = location.pathname.startsWith('');
     
     if (isAppRoute && isDesktop) {
-      // Redirect to desktop login page when accessing /app/* routes on desktop
+      // Redirect to desktop login page when accessing /* routes on desktop
       return <Navigate to="/login" state={{ from: location }} replace />;
     }
     
     if (isAppRoute) {
-      // Redirect to mobile app login for /app/* routes on mobile
-      return <Navigate to="/app/login" state={{ from: location }} replace />;
+      // Redirect to mobile app login for /* routes on mobile
+      return <Navigate to="/login" state={{ from: location }} replace />;
     }
     
     // Default redirect to desktop login

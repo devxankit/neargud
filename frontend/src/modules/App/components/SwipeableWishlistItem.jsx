@@ -85,7 +85,7 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
 
       <div className="flex gap-4 relative z-10">
         {/* Product Image */}
-        <Link to={`/app/product/${item._id || item.id}`} className="flex-shrink-0">
+        <Link to={`/product/${item._id || item.id}`} className="flex-shrink-0">
           <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100">
             <LazyImage
               src={item.image}
@@ -100,7 +100,7 @@ const SwipeableWishlistItem = ({ item, index, onMoveToCart, onRemove }) => {
 
         {/* Product Info */}
         <div className="flex-1 min-w-0">
-          <Link to={`/app/product/${item._id || item.id}`}>
+          <Link to={`/product/${item._id || item.id}`}>
             <h3 className="font-bold text-gray-800 text-sm mb-1 line-clamp-2">
               {item.name}
             </h3>

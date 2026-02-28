@@ -14,7 +14,7 @@ const MostPopularSection = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">Most Popular</h2>
           <Link
-            to="/app/search?sort=popular"
+            to="/search?sort=popular"
             className="text-sm text-primary-600 font-semibold hover:text-primary-700 transition-colors flex items-center gap-1"
           >
             See All <FiArrowRight />
@@ -43,7 +43,7 @@ const MostPopularSection = () => {
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             Most Popular 🏆
           </h2>
-          <Link to="/app/search?sort=popular" className="text-xs font-semibold text-primary-600">
+          <Link to="/search?sort=popular" className="text-xs font-semibold text-primary-600">
             View All
           </Link>
         </div>

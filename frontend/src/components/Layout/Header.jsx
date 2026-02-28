@@ -348,7 +348,7 @@ const Header = () => {
                 )}
               </Link>
 
-              {/* Account / Auth Buttons */}
+              {/* Account  // Auth Buttons */}
               {isAuthenticated ? (
                 <div ref={userMenuRef} className="relative">
                   <button

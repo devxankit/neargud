@@ -16,7 +16,7 @@ const MobileOrderConfirmation = () => {
 
   useEffect(() => {
     if (!order) {
-      navigate('/app');
+      navigate('');
     }
   }, [order, navigate]);
 
@@ -28,7 +28,7 @@ const MobileOrderConfirmation = () => {
             <div className="text-center">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Order Not Found</h2>
               <button
-                onClick={() => navigate('/app')}
+                onClick={() => navigate('')}
                 className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
               >
                 Go Home
@@ -134,7 +134,7 @@ const MobileOrderConfirmation = () => {
             {/* Actions */}
             <div className="space-y-3">
               <Link
-                to={`/app/orders/${order._id || order.id}`}
+                to={`/orders/${order._id || order.id}`}
                 className="block w-full py-3 gradient-green text-white rounded-xl font-semibold text-center hover:shadow-glow-green transition-all"
               >
                 <div className="flex items-center justify-center gap-2">
@@ -143,7 +143,7 @@ const MobileOrderConfirmation = () => {
                 </div>
               </Link>
               <Link
-                to={`/app/track-order/${order._id || order.id}`}
+                to={`/track-order/${order._id || order.id}`}
                 className="block w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold text-center hover:bg-gray-200 transition-colors"
               >
                 <div className="flex items-center justify-center gap-2">
@@ -152,7 +152,7 @@ const MobileOrderConfirmation = () => {
                 </div>
               </Link>
               <button
-                onClick={() => navigate('/app')}
+                onClick={() => navigate('')}
                 className="w-full py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
               >
                 Continue Shopping

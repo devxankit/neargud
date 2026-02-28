@@ -6,7 +6,7 @@ import LazyImage from '../../../components/LazyImage';
 
 const NewArrivalsSection = ({ products = [], loading = false, theme = null }) => {
   const location = useLocation();
-  const isMobileApp = location.pathname.startsWith('/app');
+  const isMobileApp = location.pathname.startsWith('');
   const newArrivals = products.slice(0, 6);
 
   if (!loading && newArrivals.length === 0) {
@@ -128,7 +128,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
             whileTap={{ scale: 0.95 }}
           >
             <Link
-              to="/app/search"
+              to="/search"
               className="bg-white/30 backdrop-blur-md text-black text-[11px] md:text-xs font-black uppercase tracking-wider px-4 py-2 md:px-6 md:py-3 rounded-full border border-white/20 hover:bg-white/50 transition-all block"
             >
               See All
@@ -144,7 +144,7 @@ const NewArrivalsSection = ({ products = [], loading = false, theme = null }) =>
             ))
           ) : (
             newArrivals.map((product, index) => {
-              const productLink = isMobileApp ? `/app/product/${product._id || product.id}` : `/product/${product._id || product.id}`;
+              const productLink = isMobileApp ? `/product/${product._id || product.id}` : `/product/${product._id || product.id}`;
               return (
                 <motion.div
                   key={`${product._id || product.id}-${index}`}

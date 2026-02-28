@@ -51,7 +51,7 @@ const MobileTrackOrder = () => {
             <div className="text-center">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Order Not Found</h2>
               <button
-                onClick={() => navigate('/app/orders')}
+                onClick={() => navigate('/orders')}
                 className="gradient-green text-white px-6 py-3 rounded-xl font-semibold"
               >
                 Back to Orders
@@ -223,7 +223,7 @@ const MobileTrackOrder = () => {
 
               {/* Actions */}
               <button
-                onClick={() => navigate(`/app/orders/${order._id || order.id}`)}
+                onClick={() => navigate(`/orders/${order._id || order.id}`)}
                 className="w-full py-3 gradient-green text-white rounded-xl font-semibold hover:shadow-glow-green transition-all"
               >
                 View Order Details

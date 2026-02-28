@@ -41,7 +41,7 @@ const MobileCategories = () => {
   // Initialize with first category immediately
   const [selectedRootId, setSelectedRootId] = useState(rootCategories[0]?.id || null);
   const [currentViewId, setCurrentViewId] = useState(rootCategories[0]?.id || null);
-  const [history, setHistory] = useState([]);                 // History for Back Navigation
+  const [history, setHistory] = useState([]); // History for Back Navigation
 
   // Product State (Fetched via API)
   const [products, setProducts] = useState([]);
