@@ -3,6 +3,11 @@ import { messaging, VAPID_KEY } from "../config/firebase";
 import api from "../utils/api";
 import toast from "react-hot-toast";
 
+const IOS_SAFARI_USER_AGENT =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) " +
+  "AppleWebKit/605.1.15 (KHTML, like Gecko) " +
+  "Version/17.0 Mobile/15E148 Safari/604.1";
+
 // Register service worker
 async function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
@@ -117,9 +122,9 @@ async function registerFCMToken(forceUpdate = false) {
       fcmToken: token,
       deviceInfo: {
         deviceType: "web",
-        browser: navigator.userAgent,
+        browser: IOS_SAFARI_USER_AGENT,
       },
-      platform: "web"  // Added platform for backend mapping
+      platform: "web", // Added platform for backend mapping
     });
 
     if (response.success) {
